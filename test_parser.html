@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Test Parser v1.4.4</title>
+</head>
+<body>
+    <h1>Test Smart Expositions Parser</h1>
+    <pre id="results"></pre>
+    
+    <script>
+        // Simulo la funzione parseExpositionsText
+        function parseExpositionsText(text) {
+            const lines = text.split('\n')
+                .map(l => l.trim())
+                .filter(l => l.length > 0);
+            
+            if (lines.length === 0) return [];
+            
+            // Auto-detect and skip header
+            const headerIndex = lines.findIndex(l => {
+                const lower = l.toLowerCase();
+                return lower.includes('nome') || 
+                       lower.includes('ticker') || 
+                       lower.includes('quota') ||
+                       lower.includes('isin');
+            });
+            
+            const dataLines = headerIndex >= 0 
+                ? lines.slice(headerIndex + 1) 
+                : lines;
+            
+            const expositions = [];
+            
+            dataLines.forEach((line, index) => {
+                try {
+                    // Split by TAB or multiple spaces (2+)
+                    const parts = line.split(/\t+|\s{2,}/)
+                        .map(p => p.trim())
+                        .filter(p => p.length > 0);
+                    
+                    if (parts.length < 2) return;
+                    
+                    // Find QUOTA column
+                    const quotaIndex = parts.findIndex(p => /[\d.]+\s*\/\s*\d+/.test(p));
+                    
+                    if (quotaIndex === -1) return;
+                    
+                    const quota = parts[quotaIndex];
+                    const nome = parts[0];
+                    const ticker = parts.length > 1 ? parts[1] : '';
+                    
+                    // Parse quota
+                    const match = quota.match(/([\d.]+)\s*\/\s*(\d+)/);
+                    
+                    if (match) {
+                        expositions.push({
+                            nome: nome,
+                            ticker: ticker,
+                            numerator: parseFloat(match[1]),
+                            denominator: parseInt(match[2])
+                        });
+                    }
+                } catch (error) {
+                    console.warn(`Skipping line ${index + 1}`, error);
+                }
+            });
+            
+            return expositions;
+        }
+        
+        // Test data
+        const testData = `NOME        TICKER        ISIN        QUOTA        TIPO
+Petroleo Brasileiro        NYSE:PBR        US71654V4086        3/4        GROWTH-DIVIDEND
+EQT-Corporation        NYSE:EQT        US26884L1098        3/4        GROWTH-DIVIDEND
+Alcoa        NYSE:AA        US0138721065        3/4        GROWTH-DIVIDEND
+Ferroglobe PLC        NASDAQ: GSM        GB00BYW6GV68        2/4        GROWTH-DIVIDEND
+Hecla Mining        NYSE:HL        US4227041062        4/4        GROWTH
+Ur-Energy        NYSE:URG        CA91688R1082        4/4        GROWTH-SPECULATIVE
+Marathon Digital        NASDAQ: MARA        US5657881067        2/4        GROWTH-SPECULATIVE
+Patriot Battery Metals        TSXV: PMET        CA70337R1073        1/4        SPECULATIVE
+Vizsla Silver Corp        NYSE:VZLA        CA92859G6085        4/4        SPECULATIVE
+Piedmont Lithium        NASDAQ: PLL        US72016P1057        1/4        SPECULATIVE
+AbraSilver Resource Corporation        TSXV:ABRA        CA00379L1067        0.5/4        SPECULATIVE
+Opus Genetics Inc (ex Ocuphire Pharma)        NASDAQ: IRD        US67577R1023        0.5/4        SPECULATIVE`;
+        
+        // Run test
+        const results = parseExpositionsText(testData);
+        
+        let output = `✅ TEST COMPLETATO\n\n`;
+        output += `📊 ${results.length} esposizioni parsate:\n\n`;
+        
+        results.forEach((exp, i) => {
+            output += `${i+1}. ${exp.nome}\n`;
+            output += `   Ticker: ${exp.ticker}\n`;
+            output += `   Quota: ${exp.numerator}/${exp.denominator}\n\n`;
+        });
+        
+        // Validation
+        const expectedCount = 12;
+        const hasDecimals = results.some(r => r.numerator % 1 !== 0);
+        const hasExchangePrefix = results.some(r => r.ticker.includes(':'));
+        
+        output += `\n🧪 VALIDAZIONE:\n`;
+        output += `✅ Count: ${results.length === expectedCount ? 'OK' : 'FAIL'} (${results.length}/${expectedCount})\n`;
+        output += `✅ Decimali: ${hasDecimals ? 'OK' : 'FAIL'}\n`;
+        output += `✅ Exchange prefix: ${hasExchangePrefix ? 'OK' : 'FAIL'}\n`;
+        
+        document.getElementById('results').textContent = output;
+    </script>
+</body>
+</html>

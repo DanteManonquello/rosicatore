@@ -1,0 +1,1612 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rosicatore v1.4.4 - Stock Price Timeline Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fflate@0.8.1/umd/index.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .track {
+            transition: all 0.3s ease;
+        }
+        .track:hover {
+            background-color: rgba(59, 130, 246, 0.05);
+        }
+        .period-btn {
+            padding: 8px 16px;
+            border: 1px solid #e5e7eb;
+            background: white;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 500;
+            user-select: none;
+        }
+        .period-btn:hover {
+            background: #f3f4f6;
+        }
+        .period-btn.active {
+            background: #3b82f6;
+            color: white;
+            border-color: #3b82f6;
+        }
+        .chart-container {
+            position: relative;
+            height: 500px;
+            background: #ffffff;
+            border-radius: 8px;
+            padding: 20px;
+        }
+        .counter-btn {
+            width: 36px;
+            height: 36px;
+            border: 1px solid #d1d5db;
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+        .counter-btn:hover {
+            background: #f3f4f6;
+            border-color: #9ca3af;
+        }
+        .counter-btn:active {
+            background: #e5e7eb;
+        }
+        .calc-display {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 12px;
+            padding: 20px;
+            color: white;
+        }
+        .performance-box {
+            background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+            border-radius: 12px;
+            padding: 20px;
+            color: #333;
+            border: 2px solid #ff9a76;
+        }
+        .dashboard {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            border-radius: 16px;
+            padding: 24px;
+            color: white;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Header -->
+    <div class="bg-gradient-to-r from-purple-600 to-blue-600 text-white p-6 shadow-lg">
+        <div class="max-w-7xl mx-auto">
+            <h1 class="text-4xl font-bold flex items-center gap-3">
+                <i class="fas fa-chart-line"></i>
+                Rosicatore <span class="text-lg font-normal opacity-75">v1.4.4</span>
+            </h1>
+            <p class="text-purple-100 mt-2">Stock Price Timeline Tracker - Analizza gli andamenti azionari con calcoli di investimento</p>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="max-w-7xl mx-auto p-6">
+        
+        <!-- Portfolio Dashboard -->
+        <div id="portfolio-dashboard" class="dashboard mb-6">
+            <h2 class="text-2xl font-bold mb-4 flex items-center gap-2">
+                <i class="fas fa-briefcase"></i>
+                Portafoglio Totale
+            </h2>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                <div class="text-center">
+                    <div class="text-sm opacity-90">Capitale Alloggiato</div>
+                    <div class="text-2xl font-bold mt-1" id="total-capital">0.00 €</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-sm opacity-90">Capitale Investito</div>
+                    <div class="text-2xl font-bold mt-1" id="total-invested">0.00 €</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-sm opacity-90">Capitale Residuo</div>
+                    <div class="text-2xl font-bold mt-1" id="total-residual">0.00 €</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-sm opacity-90">Titoli Diversi</div>
+                    <div class="text-2xl font-bold mt-1" id="total-stocks">0</div>
+                </div>
+            </div>
+            
+            <!-- Performance KPI (v1.4.3) -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t border-white/30">
+                <div class="text-center">
+                    <div class="text-sm opacity-90">Liquidità Investita</div>
+                    <div class="text-2xl font-bold mt-1" id="total-exposure">0%</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-sm opacity-90">Quarti Investiti</div>
+                    <div class="text-2xl font-bold mt-1" id="total-quarters">0/4</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-sm opacity-90">
+                        <i class="fas fa-chart-line"></i> GAIN/LOSS €
+                    </div>
+                    <div class="text-2xl font-bold mt-1" id="total-gain-loss">
+                        <span class="text-gray-300">--</span>
+                    </div>
+                </div>
+                <div class="text-center">
+                    <div class="text-sm opacity-90">
+                        <i class="fas fa-percentage"></i> GAIN/LOSS %
+                    </div>
+                    <div class="text-2xl font-bold mt-1" id="total-gain-loss-percent">
+                        <span class="text-gray-300">--</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Multi Upload Drop Zone (NEW v1.4.1 - Collapsabile) -->
+        <div class="mb-6 bg-white rounded-lg shadow-md border-2 border-dashed border-gray-300 overflow-hidden">
+            <button id="mu-toggle-dropzone" class="w-full p-4 flex items-center justify-between hover:bg-gray-50 transition">
+                <div class="flex items-center gap-3">
+                    <i class="fas fa-cloud-upload-alt text-2xl text-purple-600"></i>
+                    <div class="text-left">
+                        <h3 class="text-lg font-bold text-gray-800">Caricamento Multiplo</h3>
+                        <p class="text-sm text-gray-600">Trascina cartelle, ZIP, TAR.GZ o seleziona più CSV contemporaneamente</p>
+                    </div>
+                </div>
+                <i id="mu-dropzone-chevron" class="fas fa-chevron-down text-gray-400 transition-transform"></i>
+            </button>
+            
+            <div id="mu-dropzone-content" class="hidden border-t border-gray-200">
+                <div id="mu-drop-area" class="p-8 text-center">
+                    <i class="fas fa-folder-open text-6xl text-gray-300 mb-4"></i>
+                    <p class="text-gray-600 mb-4">
+                        <span class="font-semibold">Trascina qui</span> i tuoi file o 
+                        <label for="mu-multi-file-input" class="text-purple-600 hover:text-purple-700 cursor-pointer underline">
+                            selezionali dal computer
+                        </label>
+                    </p>
+                    <input type="file" id="mu-multi-file-input" multiple accept=".csv,.zip,.tar.gz,.tar" class="hidden">
+                    <div class="flex flex-wrap gap-2 justify-center text-xs text-gray-500">
+                        <span class="bg-gray-100 px-2 py-1 rounded">.csv</span>
+                        <span class="bg-gray-100 px-2 py-1 rounded">.zip</span>
+                        <span class="bg-gray-100 px-2 py-1 rounded">.tar.gz</span>
+                        <span class="bg-gray-100 px-2 py-1 rounded">Cartelle</span>
+                        <span class="bg-gray-100 px-2 py-1 rounded">Multi-selezione</span>
+                    </div>
+                </div>
+                
+                <!-- Global Settings (v1.4.2) -->
+                <div id="mu-global-settings" class="p-4 bg-gradient-to-r from-purple-50 to-blue-50 border-t border-purple-200">
+                    <h4 class="font-bold text-gray-800 mb-3 flex items-center gap-2">
+                        <i class="fas fa-cog text-purple-600"></i>
+                        Impostazioni Globali (opzionali)
+                    </h4>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                                <i class="fas fa-wallet"></i> Capitale Totale (€)
+                            </label>
+                            <input type="number" 
+                                   id="mu-global-capital" 
+                                   placeholder="es: 50000"
+                                   class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-purple-500">
+                            <p class="text-xs text-gray-500 mt-1">Si dividerà per numero tracce</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                                <i class="fas fa-calendar-alt"></i> Data Inizio Comune
+                            </label>
+                            <input type="date" 
+                                   id="mu-global-date-start"
+                                   class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-purple-500">
+                            <p class="text-xs text-gray-500 mt-1">Applicata a tutte le tracce</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                                <i class="fas fa-calendar-check"></i> Data Fine Comune
+                            </label>
+                            <input type="date" 
+                                   id="mu-global-date-end"
+                                   class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-purple-500">
+                            <p class="text-xs text-gray-500 mt-1">Applicata a tutte le tracce</p>
+                        </div>
+                    </div>
+                    <div class="mt-3 flex items-center gap-2 text-xs text-gray-600 bg-white p-2 rounded border border-gray-200">
+                        <i class="fas fa-info-circle text-blue-500"></i>
+                        <span>Ogni traccia potrà essere modificata manualmente dopo la creazione</span>
+                    </div>
+                </div>
+                
+                <div id="mu-upload-progress" class="hidden p-4 bg-blue-50 border-t border-blue-200">
+                    <div class="flex items-center gap-3">
+                        <i class="fas fa-spinner fa-spin text-blue-600"></i>
+                        <span id="mu-progress-text" class="text-sm text-blue-800">Elaborazione in corso...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Smart Expositions Parser (v1.4.4) -->
+        <div class="mb-6 bg-white rounded-lg shadow-md border-2 border-orange-300 overflow-hidden">
+            <button id="mu-toggle-expositions" class="w-full p-4 flex items-center justify-between hover:bg-orange-50 transition">
+                <div class="flex items-center gap-3">
+                    <i class="fas fa-magic text-2xl text-orange-600"></i>
+                    <div class="text-left">
+                        <h3 class="text-lg font-bold text-gray-800">Applica Esposizioni Intelligente (v1.4.4)</h3>
+                        <p class="text-sm text-gray-600">Incolla una tabella (da Excel/Sheets) e applica esposizioni automaticamente</p>
+                    </div>
+                </div>
+                <i id="mu-expositions-chevron" class="fas fa-chevron-down text-gray-400 transition-transform"></i>
+            </button>
+            
+            <div id="mu-expositions-content" class="hidden border-t border-orange-200">
+                <div class="p-4 bg-gradient-to-r from-orange-50 to-yellow-50">
+                    <textarea 
+                        id="mu-expositions-text" 
+                        class="w-full p-4 border-2 border-orange-300 rounded-lg font-mono text-sm resize-vertical focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                        rows="10"
+                        placeholder="Esempio:
+NOME        TICKER        ISIN        QUOTA        TIPO
+Petroleo Brasileiro        NYSE:PBR        US71654V4086        3/4        GROWTH-DIVIDEND
+EQT Corporation        NYSE:EQT        US26884L1098        3/4        GROWTH-DIVIDEND
+Alcoa        NYSE:AA        US0138721065        2/4        GROWTH-DIVIDEND
+
+✨ Supporta:
+• Copia-incolla diretto da Excel/Google Sheets
+• Separatori TAB o spazi multipli
+• Con o senza header (rilevamento automatico)
+• Quote decimali (es: 0.5/4)
+• Match automatico per NOME o TICKER"></textarea>
+                    
+                    <button 
+                        id="mu-apply-expositions-btn" 
+                        class="mt-4 w-full bg-gradient-to-r from-orange-500 to-yellow-500 hover:from-orange-600 hover:to-yellow-600 text-white font-bold py-3 px-6 rounded-lg shadow-lg transition flex items-center justify-center gap-2">
+                        <i class="fas fa-bolt"></i>
+                        Applica Esposizioni
+                    </button>
+                    
+                    <div class="mt-3 flex flex-wrap gap-2 text-xs text-gray-600">
+                        <span class="bg-white px-2 py-1 rounded border"><i class="fas fa-check text-green-500"></i> Auto-detect formato</span>
+                        <span class="bg-white px-2 py-1 rounded border"><i class="fas fa-check text-green-500"></i> Match per TICKER</span>
+                        <span class="bg-white px-2 py-1 rounded border"><i class="fas fa-check text-green-500"></i> Supporta decimali (0.5/4)</span>
+                        <span class="bg-white px-2 py-1 rounded border"><i class="fas fa-check text-green-500"></i> Skip header automatico</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Tracks Container -->
+        <div id="tracks-container" class="space-y-4">
+            <!-- Tracks will be added here -->
+        </div>
+
+        <!-- Add Track Button -->
+        <div class="mt-6 text-center">
+            <button id="add-track-btn" class="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-lg shadow-lg transition flex items-center gap-2 mx-auto">
+                <i class="fas fa-plus"></i>
+                Aggiungi Traccia
+            </button>
+        </div>
+    </div>
+
+    <!-- Modal for Chart -->
+    <div id="chart-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-lg shadow-2xl max-w-7xl w-full max-h-[95vh] overflow-auto">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <div>
+                        <h2 id="modal-title" class="text-2xl font-bold text-gray-800"></h2>
+                        <div id="price-info" class="text-3xl font-bold text-gray-900 mt-2">--</div>
+                        <div id="price-change" class="text-sm mt-1">--</div>
+                    </div>
+                    <button id="close-modal" class="text-gray-500 hover:text-gray-700 text-3xl">&times;</button>
+                </div>
+                
+                <!-- Period Buttons -->
+                <div class="flex gap-2 mb-4 flex-wrap">
+                    <button class="period-btn" data-period="1D">1G</button>
+                    <button class="period-btn" data-period="5D">5G</button>
+                    <button class="period-btn active" data-period="1M">1M</button>
+                    <button class="period-btn" data-period="6M">6M</button>
+                    <button class="period-btn" data-period="YTD">YTD</button>
+                    <button class="period-btn" data-period="1Y">1A</button>
+                    <button class="period-btn" data-period="5Y">5A</button>
+                    <button class="period-btn" data-period="MAX">Max</button>
+                </div>
+
+                <!-- Metric Selection -->
+                <div class="mb-4 flex gap-4 items-center flex-wrap">
+                    <select id="chart-metric" class="border border-gray-300 rounded px-4 py-2">
+                        <option value="Price">Prezzo</option>
+                        <option value="High">Massimo</option>
+                        <option value="Low">Minimo</option>
+                        <option value="Open">Apertura</option>
+                        <option value="Vol.">Volume</option>
+                    </select>
+                </div>
+                
+                <!-- Chart -->
+                <div class="chart-container">
+                    <canvas id="stock-chart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // LocalStorage keys
+        const STORAGE_KEY = 'rosicatore_tracks';
+
+        // Get today's date in YYYY-MM-DD format
+        function getTodayDate() {
+            return new Date().toISOString().split('T')[0];
+        }
+
+        // Migration: Add default fields to old tracks
+        function migrateTrack(track) {
+            if (!track.capital) track.capital = 0;
+            if (!track.numerator) track.numerator = 1;
+            if (!track.denominator) track.denominator = 4;
+            if (!track.dateStart) track.dateStart = '';
+            if (!track.dateEnd) track.dateEnd = getTodayDate();
+            return track;
+        }
+
+        // Load tracks from localStorage with migration
+        let tracks = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[{"id":"track-1","data":null,"filename":null}]').map(migrateTrack);
+        let currentChart = null;
+        let currentTrackId = null;
+        let currentPeriod = '1M';
+
+        // Save tracks to localStorage
+        function saveTracks() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(tracks));
+        }
+
+        // Get price at START of date range (for buying shares)
+        function getStartPrice(track) {
+            if (!track.data || track.data.length === 0) return 0;
+            
+            const startDate = track.dateStart ? new Date(track.dateStart) : new Date(track.data[track.data.length - 1].Date);
+            
+            // Find entry closest to start date
+            let closestEntry = null;
+            let minDiff = Infinity;
+            
+            track.data.forEach(d => {
+                const date = new Date(d.Date);
+                const diff = Math.abs(date - startDate);
+                if (diff < minDiff) {
+                    minDiff = diff;
+                    closestEntry = d;
+                }
+            });
+            
+            return closestEntry ? parseFloat(closestEntry.Price) : 0;
+        }
+
+        // Get price at END of date range (current value)
+        function getEndPrice(track) {
+            if (!track.data || track.data.length === 0) return 0;
+            
+            const endDate = track.dateEnd ? new Date(track.dateEnd) : new Date();
+            
+            // Find entry closest to end date
+            let closestEntry = null;
+            let minDiff = Infinity;
+            
+            track.data.forEach(d => {
+                const date = new Date(d.Date);
+                const diff = Math.abs(date - endDate);
+                if (diff < minDiff) {
+                    minDiff = diff;
+                    closestEntry = d;
+                }
+            });
+            
+            return closestEntry ? parseFloat(closestEntry.Price) : 0;
+        }
+
+        // DEPRECATED: Use getStartPrice or getEndPrice instead
+        // Get latest price from CSV data within date range
+        function getLatestPrice(track) {
+            return getEndPrice(track);
+        }
+
+        // Calculate investment details
+        function calculateInvestment(track) {
+            const capital = parseFloat(track.capital) || 0;
+            const numerator = parseInt(track.numerator) || 0;
+            const denominator = parseInt(track.denominator) || 1;
+            
+            if (denominator === 0) return { invested: 0, residual: 0, shares: 0, exposure: 0, startPrice: 0, endPrice: 0 };
+            
+            const fraction = numerator / denominator;
+            const invested = capital * fraction;
+            const residual = capital - invested;
+            const exposure = (fraction * 100).toFixed(1);
+            
+            // Use START price to calculate shares purchased
+            const startPrice = getStartPrice(track);
+            const shares = startPrice > 0 ? (invested / startPrice) : 0;
+            
+            // Get END price for current value
+            const endPrice = getEndPrice(track);
+            
+            return {
+                invested: invested,
+                residual: residual,
+                shares: shares,
+                exposure: exposure,
+                startPrice: startPrice,
+                endPrice: endPrice
+            };
+        }
+
+        // Calculate performance metrics
+        function calculatePerformance(track) {
+            const calc = calculateInvestment(track);
+            
+            if (!track.data || track.data.length === 0 || calc.shares === 0) {
+                return {
+                    currentValue: 0,
+                    gainLoss: 0,
+                    gainLossPercent: 0,
+                    avgBuyPrice: 0,
+                    currentPrice: 0
+                };
+            }
+            
+            // Use END price for current value (FIXED!)
+            const currentPrice = calc.endPrice;
+            const currentValue = calc.shares * currentPrice;
+            const gainLoss = currentValue - calc.invested;
+            const gainLossPercent = calc.invested > 0 ? ((gainLoss / calc.invested) * 100) : 0;
+            
+            // Avg buy price is START price (what we paid)
+            const avgBuyPrice = calc.startPrice;
+            
+            return {
+                currentValue: currentValue,
+                gainLoss: gainLoss,
+                gainLossPercent: gainLossPercent,
+                avgBuyPrice: avgBuyPrice,
+                currentPrice: currentPrice
+            };
+        }
+
+        // Update calculations display for a track
+        function updateCalculations(trackId) {
+            const track = tracks.find(t => t.id === trackId);
+            if (!track) return;
+            
+            const calc = calculateInvestment(track);
+            const perf = calculatePerformance(track);
+            
+            const investedEl = document.getElementById('invested-' + trackId);
+            const residualEl = document.getElementById('residual-' + trackId);
+            const sharesEl = document.getElementById('shares-' + trackId);
+            const exposureEl = document.getElementById('exposure-' + trackId);
+            
+            if (investedEl) investedEl.textContent = calc.invested.toLocaleString('it-IT', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' €';
+            if (residualEl) residualEl.textContent = calc.residual.toLocaleString('it-IT', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' €';
+            if (sharesEl) sharesEl.textContent = calc.shares.toLocaleString('it-IT', {minimumFractionDigits: 0, maximumFractionDigits: 6}) + ' azioni @ ' + calc.startPrice.toFixed(2) + '$/az';
+            if (exposureEl) exposureEl.textContent = calc.exposure + '%';
+            
+            // Update performance metrics
+            const currentValueEl = document.getElementById('current-value-' + trackId);
+            const gainLossEl = document.getElementById('gain-loss-' + trackId);
+            const avgPriceEl = document.getElementById('avg-price-' + trackId);
+            const currentPriceEl = document.getElementById('current-price-' + trackId);
+            
+            if (currentValueEl) currentValueEl.textContent = perf.currentValue.toLocaleString('it-IT', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' €';
+            if (avgPriceEl) avgPriceEl.textContent = perf.avgBuyPrice.toFixed(2) + '$/az';
+            if (currentPriceEl) currentPriceEl.textContent = perf.currentPrice.toFixed(2) + '$/az';
+            
+            if (gainLossEl) {
+                const color = perf.gainLoss >= 0 ? 'text-green-600' : 'text-red-600';
+                const icon = perf.gainLoss >= 0 ? '▲' : '▼';
+                gainLossEl.className = 'text-xl font-bold ' + color;
+                gainLossEl.textContent = icon + ' ' + perf.gainLoss.toLocaleString('it-IT', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' € (' + perf.gainLossPercent.toFixed(2) + '%)';
+            }
+            
+            // Update portfolio dashboard
+            updateDashboard();
+        }
+
+        // Update portfolio dashboard with totals
+        function updateDashboard() {
+            let totalCapital = 0;
+            let totalInvested = 0;
+            let totalResidual = 0;
+            let stockCount = 0;
+            let totalQuarters = 0;
+            let totalDenominator = 0;
+            let weightedExposure = 0;
+            
+            // v1.4.3: KPI Performance Globali
+            let totalCurrentValue = 0;
+            let totalGainLoss = 0;
+            
+            tracks.forEach(track => {
+                if (track.data && track.data.length > 0) {
+                    const calc = calculateInvestment(track);
+                    const capital = parseFloat(track.capital) || 0;
+                    const numerator = parseInt(track.numerator) || 0;
+                    const denominator = parseInt(track.denominator) || 4;
+                    
+                    totalCapital += capital;
+                    totalInvested += calc.invested;
+                    totalResidual += calc.residual;
+                    stockCount++;
+                    totalQuarters += numerator;
+                    totalDenominator += denominator;
+                    
+                    // Weighted exposure by capital
+                    if (capital > 0) {
+                        weightedExposure += (calc.invested / capital) * capital;
+                    }
+                    
+                    // v1.4.3: Calcola performance globale
+                    if (calc.invested > 0) {
+                        const startPrice = getStartPrice(track);
+                        const endPrice = getEndPrice(track);
+                        
+                        if (startPrice > 0 && endPrice > 0) {
+                            const shares = calc.invested / startPrice;
+                            const currentValue = shares * endPrice;
+                            const gainLoss = currentValue - calc.invested;
+                            
+                            totalCurrentValue += currentValue;
+                            totalGainLoss += gainLoss;
+                        }
+                    }
+                }
+            });
+            
+            const avgExposure = totalCapital > 0 ? ((totalInvested / totalCapital) * 100).toFixed(1) : '0.0';
+            
+            // v1.4.3: Calcola percentuale gain/loss
+            const percentGainLoss = totalInvested > 0 ? ((totalGainLoss / totalInvested) * 100) : 0;
+            
+            document.getElementById('total-capital').textContent = totalCapital.toLocaleString('it-IT', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' €';
+            document.getElementById('total-invested').textContent = totalInvested.toLocaleString('it-IT', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' €';
+            document.getElementById('total-residual').textContent = totalResidual.toLocaleString('it-IT', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' €';
+            document.getElementById('total-stocks').textContent = stockCount;
+            document.getElementById('total-exposure').textContent = avgExposure + '%';
+            document.getElementById('total-quarters').textContent = totalQuarters + '/' + totalDenominator;
+            
+            // v1.4.3: Aggiorna KPI performance
+            const gainLossElem = document.getElementById('total-gain-loss');
+            const gainLossPercentElem = document.getElementById('total-gain-loss-percent');
+            
+            if (gainLossElem) {
+                const sign = totalGainLoss >= 0 ? '+' : '';
+                const colorClass = totalGainLoss >= 0 ? 'text-green-600' : 'text-red-600';
+                const arrow = totalGainLoss >= 0 ? '⬆️' : '⬇️';
+                gainLossElem.innerHTML = `<span class="${colorClass} font-bold">${sign}${totalGainLoss.toLocaleString('it-IT', {minimumFractionDigits: 2, maximumFractionDigits: 2})}€ ${arrow}</span>`;
+            }
+            
+            if (gainLossPercentElem) {
+                const sign = percentGainLoss >= 0 ? '+' : '';
+                const colorClass = percentGainLoss >= 0 ? 'text-green-600' : 'text-red-600';
+                const arrow = percentGainLoss >= 0 ? '⬆️' : '⬇️';
+                gainLossPercentElem.innerHTML = `<span class="${colorClass} font-bold">${sign}${percentGainLoss.toFixed(2)}% ${arrow}</span>`;
+            }
+        }
+
+        // Render tracks
+        function renderTracks() {
+            const container = document.getElementById('tracks-container');
+            container.innerHTML = '';
+
+            tracks.forEach((track, index) => {
+                const trackDiv = document.createElement('div');
+                trackDiv.className = 'track bg-white rounded-lg shadow-md p-6 border-l-4 border-purple-500';
+                
+                // Track header
+                const headerDiv = document.createElement('div');
+                headerDiv.className = 'flex items-center justify-between mb-4';
+                headerDiv.innerHTML = '<h3 class="text-xl font-bold text-gray-800"><i class="fas fa-layer-group text-purple-500"></i> Traccia ' + (index + 1) + '</h3>';
+                
+                const buttonsDiv = document.createElement('div');
+                buttonsDiv.className = 'flex gap-2';
+                
+                if (track.data) {
+                    const chartBtn = document.createElement('button');
+                    chartBtn.className = 'bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded flex items-center gap-2';
+                    chartBtn.innerHTML = '<i class="fas fa-chart-line"></i> Visualizza Grafico';
+                    chartBtn.onclick = () => showChart(track.id);
+                    buttonsDiv.appendChild(chartBtn);
+                }
+                
+                if (tracks.length > 1) {
+                    const removeBtn = document.createElement('button');
+                    removeBtn.className = 'bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded flex items-center gap-2';
+                    removeBtn.innerHTML = '<i class="fas fa-trash"></i> Rimuovi';
+                    removeBtn.onclick = () => removeTrack(track.id);
+                    buttonsDiv.appendChild(removeBtn);
+                }
+                
+                headerDiv.appendChild(buttonsDiv);
+                trackDiv.appendChild(headerDiv);
+                
+                // File upload section
+                const contentDiv = document.createElement('div');
+                contentDiv.className = 'mb-4';
+                
+                if (track.filename) {
+                    contentDiv.innerHTML = '<p class="text-green-600 font-semibold flex items-center gap-2"><i class="fas fa-check-circle"></i> File caricato: ' + track.filename + '</p><p class="text-gray-600 text-sm mt-1"><i class="fas fa-database"></i> ' + track.data.length + ' righe di dati</p>';
+                } else {
+                    const label = document.createElement('label');
+                    label.className = 'block text-gray-700 font-semibold mb-2';
+                    label.innerHTML = '<i class="fas fa-upload"></i> Carica CSV';
+                    
+                    const fileInput = document.createElement('input');
+                    fileInput.type = 'file';
+                    fileInput.accept = '.csv';
+                    fileInput.className = 'block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100';
+                    fileInput.onchange = (e) => uploadCSV(track.id, e);
+                    
+                    contentDiv.appendChild(label);
+                    contentDiv.appendChild(fileInput);
+                }
+                
+                trackDiv.appendChild(contentDiv);
+                
+                // Investment calculator section (only if data loaded)
+                if (track.data) {
+                    // Performance Box (BEFORE calculator)
+                    const perfSection = document.createElement('div');
+                    perfSection.className = 'border-t pt-4 mt-4';
+                    
+                    const perfTitle = document.createElement('h4');
+                    perfTitle.className = 'font-bold text-gray-700 mb-3 flex items-center gap-2';
+                    perfTitle.innerHTML = '<i class="fas fa-chart-line text-orange-500"></i> Performance';
+                    perfSection.appendChild(perfTitle);
+                    
+                    const perfBox = document.createElement('div');
+                    perfBox.className = 'performance-box mb-4';
+                    perfBox.innerHTML = `
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                            <div>
+                                <div class="text-xs font-medium opacity-75">Valore Corrente</div>
+                                <div class="text-lg font-bold mt-1" id="current-value-${track.id}">0.00 €</div>
+                            </div>
+                            <div>
+                                <div class="text-xs font-medium opacity-75">Gain/Loss (P&L)</div>
+                                <div class="text-lg font-bold mt-1" id="gain-loss-${track.id}">0.00 €</div>
+                            </div>
+                            <div>
+                                <div class="text-xs font-medium opacity-75">Prezzo Medio Carico</div>
+                                <div class="text-lg font-bold mt-1" id="avg-price-${track.id}">0.00$/az</div>
+                            </div>
+                            <div>
+                                <div class="text-xs font-medium opacity-75">Prezzo Attuale</div>
+                                <div class="text-lg font-bold mt-1" id="current-price-${track.id}">0.00$/az</div>
+                            </div>
+                        </div>
+                    `;
+                    perfSection.appendChild(perfBox);
+                    trackDiv.appendChild(perfSection);
+                    
+                    // Calculator section
+                    const calcSection = document.createElement('div');
+                    calcSection.className = 'border-t pt-4 mt-4';
+                    
+                    const calcTitle = document.createElement('h4');
+                    calcTitle.className = 'font-bold text-gray-700 mb-3 flex items-center gap-2';
+                    calcTitle.innerHTML = '<i class="fas fa-calculator text-purple-500"></i> Calcoli Investimento';
+                    calcSection.appendChild(calcTitle);
+                    
+                    // Date range
+                    const dateRangeDiv = document.createElement('div');
+                    dateRangeDiv.className = 'grid grid-cols-2 gap-4 mb-4';
+                    dateRangeDiv.innerHTML = `
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Data Inizio</label>
+                            <input type="date" id="date-start-${track.id}" value="${track.dateStart}" 
+                                   class="w-full border border-gray-300 rounded px-3 py-2 text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Data Fine (oggi default)</label>
+                            <input type="date" id="date-end-${track.id}" value="${track.dateEnd}" 
+                                   class="w-full border border-gray-300 rounded px-3 py-2 text-sm">
+                        </div>
+                    `;
+                    calcSection.appendChild(dateRangeDiv);
+                    
+                    // Capital input
+                    const capitalDiv = document.createElement('div');
+                    capitalDiv.className = 'mb-4';
+                    capitalDiv.innerHTML = `
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Capitale Alloggiato (€)</label>
+                        <input type="number" id="capital-${track.id}" value="${track.capital}" 
+                               placeholder="Es: 10000" step="100" min="0"
+                               class="w-full border border-gray-300 rounded px-3 py-2">
+                    `;
+                    calcSection.appendChild(capitalDiv);
+                    
+                    // Fraction counter
+                    const fractionDiv = document.createElement('div');
+                    fractionDiv.className = 'mb-4';
+                    fractionDiv.innerHTML = `
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Esposizione Investimento</label>
+                        <div class="flex items-center gap-3">
+                            <button class="counter-btn" id="decrease-${track.id}">
+                                <i class="fas fa-minus text-sm"></i>
+                            </button>
+                            <div class="flex items-center gap-2">
+                                <input type="number" id="numerator-${track.id}" value="${track.numerator}" 
+                                       min="0" max="${track.denominator}"
+                                       class="w-16 border border-gray-300 rounded px-2 py-1 text-center font-bold">
+                                <span class="text-xl font-bold text-gray-400">/</span>
+                                <input type="number" id="denominator-${track.id}" value="${track.denominator}" 
+                                       min="1"
+                                       class="w-16 border border-gray-300 rounded px-2 py-1 text-center font-bold">
+                            </div>
+                            <button class="counter-btn" id="increase-${track.id}">
+                                <i class="fas fa-plus text-sm"></i>
+                            </button>
+                            <span class="text-sm text-gray-500 ml-2">
+                                (<span id="exposure-${track.id}">0</span> esposizione)
+                            </span>
+                        </div>
+                    `;
+                    calcSection.appendChild(fractionDiv);
+                    
+                    // Calculations display
+                    const displayDiv = document.createElement('div');
+                    displayDiv.className = 'calc-display';
+                    displayDiv.innerHTML = `
+                        <div class="grid grid-cols-3 gap-4 text-center">
+                            <div>
+                                <div class="text-sm opacity-90">Capitale Investito</div>
+                                <div class="text-2xl font-bold mt-1" id="invested-${track.id}">0 €</div>
+                            </div>
+                            <div>
+                                <div class="text-sm opacity-90">Capitale Residuo</div>
+                                <div class="text-2xl font-bold mt-1" id="residual-${track.id}">0 €</div>
+                            </div>
+                            <div>
+                                <div class="text-sm opacity-90">Azioni Possedute</div>
+                                <div class="text-2xl font-bold mt-1" id="shares-${track.id}">0 azioni</div>
+                            </div>
+                        </div>
+                    `;
+                    calcSection.appendChild(displayDiv);
+                    
+                    trackDiv.appendChild(calcSection);
+                    
+                    // Event listeners for calculations
+                    setTimeout(() => {
+                        const dateStartInput = document.getElementById('date-start-' + track.id);
+                        const dateEndInput = document.getElementById('date-end-' + track.id);
+                        const capitalInput = document.getElementById('capital-' + track.id);
+                        const numeratorInput = document.getElementById('numerator-' + track.id);
+                        const denominatorInput = document.getElementById('denominator-' + track.id);
+                        const decreaseBtn = document.getElementById('decrease-' + track.id);
+                        const increaseBtn = document.getElementById('increase-' + track.id);
+                        
+                        const updateTrack = () => {
+                            track.dateStart = dateStartInput.value;
+                            track.dateEnd = dateEndInput.value;
+                            track.capital = capitalInput.value;
+                            track.numerator = parseInt(numeratorInput.value) || 0;
+                            track.denominator = parseInt(denominatorInput.value) || 1;
+                            saveTracks();
+                            updateCalculations(track.id);
+                        };
+                        
+                        dateStartInput.addEventListener('change', updateTrack);
+                        dateEndInput.addEventListener('change', updateTrack);
+                        capitalInput.addEventListener('input', updateTrack);
+                        numeratorInput.addEventListener('input', updateTrack);
+                        denominatorInput.addEventListener('input', updateTrack);
+                        
+                        decreaseBtn.addEventListener('click', () => {
+                            if (track.numerator > 0) {
+                                track.numerator--;
+                                numeratorInput.value = track.numerator;
+                                updateTrack();
+                            }
+                        });
+                        
+                        increaseBtn.addEventListener('click', () => {
+                            if (track.numerator < track.denominator) {
+                                track.numerator++;
+                                numeratorInput.value = track.numerator;
+                                updateTrack();
+                            }
+                        });
+                        
+                        // Initial calculation
+                        updateCalculations(track.id);
+                    }, 0);
+                }
+                
+                container.appendChild(trackDiv);
+            });
+        }
+
+        // Add track
+        document.getElementById('add-track-btn').addEventListener('click', function() {
+            const newTrack = migrateTrack({
+                id: 'track-' + Date.now(),
+                data: null,
+                filename: null
+            });
+            tracks.push(newTrack);
+            saveTracks();
+            renderTracks();
+            updateDashboard();
+        });
+
+        // Remove track
+        function removeTrack(trackId) {
+            if (tracks.length === 1) {
+                alert('Non puoi rimuovere l\'ultima traccia!');
+                return;
+            }
+            tracks = tracks.filter(t => t.id !== trackId);
+            saveTracks();
+            renderTracks();
+            updateDashboard();
+        }
+
+        // Upload CSV
+        function uploadCSV(trackId, event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const csvData = e.target.result;
+                
+                try {
+                    // Parse CSV
+                    const lines = csvData.split('\n').filter(line => line.trim());
+                    const headers = lines[0].split(',').map(h => h.replace(/"/g, '').trim());
+                    
+                    const data = [];
+                    for (let i = 1; i < lines.length; i++) {
+                        const values = lines[i].split(',').map(v => v.replace(/"/g, '').trim());
+                        if (values.length === headers.length) {
+                            const row = {};
+                            headers.forEach((header, index) => {
+                                row[header] = values[index];
+                            });
+                            data.push(row);
+                        }
+                    }
+                    
+                    // Update track
+                    const track = tracks.find(t => t.id === trackId);
+                    track.data = data;
+                    track.filename = file.name;
+                    
+                    // Set default date range
+                    if (data.length > 0) {
+                        const dates = data.map(d => d.Date).sort();
+                        track.dateStart = dates[0];
+                        track.dateEnd = getTodayDate();
+                    }
+                    
+                    saveTracks();
+                    renderTracks();
+                    updateDashboard();
+                } catch (error) {
+                    alert('Errore nel parsing del CSV: ' + error.message);
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        // Show chart
+        function showChart(trackId) {
+            currentTrackId = trackId;
+            currentPeriod = '1M';
+            const track = tracks.find(t => t.id === trackId);
+            
+            if (!track || !track.data) return;
+
+            document.getElementById('modal-title').textContent = track.filename;
+            document.getElementById('chart-modal').classList.remove('hidden');
+
+            // Reset period buttons
+            document.querySelectorAll('.period-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.dataset.period === '1M') {
+                    btn.classList.add('active');
+                }
+            });
+
+            updateChart();
+        }
+
+        // Period button click handlers
+        document.querySelectorAll('.period-btn').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                currentPeriod = this.dataset.period;
+                updateChart();
+            });
+        });
+
+        // Metric change handler
+        document.getElementById('chart-metric').addEventListener('change', updateChart);
+
+        // Filter data by period
+        function filterDataByPeriod(data, period) {
+            const sortedData = [...data].sort((a, b) => new Date(a.Date) - new Date(b.Date));
+            const latestDate = new Date(sortedData[sortedData.length - 1].Date);
+            
+            let startDate = new Date(latestDate);
+            
+            switch(period) {
+                case '1D':
+                    startDate.setDate(latestDate.getDate() - 1);
+                    break;
+                case '5D':
+                    startDate.setDate(latestDate.getDate() - 5);
+                    break;
+                case '1M':
+                    startDate.setMonth(latestDate.getMonth() - 1);
+                    break;
+                case '6M':
+                    startDate.setMonth(latestDate.getMonth() - 6);
+                    break;
+                case 'YTD':
+                    startDate = new Date(latestDate.getFullYear(), 0, 1);
+                    break;
+                case '1Y':
+                    startDate.setFullYear(latestDate.getFullYear() - 1);
+                    break;
+                case '5Y':
+                    startDate.setFullYear(latestDate.getFullYear() - 5);
+                    break;
+                case 'MAX':
+                    return sortedData;
+            }
+            
+            return sortedData.filter(d => new Date(d.Date) >= startDate);
+        }
+
+        function updateChart() {
+            const track = tracks.find(t => t.id === currentTrackId);
+            if (!track || !track.data) return;
+
+            const metric = document.getElementById('chart-metric').value;
+            
+            // Filter data by period
+            const filteredData = filterDataByPeriod(track.data, currentPeriod);
+
+            // Prepare chart data
+            const labels = filteredData.map(d => d.Date);
+            const values = filteredData.map(d => {
+                const val = d[metric];
+                if (metric === 'Vol.') {
+                    return parseFloat(val.replace('M', '')) * 1000000;
+                }
+                return parseFloat(val);
+            });
+
+            // Calculate price change
+            const latestPrice = values[values.length - 1];
+            const firstPrice = values[0];
+            const priceChange = latestPrice - firstPrice;
+            const priceChangePercent = ((priceChange / firstPrice) * 100).toFixed(2);
+            
+            // Update price info
+            document.getElementById('price-info').textContent = latestPrice.toFixed(2) + ' USD';
+            const changeColor = priceChange >= 0 ? 'text-green-600' : 'text-red-600';
+            const changeIcon = priceChange >= 0 ? '▲' : '▼';
+            document.getElementById('price-change').innerHTML = '<span class="' + changeColor + '">' + changeIcon + ' ' + Math.abs(priceChange).toFixed(2) + ' (' + priceChangePercent + '%)</span>';
+
+            // Determine line color based on trend (Google Finance style)
+            const lineColor = priceChange >= 0 ? 'rgb(52, 168, 83)' : 'rgb(234, 67, 53)';
+            const bgColor = priceChange >= 0 ? 'rgba(52, 168, 83, 0.08)' : 'rgba(234, 67, 53, 0.08)';
+
+            // Destroy previous chart
+            if (currentChart) {
+                currentChart.destroy();
+            }
+
+            // Create new chart (Google Finance style)
+            const ctx = document.getElementById('stock-chart');
+            currentChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: metric,
+                        data: values,
+                        borderColor: lineColor,
+                        backgroundColor: bgColor,
+                        borderWidth: 2,
+                        tension: 0.4,
+                        fill: true,
+                        pointRadius: 0,
+                        pointHoverRadius: 5,
+                        pointHoverBackgroundColor: lineColor,
+                        pointHoverBorderColor: 'white',
+                        pointHoverBorderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.85)',
+                            padding: 12,
+                            displayColors: false,
+                            titleFont: {
+                                size: 13,
+                                weight: 'normal'
+                            },
+                            bodyFont: {
+                                size: 14,
+                                weight: 'bold'
+                            },
+                            callbacks: {
+                                title: function(context) {
+                                    return context[0].label;
+                                },
+                                label: function(context) {
+                                    return metric + ': ' + context.parsed.y.toFixed(2);
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            display: true,
+                            grid: {
+                                display: false,
+                                drawBorder: false
+                            },
+                            ticks: {
+                                color: '#5f6368',
+                                maxTicksLimit: 8,
+                                autoSkip: true,
+                                font: {
+                                    size: 11
+                                }
+                            }
+                        },
+                        y: {
+                            display: true,
+                            position: 'right',
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)',
+                                drawBorder: false
+                            },
+                            ticks: {
+                                color: '#5f6368',
+                                font: {
+                                    size: 11
+                                },
+                                callback: function(value) {
+                                    return value.toFixed(2);
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Close modal
+        document.getElementById('close-modal').addEventListener('click', () => {
+            document.getElementById('chart-modal').classList.add('hidden');
+            if (currentChart) {
+                currentChart.destroy();
+                currentChart = null;
+            }
+        });
+
+        // ========================================
+        // MULTI UPLOAD FUNCTIONALITY (v1.4.1)
+        // ========================================
+        
+        // Toggle dropzone visibility
+        document.getElementById('mu-toggle-dropzone').addEventListener('click', () => {
+            const content = document.getElementById('mu-dropzone-content');
+            const chevron = document.getElementById('mu-dropzone-chevron');
+            content.classList.toggle('hidden');
+            chevron.classList.toggle('rotate-180');
+        });
+
+        // Toggle Expositions Section (v1.4.4)
+        document.getElementById('mu-toggle-expositions').addEventListener('click', () => {
+            const content = document.getElementById('mu-expositions-content');
+            const chevron = document.getElementById('mu-expositions-chevron');
+            content.classList.toggle('hidden');
+            chevron.classList.toggle('rotate-180');
+        });
+
+        // Drag & Drop handlers
+        const muDropArea = document.getElementById('mu-drop-area');
+        
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            muDropArea.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+            }, false);
+        });
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            muDropArea.addEventListener(eventName, () => {
+                muDropArea.classList.add('bg-purple-50', 'border-purple-400');
+            }, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            muDropArea.addEventListener(eventName, () => {
+                muDropArea.classList.remove('bg-purple-50', 'border-purple-400');
+            }, false);
+        });
+
+        muDropArea.addEventListener('drop', (e) => {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            MultiUpload.handleFiles(files);
+        }, false);
+
+        document.getElementById('mu-multi-file-input').addEventListener('change', (e) => {
+            MultiUpload.handleFiles(e.target.files);
+        });
+
+        // Multi Upload Namespace
+        const MultiUpload = {
+            // Main handler for files
+            async handleFiles(files) {
+                const progressDiv = document.getElementById('mu-upload-progress');
+                const progressText = document.getElementById('mu-progress-text');
+                
+                progressDiv.classList.remove('hidden');
+                progressText.textContent = `Elaborazione di ${files.length} file...`;
+
+                const csvFiles = [];
+
+                for (let i = 0; i < files.length; i++) {
+                    const file = files[i];
+                    
+                    try {
+                        if (file.name.endsWith('.csv')) {
+                            const content = await this.readFileAsText(file);
+                            csvFiles.push({ name: file.name, content });
+                        } 
+                        else if (file.name.endsWith('.zip')) {
+                            progressText.textContent = `Estrazione ZIP: ${file.name}...`;
+                            const extracted = await this.extractZip(file);
+                            csvFiles.push(...extracted);
+                        }
+                        else if (file.name.endsWith('.tar.gz') || file.name.endsWith('.tar')) {
+                            progressText.textContent = `Estrazione TAR: ${file.name}...`;
+                            const extracted = await this.extractTar(file);
+                            csvFiles.push(...extracted);
+                        }
+                    } catch (error) {
+                        console.error(`Errore elaborazione ${file.name}:`, error);
+                        alert(`Errore con file ${file.name}: ${error.message}`);
+                    }
+                }
+
+                // Create tracks from CSVs
+                if (csvFiles.length > 0) {
+                    progressText.textContent = `Creazione di ${csvFiles.length} tracce...`;
+                    
+                    // Leggi impostazioni globali (v1.4.2)
+                    const globalCapitalInput = document.getElementById('mu-global-capital');
+                    const globalDateStartInput = document.getElementById('mu-global-date-start');
+                    const globalDateEndInput = document.getElementById('mu-global-date-end');
+                    
+                    const totalCapital = parseFloat(globalCapitalInput.value) || 0;
+                    const globalDateStart = globalDateStartInput.value || '';
+                    const globalDateEnd = globalDateEndInput.value || '';
+                    
+                    // Calcola capitale per traccia (divisione matematica pura)
+                    const capitalPerTrack = totalCapital > 0 ? (totalCapital / csvFiles.length) : 0;
+                    
+                    // Validazione date
+                    let validDates = true;
+                    if (globalDateStart && globalDateEnd && new Date(globalDateStart) > new Date(globalDateEnd)) {
+                        alert('⚠️ Data inizio > data fine. Le date saranno ignorate.');
+                        validDates = false;
+                    }
+                    
+                    const globalSettings = {
+                        capital: capitalPerTrack,
+                        dateStart: validDates ? globalDateStart : '',
+                        dateEnd: validDates ? globalDateEnd : ''
+                    };
+                    
+                    for (const csvFile of csvFiles) {
+                        await this.createTrackFromCSV(csvFile.name, csvFile.content, globalSettings);
+                    }
+                    
+                    renderTracks();
+                    updateDashboard();
+                    
+                    setTimeout(() => {
+                        progressDiv.classList.add('hidden');
+                        document.getElementById('mu-dropzone-content').classList.add('hidden');
+                        document.getElementById('mu-dropzone-chevron').classList.remove('rotate-180');
+                        document.getElementById('mu-multi-file-input').value = '';
+                        
+                        // Reset global settings (v1.4.2)
+                        globalCapitalInput.value = '';
+                        globalDateStartInput.value = '';
+                        globalDateEndInput.value = '';
+                    }, 1000);
+                    
+                    let msg = `✅ ${csvFiles.length} tracce create con successo!`;
+                    if (capitalPerTrack > 0) {
+                        msg += `\n💰 Capitale per traccia: ${capitalPerTrack.toFixed(2)}€`;
+                    }
+                    if (globalSettings.dateStart || globalSettings.dateEnd) {
+                        msg += `\n📅 Date comuni applicate`;
+                    }
+                    alert(msg);
+                } else {
+                    progressDiv.classList.add('hidden');
+                    alert('Nessun file CSV trovato.');
+                }
+            },
+
+            // Read file as text
+            readFileAsText(file) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => resolve(e.target.result);
+                    reader.onerror = reject;
+                    reader.readAsText(file);
+                });
+            },
+
+            // Extract CSV from ZIP
+            async extractZip(file) {
+                const arrayBuffer = await file.arrayBuffer();
+                const zip = await JSZip.loadAsync(arrayBuffer);
+                const csvFiles = [];
+
+                for (const [filename, zipEntry] of Object.entries(zip.files)) {
+                    if (!zipEntry.dir && filename.endsWith('.csv')) {
+                        const content = await zipEntry.async('text');
+                        csvFiles.push({ 
+                            name: filename.split('/').pop(), 
+                            content 
+                        });
+                    }
+                }
+
+                return csvFiles;
+            },
+
+            // Extract CSV from TAR/TAR.GZ
+            async extractTar(file) {
+                const arrayBuffer = await file.arrayBuffer();
+                const uint8Array = new Uint8Array(arrayBuffer);
+                
+                let decompressed;
+                if (file.name.endsWith('.tar.gz')) {
+                    decompressed = fflate.decompressSync(uint8Array);
+                } else {
+                    decompressed = uint8Array;
+                }
+
+                const csvFiles = [];
+                let offset = 0;
+
+                while (offset < decompressed.length) {
+                    const header = decompressed.slice(offset, offset + 512);
+                    const filename = new TextDecoder().decode(header.slice(0, 100)).replace(/\0.*/g, '');
+                    const filesize = parseInt(new TextDecoder().decode(header.slice(124, 136)).replace(/\0.*/g, '').trim(), 8);
+
+                    if (!filename || filesize === 0) break;
+
+                    offset += 512;
+
+                    if (filename.endsWith('.csv')) {
+                        const fileData = decompressed.slice(offset, offset + filesize);
+                        const content = new TextDecoder().decode(fileData);
+                        csvFiles.push({ 
+                            name: filename.split('/').pop(), 
+                            content 
+                        });
+                    }
+
+                    offset += Math.ceil(filesize / 512) * 512;
+                }
+
+                return csvFiles;
+            },
+
+            // Create track from CSV content
+            async createTrackFromCSV(filename, csvContent, globalSettings = {}) {
+                let baseName = filename.replace('.csv', '').replace(/_/g, ' ');
+                let trackName = baseName;
+                let counter = 2;
+                
+                while (tracks.some(t => t.filename === trackName + '.csv')) {
+                    trackName = `${baseName} (${counter})`;
+                    counter++;
+                }
+
+                const newTrack = migrateTrack({
+                    id: `track-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                    data: null,
+                    filename: trackName + '.csv'
+                });
+
+                // Apply global settings (v1.4.2)
+                if (globalSettings.capital && globalSettings.capital > 0) {
+                    newTrack.capital = globalSettings.capital;
+                }
+                if (globalSettings.dateStart) {
+                    newTrack.dateStart = globalSettings.dateStart;
+                }
+                if (globalSettings.dateEnd) {
+                    newTrack.dateEnd = globalSettings.dateEnd;
+                }
+
+                // Parse CSV
+                try {
+                    const lines = csvContent.split('\n').filter(line => line.trim());
+                    const headers = lines[0].split(',').map(h => h.replace(/"/g, '').trim());
+                    
+                    const data = [];
+                    for (let i = 1; i < lines.length; i++) {
+                        const values = lines[i].split(',').map(v => v.replace(/"/g, '').trim());
+                        if (values.length === headers.length) {
+                            const row = {};
+                            headers.forEach((header, index) => {
+                                row[header] = values[index];
+                            });
+                            data.push(row);
+                        }
+                    }
+                    
+                    newTrack.data = data;
+                    tracks.push(newTrack);
+                    saveTracks();
+                } catch (error) {
+                    console.error('Errore parsing CSV:', error);
+                }
+            }
+        };
+
+        // ========================================
+        // SMART EXPOSITIONS PARSER (v1.4.4)
+        // ========================================
+        
+        document.getElementById('mu-apply-expositions-btn').addEventListener('click', () => {
+            const text = document.getElementById('mu-expositions-text').value;
+            
+            if (!text.trim()) {
+                alert('⚠️ Inserisci prima i dati delle esposizioni nella textarea!');
+                return;
+            }
+            
+            try {
+                const expositions = parseExpositionsText(text);
+                
+                if (expositions.length === 0) {
+                    alert('⚠️ Nessuna esposizione valida trovata.\n\nAssicurati che il formato sia:\nNOME    TICKER    QUOTA\nApple Inc    AAPL    3/4');
+                    return;
+                }
+                
+                const results = applyExpositionsToTracks(expositions);
+                
+                // Update UI
+                renderTracks();
+                updateDashboard();
+                
+                // Clear textarea
+                document.getElementById('mu-expositions-text').value = '';
+                
+                // Feedback dettagliato
+                let message = `✅ ESPOSIZIONI APPLICATE CON SUCCESSO!\n\n`;
+                message += `📊 Risultati:\n`;
+                
+                results.matched.forEach(r => {
+                    const fraction = r.numerator % 1 === 0 
+                        ? `${r.numerator}/${r.denominator}` 
+                        : `${r.numerator.toFixed(1)}/${r.denominator}`;
+                    message += `✅ ${r.trackName}: ${fraction}\n`;
+                });
+                
+                if (results.notFound.length > 0) {
+                    message += `\n⚠️ Non trovate (${results.notFound.length}):\n`;
+                    results.notFound.forEach(nf => {
+                        message += `❌ ${nf.nome} (${nf.ticker})\n`;
+                    });
+                }
+                
+                message += `\n📈 ${results.matched.length} tracce aggiornate`;
+                message += `\n🔄 Dashboard ricalcolato automaticamente`;
+                
+                alert(message);
+                
+            } catch (error) {
+                alert(`❌ Errore durante il parsing:\n\n${error.message}\n\nVerifica il formato dei dati.`);
+                console.error('Errore parsing expositions:', error);
+            }
+        });
+        
+        // Parse expositions text (smart auto-detect)
+        function parseExpositionsText(text) {
+            const lines = text.split('\n')
+                .map(l => l.trim())
+                .filter(l => l.length > 0);
+            
+            if (lines.length === 0) return [];
+            
+            // Auto-detect and skip header
+            const headerIndex = lines.findIndex(l => {
+                const lower = l.toLowerCase();
+                return lower.includes('nome') || 
+                       lower.includes('ticker') || 
+                       lower.includes('quota') ||
+                       lower.includes('isin');
+            });
+            
+            const dataLines = headerIndex >= 0 
+                ? lines.slice(headerIndex + 1) 
+                : lines;
+            
+            const expositions = [];
+            
+            dataLines.forEach((line, index) => {
+                try {
+                    // Split by TAB or multiple spaces (2+)
+                    const parts = line.split(/\t+|\s{2,}/)
+                        .map(p => p.trim())
+                        .filter(p => p.length > 0);
+                    
+                    if (parts.length < 2) return; // Skip invalid lines
+                    
+                    // Find QUOTA column (contains N/N pattern)
+                    const quotaIndex = parts.findIndex(p => /[\d.]+\s*\/\s*\d+/.test(p));
+                    
+                    if (quotaIndex === -1) return; // No quota found, skip
+                    
+                    const quota = parts[quotaIndex];
+                    const nome = parts[0]; // First column is always NAME
+                    
+                    // TICKER is usually second column (might have exchange prefix)
+                    const ticker = parts.length > 1 ? parts[1] : '';
+                    
+                    // Parse quota: "3/4" or "0.5/4" or "3 / 4"
+                    const match = quota.match(/([\d.]+)\s*\/\s*(\d+)/);
+                    
+                    if (match) {
+                        expositions.push({
+                            nome: nome,
+                            ticker: ticker,
+                            numerator: parseFloat(match[1]),
+                            denominator: parseInt(match[2]),
+                            originalLine: line
+                        });
+                    }
+                } catch (error) {
+                    console.warn(`Skipping line ${index + 1}: ${line}`, error);
+                }
+            });
+            
+            return expositions;
+        }
+        
+        // Apply expositions to tracks
+        function applyExpositionsToTracks(expositions) {
+            const matched = [];
+            const notFound = [];
+            
+            expositions.forEach(exp => {
+                const track = findMatchingTrack(exp);
+                
+                if (track) {
+                    // Update track
+                    track.numerator = exp.numerator;
+                    track.denominator = exp.denominator;
+                    
+                    matched.push({
+                        trackName: track.filename.replace('.csv', ''),
+                        numerator: exp.numerator,
+                        denominator: exp.denominator
+                    });
+                    
+                    // Save to localStorage
+                    saveTracks();
+                } else {
+                    notFound.push({
+                        nome: exp.nome,
+                        ticker: exp.ticker
+                    });
+                }
+            });
+            
+            return { matched, notFound };
+        }
+        
+        // Smart track matching (by NAME or TICKER)
+        function findMatchingTrack(exposition) {
+            const { nome, ticker } = exposition;
+            
+            // 1. Try match by TICKER (most precise)
+            if (ticker) {
+                // Extract symbol from "NYSE:PBR" → "PBR"
+                const symbol = ticker.includes(':') 
+                    ? ticker.split(':')[1].trim() 
+                    : ticker.trim();
+                
+                const byTicker = tracks.find(t => {
+                    if (!t.filename) return false;
+                    const fn = t.filename.toLowerCase();
+                    return fn.includes(symbol.toLowerCase());
+                });
+                
+                if (byTicker) return byTicker;
+            }
+            
+            // 2. Try match by NAME (partial, case-insensitive)
+            if (nome) {
+                const byName = tracks.find(t => {
+                    if (!t.filename) return false;
+                    const fn = t.filename.toLowerCase();
+                    const n = nome.toLowerCase();
+                    
+                    // Try partial match
+                    return fn.includes(n) || n.includes(fn.replace('.csv', ''));
+                });
+                
+                if (byName) return byName;
+            }
+            
+            // 3. Try fuzzy match (first word of name)
+            if (nome) {
+                const firstWord = nome.split(/\s+/)[0].toLowerCase();
+                
+                const byFirstWord = tracks.find(t => {
+                    if (!t.filename) return false;
+                    return t.filename.toLowerCase().includes(firstWord);
+                });
+                
+                if (byFirstWord) return byFirstWord;
+            }
+            
+            return null;
+        }
+
+        // ========================================
+        // END MULTI UPLOAD (v1.4.1)
+        // ========================================
+
+        // Initial render
+        renderTracks();
+        updateDashboard();
+    </script>
+</body>
+</html>
