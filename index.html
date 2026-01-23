@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rosicatore v1.4.4 - Stock Price Timeline Tracker</title>
+    <title>Rosicatore v1.4.5 - Stock Price Timeline Tracker</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
@@ -89,7 +89,7 @@
         <div class="max-w-7xl mx-auto">
             <h1 class="text-4xl font-bold flex items-center gap-3">
                 <i class="fas fa-chart-line"></i>
-                Rosicatore <span class="text-lg font-normal opacity-75">v1.4.4</span>
+                Rosicatore <span class="text-lg font-normal opacity-75">v1.4.5</span>
             </h1>
             <p class="text-purple-100 mt-2">Stock Price Timeline Tracker - Analizza gli andamenti azionari con calcoli di investimento</p>
         </div>
@@ -241,7 +241,7 @@
                 <div class="flex items-center gap-3">
                     <i class="fas fa-magic text-2xl text-orange-600"></i>
                     <div class="text-left">
-                        <h3 class="text-lg font-bold text-gray-800">Applica Esposizioni Intelligente (v1.4.4)</h3>
+                        <h3 class="text-lg font-bold text-gray-800">Applica Esposizioni Intelligente (v1.4.5)</h3>
                         <p class="text-sm text-gray-600">Incolla una tabella (da Excel/Sheets) e applica esposizioni automaticamente</p>
                     </div>
                 </div>
@@ -250,6 +250,24 @@
             
             <div id="mu-expositions-content" class="hidden border-t border-orange-200">
                 <div class="p-4 bg-gradient-to-r from-orange-50 to-yellow-50">
+                    <!-- Capitale Totale Input -->
+                    <div class="mb-4 p-4 bg-white rounded-lg border-2 border-orange-200">
+                        <label class="block text-sm font-bold text-gray-800 mb-2">
+                            <i class="fas fa-wallet text-orange-600"></i> Capitale Totale (€) - Opzionale
+                        </label>
+                        <input 
+                            type="number" 
+                            id="mu-expositions-capital" 
+                            class="w-full p-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                            placeholder="Es: 12000"
+                            min="0"
+                            step="0.01">
+                        <p class="text-xs text-gray-600 mt-2">
+                            <i class="fas fa-info-circle text-blue-500"></i> 
+                            Se fornito, verrà diviso equamente tra tutte le tracce trovate
+                        </p>
+                    </div>
+                    
                     <textarea 
                         id="mu-expositions-text" 
                         class="w-full p-4 border-2 border-orange-300 rounded-lg font-mono text-sm resize-vertical focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
@@ -1404,6 +1422,8 @@ Alcoa        NYSE:AA        US0138721065        2/4        GROWTH-DIVIDEND
         
         document.getElementById('mu-apply-expositions-btn').addEventListener('click', () => {
             const text = document.getElementById('mu-expositions-text').value;
+            const capitalInput = document.getElementById('mu-expositions-capital').value;
+            const totalCapital = capitalInput ? parseFloat(capitalInput) : null;
             
             if (!text.trim()) {
                 alert('⚠️ Inserisci prima i dati delle esposizioni nella textarea!');
@@ -1418,14 +1438,15 @@ Alcoa        NYSE:AA        US0138721065        2/4        GROWTH-DIVIDEND
                     return;
                 }
                 
-                const results = applyExpositionsToTracks(expositions);
+                const results = applyExpositionsToTracks(expositions, totalCapital);
                 
                 // Update UI
                 renderTracks();
                 updateDashboard();
                 
-                // Clear textarea
+                // Clear inputs
                 document.getElementById('mu-expositions-text').value = '';
+                document.getElementById('mu-expositions-capital').value = '';
                 
                 // Feedback dettagliato
                 let message = `✅ ESPOSIZIONI APPLICATE CON SUCCESSO!\n\n`;
@@ -1435,7 +1456,11 @@ Alcoa        NYSE:AA        US0138721065        2/4        GROWTH-DIVIDEND
                     const fraction = r.numerator % 1 === 0 
                         ? `${r.numerator}/${r.denominator}` 
                         : `${r.numerator.toFixed(1)}/${r.denominator}`;
-                    message += `✅ ${r.trackName}: ${fraction}\n`;
+                    message += `✅ ${r.trackName}: ${fraction}`;
+                    if (r.capital) {
+                        message += ` (${r.capital.toFixed(2)}€)`;
+                    }
+                    message += `\n`;
                 });
                 
                 if (results.notFound.length > 0) {
@@ -1446,6 +1471,9 @@ Alcoa        NYSE:AA        US0138721065        2/4        GROWTH-DIVIDEND
                 }
                 
                 message += `\n📈 ${results.matched.length} tracce aggiornate`;
+                if (totalCapital) {
+                    message += `\n💰 Capitale diviso: ${totalCapital.toFixed(2)}€ ÷ ${results.matched.length} = ${(totalCapital / results.matched.length).toFixed(2)}€/traccia`;
+                }
                 message += `\n🔄 Dashboard ricalcolato automaticamente`;
                 
                 alert(message);
@@ -1520,26 +1548,19 @@ Alcoa        NYSE:AA        US0138721065        2/4        GROWTH-DIVIDEND
         }
         
         // Apply expositions to tracks
-        function applyExpositionsToTracks(expositions) {
+        function applyExpositionsToTracks(expositions, totalCapital = null) {
             const matched = [];
             const notFound = [];
             
+            // First pass: find all matching tracks
             expositions.forEach(exp => {
                 const track = findMatchingTrack(exp);
                 
                 if (track) {
-                    // Update track
-                    track.numerator = exp.numerator;
-                    track.denominator = exp.denominator;
-                    
                     matched.push({
-                        trackName: track.filename.replace('.csv', ''),
-                        numerator: exp.numerator,
-                        denominator: exp.denominator
+                        track: track,
+                        exposition: exp
                     });
-                    
-                    // Save to localStorage
-                    saveTracks();
                 } else {
                     notFound.push({
                         nome: exp.nome,
@@ -1548,7 +1569,39 @@ Alcoa        NYSE:AA        US0138721065        2/4        GROWTH-DIVIDEND
                 }
             });
             
-            return { matched, notFound };
+            // Calculate capital per track if totalCapital provided
+            const capitalPerTrack = totalCapital && matched.length > 0 
+                ? totalCapital / matched.length 
+                : null;
+            
+            // Second pass: apply changes
+            const results = [];
+            matched.forEach(m => {
+                const { track, exposition } = m;
+                
+                // Update track
+                track.numerator = exposition.numerator;
+                track.denominator = exposition.denominator;
+                
+                // Update capital if provided
+                if (capitalPerTrack !== null) {
+                    track.capital = capitalPerTrack;
+                }
+                
+                results.push({
+                    trackName: track.filename.replace('.csv', ''),
+                    numerator: exposition.numerator,
+                    denominator: exposition.denominator,
+                    capital: capitalPerTrack
+                });
+            });
+            
+            // Save to localStorage once
+            if (matched.length > 0) {
+                saveTracks();
+            }
+            
+            return { matched: results, notFound };
         }
         
         // Smart track matching (by NAME or TICKER)

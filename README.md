@@ -1,10 +1,28 @@
-# 📊 Rosicatore v1.4.4 - Stock Price Timeline Tracker
+# 📊 Rosicatore v1.4.5 - Stock Price Timeline Tracker
 
 Analizza gli andamenti azionari con un'interfaccia stile DAW (Digital Audio Workstation) per visualizzare multiple tracce di dati finanziari.
 
-## 🎯 Versione Attuale: v1.4.4 - SMART EXPOSITIONS PARSER
+## 🎯 Versione Attuale: v1.4.5 - FIX CAPITALE SUDDIVISO
 
-### ✨ Novità v1.4.4
+### ✨ Novità v1.4.5
+- **💰 Capitale Totale Opzionale**: Input per capitale che viene diviso equamente tra tracce
+- **🔢 Suddivisione Automatica**: Capitale totale ÷ N tracce = capitale per traccia
+- **📊 Feedback Dettagliato**: Mostra capitale assegnato a ogni traccia
+- **✅ Fix Calcoli**: Ora il capitale viene correttamente distribuito
+
+#### 🎯 Come Usare Smart Expositions Parser v1.4.5
+1. **Inserisci Capitale Totale** (opzionale, es: 12000€)
+2. **Copia** da Excel/Google Sheets la tabella con: NOME, TICKER, QUOTA
+3. **Incolla** nella textarea (accetta anche header)
+4. **Click** "Applica Esposizioni"
+5. **Ricevi** feedback con capitale diviso automaticamente
+
+**Esempio:**
+- Capitale Totale: 12.000€
+- 12 tracce trovate
+- Risultato: 1.000€ per traccia
+
+### 📋 Funzionalità v1.4.4 (Precedenti)
 - **🪄 Parser Intelligente Esposizioni**: Incolla tabella da Excel/Sheets e applica esposizioni automaticamente
 - **📋 Auto-detect Formato**: Riconosce TAB, spazi multipli, con/senza header
 - **🎯 Match Automatico**: Per NOME o TICKER (estrae da "NYSE:PBR" → "PBR")
