@@ -312,6 +312,14 @@ Max Drawdown = ((Valore Minimo - Picco Precedente) / Picco Precedente) × 100
 
 ## 📝 CHANGELOG
 
+### v1.5.0 (2025-01-24)
+- ❌ **localStorage DISABLED**: Nessuna persistenza dati
+- 🔄 **Fresh Start**: App vuota ad ogni apertura
+- ❌ Rimossa funzione `saveTracks()` (disabilitata)
+- ❌ Rimossa funzione `loadTracks()` (non più usata)
+- ❌ Rimosso caricamento iniziale da localStorage
+- ⚠️ **Breaking Change**: Utente deve ricaricare CSV ogni volta
+
 ### v1.4.7 (2025-01-24)
 - ✅ Creazione ALGORITMO_MADRE.md
 - ✅ Documentazione logica investimenti frazioni

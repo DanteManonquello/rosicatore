@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rosicatore v1.4.7 - Stock Price Timeline Tracker</title>
+    <title>Rosicatore v1.5.0 - Stock Price Timeline Tracker</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
@@ -89,7 +89,7 @@
         <div class="max-w-7xl mx-auto">
             <h1 class="text-4xl font-bold flex items-center gap-3">
                 <i class="fas fa-chart-line"></i>
-                Rosicatore <span class="text-lg font-normal opacity-75">v1.4.7</span>
+                Rosicatore <span class="text-lg font-normal opacity-75">v1.5.0</span>
             </h1>
             <p class="text-purple-100 mt-2">Stock Price Timeline Tracker - Analizza gli andamenti azionari con calcoli di investimento</p>
         </div>
@@ -328,7 +328,7 @@
                 <div class="flex items-center gap-3">
                     <i class="fas fa-magic text-2xl text-orange-600"></i>
                     <div class="text-left">
-                        <h3 class="text-lg font-bold text-gray-800">Applica Esposizioni Intelligente (v1.4.7)</h3>
+                        <h3 class="text-lg font-bold text-gray-800">Applica Esposizioni Intelligente (v1.5.0)</h3>
                         <p class="text-sm text-gray-600">Incolla una tabella (da Excel/Sheets) e applica esposizioni automaticamente</p>
                     </div>
                 </div>
@@ -467,14 +467,17 @@ Alcoa        NYSE:AA        US0138721065        2/4        GROWTH-DIVIDEND
         }
 
         // Load tracks from localStorage with migration
-        let tracks = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[{"id":"track-1","data":null,"filename":null}]').map(migrateTrack);
+        // v1.5.0: localStorage DISABLED - No persistence (fresh start every load)
+        // OLD: let tracks = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[{"id":"track-1","data":null,"filename":null}]').map(migrateTrack);
+        let tracks = [{"id":"track-1","data":null,"filename":null}].map(migrateTrack);
         let currentChart = null;
         let currentTrackId = null;
         let currentPeriod = '1M';
 
-        // Save tracks to localStorage
+        // v1.5.0: Save tracks to localStorage DISABLED
         function saveTracks() {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(tracks));
+            // DISABLED: No localStorage persistence
+            // localStorage.setItem(STORAGE_KEY, JSON.stringify(tracks));
         }
 
         // Get price at START of date range (for buying shares)
@@ -1096,7 +1099,7 @@ Alcoa        NYSE:AA        US0138721065        2/4        GROWTH-DIVIDEND
                             track.capital = capitalInput.value;
                             track.numerator = parseInt(numeratorInput.value) || 0;
                             track.denominator = parseInt(denominatorInput.value) || 1;
-                            saveTracks();
+                            // v1.5.0: saveTracks() DISABLED
                             updateCalculations(track.id);
                         };
                         
@@ -1139,7 +1142,7 @@ Alcoa        NYSE:AA        US0138721065        2/4        GROWTH-DIVIDEND
                 filename: null
             });
             tracks.push(newTrack);
-            saveTracks();
+            // v1.5.0: saveTracks() DISABLED
             renderTracks();
             updateDashboard();
         });
@@ -1151,7 +1154,7 @@ Alcoa        NYSE:AA        US0138721065        2/4        GROWTH-DIVIDEND
                 return;
             }
             tracks = tracks.filter(t => t.id !== trackId);
-            saveTracks();
+            // v1.5.0: saveTracks() DISABLED
             renderTracks();
             updateDashboard();
         }
@@ -1194,7 +1197,7 @@ Alcoa        NYSE:AA        US0138721065        2/4        GROWTH-DIVIDEND
                         track.dateEnd = getTodayDate();
                     }
                     
-                    saveTracks();
+                    // v1.5.0: saveTracks() DISABLED
                     renderTracks();
                     updateDashboard();
                 } catch (error) {
@@ -1684,7 +1687,7 @@ Alcoa        NYSE:AA        US0138721065        2/4        GROWTH-DIVIDEND
                     
                     newTrack.data = data;
                     tracks.push(newTrack);
-                    saveTracks();
+                    // v1.5.0: saveTracks() DISABLED
                 } catch (error) {
                     console.error('Errore parsing CSV:', error);
                 }
@@ -1873,10 +1876,11 @@ Alcoa        NYSE:AA        US0138721065        2/4        GROWTH-DIVIDEND
                 });
             });
             
-            // Save to localStorage once
-            if (matched.length > 0) {
-                saveTracks();
-            }
+            // v1.5.0: saveTracks() DISABLED
+            // Save to localStorage once - DISABLED
+            // if (matched.length > 0) {
+            //     saveTracks();
+            // }
             
             return { matched: results, notFound };
         }

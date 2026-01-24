@@ -1,10 +1,37 @@
-# 📊 Rosicatore v1.4.7 - Stock Price Timeline Tracker
+# 📊 Rosicatore v1.5.0 - Stock Price Timeline Tracker
 
 Analizza gli andamenti azionari con un'interfaccia stile DAW (Digital Audio Workstation) per visualizzare multiple tracce di dati finanziari.
 
-## 🎯 Versione Attuale: v1.4.7 - CRESCITA PATRIMONIO + ALGORITMO MADRE
+## 🎯 Versione Attuale: v1.5.0 - NO PERSISTENCE (Fresh Start)
 
-### ✨ Novità v1.4.7
+### ✨ Novità v1.5.0
+
+#### 🔄 localStorage DISABLED - Nessuna Persistenza
+- **❌ Dati NON salvati**: Ogni refresh = ricomincia da zero
+- **🔄 Fresh Start**: App vuota ad ogni apertura
+- **📋 Caricamento Manuale**: Utente deve ricaricare CSV ogni volta
+- **⚠️ Nessun Backup Automatico**: Dati persi al refresh/chiusura
+
+**Perché?**:
+- Controllo totale utente sui dati
+- Nessun rischio di dati vecchi/corrotti
+- Workflow pulito: carica → analizza → chiudi
+
+**Come Usare**:
+1. Apri Rosicatore
+2. Carica CSV (Multi Upload o singoli)
+3. Imposta esposizioni/capitale
+4. Analizza performance
+5. **⚠️ NON fare refresh** o perdi tutto
+6. Quando finito, chiudi tab
+
+**Cosa è stato RIMOSSO**:
+- ❌ `localStorage.setItem()` (salvataggio)
+- ❌ `localStorage.getItem()` (caricamento)
+- ❌ Funzione `saveTracks()` (disabilitata)
+- ❌ Persistenza automatica
+
+### 📋 Funzionalità v1.4.7 (Precedenti)
 
 #### 💎 KPI Crescita Patrimonio
 - **💰 Patrimonio Netto**: Valore totale portafoglio (posizioni + liquidità)
