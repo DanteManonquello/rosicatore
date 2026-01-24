@@ -1,6 +1,6 @@
 # 🧮 ALGORITMO MADRE - Rosicatore
 
-**Versione**: v1.4.7  
+**Versione**: v1.6.0  
 **Data**: 2025-01-24  
 **Autore**: Rosicatore Development Team
 
@@ -12,7 +12,8 @@ Questo documento è il **cuore pulsante** di Rosicatore. Definisce la logica mat
 - Calcolo investimenti e frazioni
 - Performance tracking (P&L, ROI, PMC)
 - Crescita patrimonio
-- Gestione movimenti (futuro)
+- **KPI dettagliati per titolo (v1.6.0) - 14+ metriche**
+- Gestione movimenti (v1.5.1)
 - Gestione dividendi (futuro)
 
 **⚠️ IMPORTANTE**: Qualsiasi modifica alla logica di calcolo DEVE essere documentata in questo file.
@@ -172,6 +173,155 @@ Patrimonio Netto Attuale: 21.500€
 
 Crescita Patrimonio €: 21.500 - 20.000 = +1.500€
 Crescita Patrimonio %: (1.500 / 20.000) × 100 = +7.5%
+```
+
+---
+
+## 📊 KPI DETTAGLIATI PER TITOLO (v1.6.0)
+
+### Definizione
+
+Ogni traccia (titolo) dispone di **14+ KPI specifici** suddivisi in 4 sezioni:
+
+### 1. CAPITALE (3 KPI)
+
+**1.1 Capitale Allocato**
+```
+capitalAllocato = track.capital
+```
+- Importo in €
+- Percentuale sul portafoglio totale: `(capitalAllocato / ΣcapitaliAllocati) × 100`
+
+**1.2 Capitale Investito**
+```
+capitalInvestito = capitalAllocato × frazione
+```
+- Importo in €
+- Percentuale sul capitale allocato: `(capitalInvestito / capitalAllocato) × 100`
+
+**1.3 Capitale Residuo**
+```
+capitalResiduo = capitalAllocato - capitalInvestito
+```
+- Importo in €
+- Percentuale sul capitale allocato: `(capitalResiduo / capitalAllocato) × 100`
+
+### 2. PERFORMANCE (4 KPI)
+
+**2.1 Valore Corrente**
+```
+valoreCorriente = shares × prezzoAttuale
+```
+
+**2.2 Gain/Loss Assoluto**
+```
+gainLoss€ = valoreCorriente - capitalInvestito
+```
+
+**2.3 Gain/Loss Percentuale**
+```
+gainLoss% = (gainLoss€ / capitalInvestito) × 100
+```
+
+**2.4 ROI (Return on Investment)**
+```
+ROI% = gainLoss%
+```
+
+### 3. PREZZI (4 KPI)
+
+**3.1 Prezzo Medio Carico (PMC)**
+```
+PMC = prezzoIniziale (startPrice)
+```
+
+**3.2 Prezzo Attuale**
+```
+prezzoAttuale = endPrice
+```
+
+**3.3 Variazione Prezzo Assoluta**
+```
+variazionePrezzo€ = prezzoAttuale - PMC
+```
+
+**3.4 Variazione Prezzo Percentuale**
+```
+variazionePrezzo% = (variazionePrezzo€ / PMC) × 100
+```
+
+### 4. COMPOSIZIONE PORTAFOGLIO (4 KPI)
+
+**4.1 Peso nel Portafoglio**
+```
+peso% = (valoreCorriente / ΣvaloriCorrenti) × 100
+```
+
+**4.2 Esposizione**
+```
+esposizione% = frazione × 100
+```
+
+**4.3 Shares Possedute**
+```
+shares = capitalInvestito / PMC
+```
+
+**4.4 Rapporto Valore/Investito**
+```
+rapportoValoreInvestito = valoreCorriente / capitalInvestito
+```
+- `>1.0x` = In profitto
+- `<1.0x` = In perdita
+
+### 5. INDICATORE MOVIMENTO
+
+**Definizione Movimento**:
+```
+hasMovement = prezzoAttuale ≠ PMC
+direction = prezzoAttuale > PMC ? +1 : -1
+changePercent = ((prezzoAttuale - PMC) / PMC) × 100
+```
+
+**Badge Movimento**:
+- ↗️ Verde: Movimento positivo (gain)
+- ↘️ Rosso: Movimento negativo (loss)
+- ⚪ Grigio: Nessun movimento
+
+**Esempio Completo**:
+```javascript
+// Input
+capital: 10.000€
+fraction: 3/4 (75%)
+PMC: 100€
+prezzoAttuale: 125€
+
+// Calcoli KPI
+1. CAPITALE
+   - Allocato: 10.000€ (50% portafoglio)
+   - Investito: 7.500€ (75% allocato)
+   - Residuo: 2.500€ (25% allocato)
+
+2. PERFORMANCE
+   - Valore Corrente: 9.375€
+   - Gain/Loss €: +1.875€
+   - Gain/Loss %: +25%
+   - ROI: +25%
+
+3. PREZZI
+   - PMC: 100€
+   - Prezzo Attuale: 125€
+   - Variazione €: +25€
+   - Variazione %: +25%
+
+4. COMPOSIZIONE
+   - Peso: 47% portafoglio
+   - Esposizione: 75% (3/4)
+   - Shares: 75
+   - Rapporto: 1.25x (profitto)
+
+5. MOVIMENTO
+   - Badge: ↗️ +25% Movimento
 ```
 
 ---
@@ -403,7 +553,20 @@ Max Drawdown = ((Valore Minimo - Picco Precedente) / Picco Precedente) × 100
 - ✅ Smart Expositions Parser
 - ✅ Match automatico NOME/TICKER
 
-### v1.4.3 (2025-01-23)
+### v1.6.0 (2025-01-24)
+- ✅ **KPI DETTAGLIATI PER TITOLO** (14+ metriche)
+- ✅ Sezione collapsabile "📊 Mostra KPI" per ogni traccia
+- ✅ Indicatore movimento con badge colorato (↗️/↘️/⚪)
+- ✅ 4 categorie KPI:
+  - CAPITALE (3 KPI): Allocato, Investito, Residuo
+  - PERFORMANCE (4 KPI): Valore, Gain/Loss €, Gain/Loss %, ROI
+  - PREZZI (4 KPI): PMC, Prezzo Attuale, Variazione €, Variazione %
+  - COMPOSIZIONE (4 KPI): Peso Portafoglio, Esposizione, Shares, Rapporto Valore/Investito
+- ✅ Calcoli automatici on-demand (click pulsante)
+- ✅ Layout responsive 2-4 colonne
+- ✅ Colori dinamici verde/rosso per gain/loss
+
+### v1.5.1 (2025-01-24)
 - ✅ KPI Performance Globali (GAIN/LOSS € e %)
 - ✅ Colori dinamici verde/rosso
 

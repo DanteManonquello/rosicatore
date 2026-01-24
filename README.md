@@ -1,10 +1,77 @@
-# 📊 Rosicatore v1.5.1 - Stock Price Timeline Tracker
+# 📊 Rosicatore v1.6.0 - Stock Price Timeline Tracker
 
 Analizza gli andamenti azionari con un'interfaccia stile DAW (Digital Audio Workstation) per visualizzare multiple tracce di dati finanziari.
 
-## 🎯 Versione Attuale: v1.5.1 - MOVIMENTI INTELLIGENTE
+## 🎯 Versione Attuale: v1.6.0 - KPI DETTAGLIATI PER TITOLO
 
-### ✨ Novità v1.5.1
+### ✨ Novità v1.6.0 - KPI PER TITOLO (14+ METRICHE)
+
+#### 📊 KPI Dettagliati per Ogni Titolo
+- **🎯 14+ KPI specifici** per ogni titolo con movimento
+- **📈 Indicatore Movimento**: Badge colorato (↗️ Verde gain / ↘️ Rosso loss / ⚪ Neutro)
+- **🔍 Sezione Collapsabile**: Click "📊 Mostra KPI" → apre pannello completo
+- **🎨 Layout Responsive**: 2-4 colonne automatiche
+
+#### 4 Categorie KPI
+
+**1. 💰 CAPITALE (3 KPI)**:
+- Allocato: importo + % sul portafoglio
+- Investito: importo + % allocato
+- Residuo: importo + % disponibile
+
+**2. 📈 PERFORMANCE (4 KPI)**:
+- Valore Corrente (€)
+- Gain/Loss € (con colori dinamici)
+- Gain/Loss % (verde/rosso)
+- ROI (%)
+
+**3. 💵 PREZZI (4 KPI)**:
+- PMC (Prezzo Medio Carico)
+- Prezzo Attuale
+- Variazione € (assoluta)
+- Variazione % (percentuale)
+
+**4. 📊 COMPOSIZIONE PORTAFOGLIO (4 KPI)**:
+- Peso nel Portafoglio (% valore totale)
+- Esposizione (% investita)
+- Shares Possedute (numero azioni)
+- Rapporto Valore/Investito (1.25x = +25% gain)
+
+**Esempio KPI Visualizzati**:
+```
+📊 KPI DETTAGLIATI - Apple Inc
+↗️ +12.5% Movimento
+
+💰 CAPITALE
+• Allocato: 5.000€ (50% portafoglio)
+• Investito: 3.750€ (75% allocato)
+• Residuo: 1.250€ (25% allocato)
+
+📈 PERFORMANCE
+• Valore Corrente: 4.218,75€
+• Gain/Loss: +468,75€ (+12,5%)
+• ROI: +12,5%
+
+💵 PREZZI
+• PMC: 150,00€
+• Prezzo Attuale: 168,75€
+• Variazione: +18,75€ (+12,5%)
+
+📊 COMPOSIZIONE PORTAFOGLIO
+• Peso: 42,18% portafoglio
+• Esposizione: 75% (3/4)
+• Shares: 25
+• Rapporto Valore/Investito: 1,125x
+```
+
+**Come Usare**:
+1. Carica CSV per una traccia
+2. Imposta capitale e frazione
+3. Click "📊 Mostra KPI" sotto il grafico
+4. Vedi tutti i 14 KPI dettagliati
+5. Click "Nascondi KPI" per chiudere
+
+### 📋 Funzionalità v1.5.1 (Precedenti)
 
 #### 📊 Registra Movimenti (Comandi Rapidi)
 - **🔄 Delta Esposizioni**: Aggiungi/riduci frazioni con comandi rapidi

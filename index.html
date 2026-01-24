@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rosicatore v1.5.1 - Stock Price Timeline Tracker</title>
+    <title>Rosicatore v1.6.0 - Stock Price Timeline Tracker</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
@@ -89,7 +89,7 @@
         <div class="max-w-7xl mx-auto">
             <h1 class="text-4xl font-bold flex items-center gap-3">
                 <i class="fas fa-chart-line"></i>
-                Rosicatore <span class="text-lg font-normal opacity-75">v1.5.1</span>
+                Rosicatore <span class="text-lg font-normal opacity-75">v1.6.0</span>
             </h1>
             <p class="text-purple-100 mt-2">Stock Price Timeline Tracker - Analizza gli andamenti azionari con calcoli di investimento</p>
         </div>
@@ -972,6 +972,14 @@ GSM +0,5/4       (virgola italiana supportata)
                     chartBtn.innerHTML = '<i class="fas fa-chart-line"></i> Visualizza Grafico';
                     chartBtn.onclick = () => showChart(track.id);
                     buttonsDiv.appendChild(chartBtn);
+                    
+                    // v1.6.0: KPI Dettagliati button
+                    const kpiBtn = document.createElement('button');
+                    kpiBtn.className = 'bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded flex items-center gap-2';
+                    kpiBtn.innerHTML = '<i class="fas fa-chart-bar"></i> Mostra KPI';
+                    kpiBtn.id = 'toggle-kpi-' + track.id;
+                    kpiBtn.onclick = () => toggleTrackKPI(track.id);
+                    buttonsDiv.appendChild(kpiBtn);
                 }
                 
                 if (tracks.length > 1) {
@@ -1042,6 +1050,13 @@ GSM +0,5/4       (virgola italiana supportata)
                         </div>
                     `;
                     perfSection.appendChild(perfBox);
+                    
+                    // v1.6.0: KPI Dettagliati Section (collapsabile)
+                    const kpiSection = document.createElement('div');
+                    kpiSection.id = 'kpi-section-' + track.id;
+                    kpiSection.className = 'kpi-detailed-section hidden mt-4 border-t pt-4';
+                    perfSection.appendChild(kpiSection);
+                    
                     trackDiv.appendChild(perfSection);
                     
                     // Calculator section
@@ -1181,6 +1196,247 @@ GSM +0,5/4       (virgola italiana supportata)
                 
                 container.appendChild(trackDiv);
             });
+        }
+
+        // v1.6.0: Toggle KPI Dettagliati per singola traccia
+        function toggleTrackKPI(trackId) {
+            const kpiSection = document.getElementById('kpi-section-' + trackId);
+            const toggleBtn = document.getElementById('toggle-kpi-' + trackId);
+            
+            if (!kpiSection || !toggleBtn) return;
+            
+            if (kpiSection.classList.contains('hidden')) {
+                // Mostra KPI
+                kpiSection.classList.remove('hidden');
+                toggleBtn.innerHTML = '<i class="fas fa-chart-bar"></i> Nascondi KPI';
+                renderTrackKPI(trackId);
+            } else {
+                // Nascondi KPI
+                kpiSection.classList.add('hidden');
+                toggleBtn.innerHTML = '<i class="fas fa-chart-bar"></i> Mostra KPI';
+            }
+        }
+        
+        // v1.6.0: Render KPI Dettagliati per singola traccia
+        function renderTrackKPI(trackId) {
+            const track = tracks.find(t => t.id === trackId);
+            const kpiSection = document.getElementById('kpi-section-' + trackId);
+            
+            if (!track || !track.data || track.data.length === 0) {
+                kpiSection.innerHTML = '<p class="text-gray-500 text-center py-4">📊 Nessun dato disponibile per calcolare i KPI</p>';
+                return;
+            }
+            
+            // Calcola movimento
+            const movement = calculateTrackMovement(track);
+            
+            // Calcola investimenti
+            const calc = calculateInvestment(track);
+            
+            // Calcola totali portafoglio per % peso
+            let totalPortfolioValue = 0;
+            let totalPortfolioCapital = 0;
+            tracks.forEach(t => {
+                if (t.data && t.data.length > 0) {
+                    const c = calculateInvestment(t);
+                    const startPrice = getStartPrice(t);
+                    const endPrice = getEndPrice(t);
+                    if (c.invested > 0 && startPrice > 0 && endPrice > 0) {
+                        const shares = c.invested / startPrice;
+                        totalPortfolioValue += shares * endPrice;
+                    }
+                }
+                totalPortfolioCapital += parseFloat(t.capital) || 0;
+            });
+            
+            // Calcoli KPI
+            const capital = parseFloat(track.capital) || 0;
+            const invested = calc.invested;
+            const residual = calc.residual;
+            const startPrice = calc.startPrice;
+            const endPrice = calc.endPrice;
+            const shares = calc.shares;
+            const currentValue = shares * endPrice;
+            const gainLoss = currentValue - invested;
+            const gainLossPercent = invested > 0 ? (gainLoss / invested) * 100 : 0;
+            const roi = gainLossPercent;
+            const priceChange = endPrice - startPrice;
+            const priceChangePercent = startPrice > 0 ? (priceChange / startPrice) * 100 : 0;
+            
+            // Percentuali portafoglio
+            const capitalPercent = totalPortfolioCapital > 0 ? (capital / totalPortfolioCapital) * 100 : 0;
+            const investedPercent = capital > 0 ? (invested / capital) * 100 : 0;
+            const residualPercent = capital > 0 ? (residual / capital) * 100 : 0;
+            const portfolioWeightPercent = totalPortfolioValue > 0 ? (currentValue / totalPortfolioValue) * 100 : 0;
+            const valueToInvestedRatio = invested > 0 ? currentValue / invested : 0;
+            
+            // Indicatore movimento
+            let movementBadge = '';
+            if (movement.hasMovement) {
+                const sign = movement.direction > 0 ? '+' : '';
+                const colorClass = movement.direction > 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
+                const arrow = movement.direction > 0 ? '↗️' : '↘️';
+                movementBadge = `<span class="inline-block px-3 py-1 rounded-full text-sm font-semibold ${colorClass}">${arrow} ${sign}${movement.changePercent.toFixed(2)}% Movimento</span>`;
+            } else {
+                movementBadge = '<span class="inline-block px-3 py-1 rounded-full text-sm font-semibold bg-gray-100 text-gray-600">⚪ Nessun Movimento</span>';
+            }
+            
+            // HTML KPI
+            kpiSection.innerHTML = `
+                <div class="bg-gradient-to-br from-purple-50 to-blue-50 rounded-lg p-6 border border-purple-200">
+                    <div class="flex items-center justify-between mb-4">
+                        <h4 class="text-lg font-bold text-gray-800 flex items-center gap-2">
+                            <i class="fas fa-chart-pie text-purple-600"></i>
+                            KPI DETTAGLIATI - ${track.filename || 'Traccia'}
+                        </h4>
+                        ${movementBadge}
+                    </div>
+                    
+                    <!-- 1. CAPITALE -->
+                    <div class="mb-4 pb-4 border-b border-purple-200">
+                        <h5 class="font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                            <i class="fas fa-coins text-yellow-600"></i> 1. CAPITALE
+                        </h5>
+                        <div class="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+                            <div class="bg-white rounded-lg p-3 shadow-sm">
+                                <div class="text-xs text-gray-500 mb-1">Allocato</div>
+                                <div class="font-bold text-gray-800">${capital.toLocaleString('it-IT', {minimumFractionDigits: 2})}€</div>
+                                <div class="text-xs text-purple-600 mt-1">${capitalPercent.toFixed(2)}% del portafoglio</div>
+                            </div>
+                            <div class="bg-white rounded-lg p-3 shadow-sm">
+                                <div class="text-xs text-gray-500 mb-1">Investito</div>
+                                <div class="font-bold text-blue-700">${invested.toLocaleString('it-IT', {minimumFractionDigits: 2})}€</div>
+                                <div class="text-xs text-blue-600 mt-1">${investedPercent.toFixed(2)}% allocato</div>
+                            </div>
+                            <div class="bg-white rounded-lg p-3 shadow-sm">
+                                <div class="text-xs text-gray-500 mb-1">Residuo</div>
+                                <div class="font-bold text-green-700">${residual.toLocaleString('it-IT', {minimumFractionDigits: 2})}€</div>
+                                <div class="text-xs text-green-600 mt-1">${residualPercent.toFixed(2)}% disponibile</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 2. PERFORMANCE -->
+                    <div class="mb-4 pb-4 border-b border-purple-200">
+                        <h5 class="font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                            <i class="fas fa-chart-line text-green-600"></i> 2. PERFORMANCE
+                        </h5>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                            <div class="bg-white rounded-lg p-3 shadow-sm">
+                                <div class="text-xs text-gray-500 mb-1">Valore Corrente</div>
+                                <div class="font-bold text-gray-800">${currentValue.toLocaleString('it-IT', {minimumFractionDigits: 2})}€</div>
+                            </div>
+                            <div class="bg-white rounded-lg p-3 shadow-sm">
+                                <div class="text-xs text-gray-500 mb-1">Gain/Loss €</div>
+                                <div class="font-bold ${gainLoss >= 0 ? 'text-green-700' : 'text-red-700'}">
+                                    ${gainLoss >= 0 ? '+' : ''}${gainLoss.toLocaleString('it-IT', {minimumFractionDigits: 2})}€
+                                </div>
+                            </div>
+                            <div class="bg-white rounded-lg p-3 shadow-sm">
+                                <div class="text-xs text-gray-500 mb-1">Gain/Loss %</div>
+                                <div class="font-bold ${gainLossPercent >= 0 ? 'text-green-700' : 'text-red-700'}">
+                                    ${gainLossPercent >= 0 ? '+' : ''}${gainLossPercent.toFixed(2)}%
+                                </div>
+                            </div>
+                            <div class="bg-white rounded-lg p-3 shadow-sm">
+                                <div class="text-xs text-gray-500 mb-1">ROI</div>
+                                <div class="font-bold ${roi >= 0 ? 'text-green-700' : 'text-red-700'}">
+                                    ${roi >= 0 ? '+' : ''}${roi.toFixed(2)}%
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 3. PREZZI -->
+                    <div class="mb-4 pb-4 border-b border-purple-200">
+                        <h5 class="font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                            <i class="fas fa-dollar-sign text-orange-600"></i> 3. PREZZI
+                        </h5>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                            <div class="bg-white rounded-lg p-3 shadow-sm">
+                                <div class="text-xs text-gray-500 mb-1">PMC (Prezzo Medio Carico)</div>
+                                <div class="font-bold text-gray-800">${startPrice.toLocaleString('it-IT', {minimumFractionDigits: 2})}€/az</div>
+                            </div>
+                            <div class="bg-white rounded-lg p-3 shadow-sm">
+                                <div class="text-xs text-gray-500 mb-1">Prezzo Attuale</div>
+                                <div class="font-bold text-blue-700">${endPrice.toLocaleString('it-IT', {minimumFractionDigits: 2})}€/az</div>
+                            </div>
+                            <div class="bg-white rounded-lg p-3 shadow-sm">
+                                <div class="text-xs text-gray-500 mb-1">Variazione €</div>
+                                <div class="font-bold ${priceChange >= 0 ? 'text-green-700' : 'text-red-700'}">
+                                    ${priceChange >= 0 ? '+' : ''}${priceChange.toLocaleString('it-IT', {minimumFractionDigits: 2})}€
+                                </div>
+                            </div>
+                            <div class="bg-white rounded-lg p-3 shadow-sm">
+                                <div class="text-xs text-gray-500 mb-1">Variazione %</div>
+                                <div class="font-bold ${priceChangePercent >= 0 ? 'text-green-700' : 'text-red-700'}">
+                                    ${priceChangePercent >= 0 ? '+' : ''}${priceChangePercent.toFixed(2)}%
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 4. COMPOSIZIONE PORTAFOGLIO -->
+                    <div>
+                        <h5 class="font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                            <i class="fas fa-pie-chart text-pink-600"></i> 4. COMPOSIZIONE PORTAFOGLIO
+                        </h5>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                            <div class="bg-white rounded-lg p-3 shadow-sm">
+                                <div class="text-xs text-gray-500 mb-1">Peso nel Portafoglio</div>
+                                <div class="font-bold text-purple-700">${portfolioWeightPercent.toFixed(2)}%</div>
+                                <div class="text-xs text-gray-500 mt-1">del valore totale</div>
+                            </div>
+                            <div class="bg-white rounded-lg p-3 shadow-sm">
+                                <div class="text-xs text-gray-500 mb-1">Esposizione</div>
+                                <div class="font-bold text-blue-700">${calc.exposure.toFixed(1)}%</div>
+                                <div class="text-xs text-gray-500 mt-1">(${track.numerator}/${track.denominator})</div>
+                            </div>
+                            <div class="bg-white rounded-lg p-3 shadow-sm">
+                                <div class="text-xs text-gray-500 mb-1">Shares Possedute</div>
+                                <div class="font-bold text-gray-800">${shares.toLocaleString('it-IT', {minimumFractionDigits: 2})}</div>
+                                <div class="text-xs text-gray-500 mt-1">azioni</div>
+                            </div>
+                            <div class="bg-white rounded-lg p-3 shadow-sm">
+                                <div class="text-xs text-gray-500 mb-1">Rapporto Valore/Investito</div>
+                                <div class="font-bold ${valueToInvestedRatio >= 1 ? 'text-green-700' : 'text-red-700'}">
+                                    ${valueToInvestedRatio.toFixed(3)}x
+                                </div>
+                                <div class="text-xs text-gray-500 mt-1">${valueToInvestedRatio >= 1 ? 'In profitto' : 'In perdita'}</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4 pt-4 border-t border-purple-200 text-xs text-gray-500 text-center">
+                        ✅ Totale: 14 KPI dettagliati | Dati aggiornati al ${new Date().toLocaleDateString('it-IT')}
+                    </div>
+                </div>
+            `;
+        }
+        
+        // v1.6.0: Calcola movimento traccia
+        function calculateTrackMovement(track) {
+            if (!track.data || track.data.length === 0) {
+                return { hasMovement: false, direction: 0, changePercent: 0 };
+            }
+            
+            const startPrice = getStartPrice(track);
+            const endPrice = getEndPrice(track);
+            
+            if (startPrice <= 0 || endPrice <= 0 || startPrice === endPrice) {
+                return { hasMovement: false, direction: 0, changePercent: 0 };
+            }
+            
+            const changePercent = ((endPrice - startPrice) / startPrice) * 100;
+            const direction = endPrice > startPrice ? 1 : -1;
+            
+            return {
+                hasMovement: true,
+                direction: direction,
+                changePercent: changePercent,
+                startPrice: startPrice,
+                endPrice: endPrice
+            };
         }
 
         // Add track
