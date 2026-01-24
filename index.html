@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rosicatore v1.6.0 - Stock Price Timeline Tracker</title>
+    <title>Rosicatore v1.6.1 - Stock Price Timeline Tracker</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
@@ -89,7 +89,7 @@
         <div class="max-w-7xl mx-auto">
             <h1 class="text-4xl font-bold flex items-center gap-3">
                 <i class="fas fa-chart-line"></i>
-                Rosicatore <span class="text-lg font-normal opacity-75">v1.6.0</span>
+                Rosicatore <span class="text-lg font-normal opacity-75">v1.6.1</span>
             </h1>
             <p class="text-purple-100 mt-2">Stock Price Timeline Tracker - Analizza gli andamenti azionari con calcoli di investimento</p>
         </div>
@@ -235,6 +235,67 @@
                     <div class="text-2xl font-bold mt-1 text-red-400" id="loss-tracks">
                         <span class="text-gray-300">--</span>
                     </div>
+                </div>
+            </div>
+            
+            <!-- v1.6.1: KPI UTILI PER GUADAGNARE -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t border-white/30">
+                <div class="text-center">
+                    <div class="text-sm opacity-90">
+                        <i class="fas fa-rocket"></i> ROI Posizioni
+                    </div>
+                    <div class="text-2xl font-bold mt-1" id="roi-positions">
+                        <span class="text-gray-300">--</span>
+                    </div>
+                    <div class="text-xs opacity-75 mt-1">Su capitale investito</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-sm opacity-90">
+                        <i class="fas fa-wallet"></i> ROI Portafoglio
+                    </div>
+                    <div class="text-2xl font-bold mt-1" id="roi-portfolio">
+                        <span class="text-gray-300">--</span>
+                    </div>
+                    <div class="text-xs opacity-75 mt-1">Su capitale totale</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-sm opacity-90">
+                        <i class="fas fa-chart-line"></i> Max Drawdown
+                    </div>
+                    <div class="text-2xl font-bold mt-1" id="max-drawdown">
+                        <span class="text-gray-300">--</span>
+                    </div>
+                    <div class="text-xs opacity-75 mt-1">Perdita massima</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-sm opacity-90">
+                        <i class="fas fa-exclamation-triangle"></i> Capitale a Rischio
+                    </div>
+                    <div class="text-2xl font-bold mt-1" id="capital-at-risk">
+                        <span class="text-gray-300">--</span>
+                    </div>
+                    <div class="text-xs opacity-75 mt-1">% Esposta</div>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-2 md:grid-cols-2 gap-4 pt-4 border-t border-white/30">
+                <div class="text-center">
+                    <div class="text-sm opacity-90">
+                        <i class="fas fa-layer-group"></i> Top 3 Concentrazione
+                    </div>
+                    <div class="text-2xl font-bold mt-1" id="top3-concentration">
+                        <span class="text-gray-300">--</span>
+                    </div>
+                    <div class="text-xs opacity-75 mt-1">Peso 3 titoli maggiori</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-sm opacity-90">
+                        <i class="fas fa-info-circle"></i> Diversificazione
+                    </div>
+                    <div class="text-2xl font-bold mt-1">
+                        <span class="text-blue-400" id="diversification-hint">Vedi Top 3</span>
+                    </div>
+                    <div class="text-xs opacity-75 mt-1">&lt;70% = Buona</div>
                 </div>
             </div>
         </div>
@@ -435,6 +496,22 @@ GSM +0,5/4       (virgola italiana supportata)
                         <span class="bg-white px-2 py-1 rounded border"><i class="fas fa-check text-green-500"></i> Virgola italiana</span>
                     </div>
                 </div>
+            </div>
+        </div>
+        
+        <!-- Impostazioni Globali Tracce (v1.6.1) - SEMPRE VISIBILE -->
+        <div id="global-track-settings" class="mb-6 bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg shadow-md border-2 border-purple-300 p-6">
+            <div class="flex items-center gap-3 mb-4">
+                <i class="fas fa-cog text-2xl text-purple-600"></i>
+                <h3 class="text-lg font-bold text-gray-800">⚙️ Impostazioni Tracce</h3>
+            </div>
+            <p class="text-sm text-gray-600 mb-4">
+                Queste impostazioni saranno applicate a ogni traccia quando carichi un CSV. Modifica i valori per ciascuna traccia nel dettaglio sotto.
+            </p>
+            <div class="bg-white rounded-lg p-4 border border-purple-200">
+                <p class="text-xs text-gray-500 italic">
+                    💡 Dopo aver caricato i CSV, troverai i campi Capitale, Data Inizio/Fine e Frazione sotto ogni traccia nel box "Calcoli Investimento"
+                </p>
             </div>
         </div>
         
@@ -946,6 +1023,149 @@ GSM +0,5/4       (virgola italiana supportata)
                 } else {
                     lossTracksElem.innerHTML = '<span class="text-gray-300">0</span>';
                 }
+            }
+            
+            // v1.6.1: NUOVE KPI UTILI
+            
+            // ROI Posizioni vs ROI Portafoglio
+            updateDualROI(tracks);
+            
+            // Max Drawdown
+            updateMaxDrawdown(tracks);
+            
+            // Top 3 Concentrazione
+            updateTop3Concentration(tracks);
+            
+            // Capitale a Rischio
+            updateCapitalAtRisk(tracks);
+        }
+        
+        // v1.6.1: Dual ROI (Posizioni vs Portafoglio)
+        function updateDualROI(tracks) {
+            let totalInvested = 0;
+            let totalCurrentValue = 0;
+            let totalCapital = 0;
+            let totalResidual = 0;
+            
+            tracks.forEach(track => {
+                totalCapital += parseFloat(track.capital) || 0;
+                
+                if (track.data && track.data.length > 0) {
+                    const calc = calculateInvestment(track);
+                    totalInvested += calc.invested;
+                    totalResidual += calc.residual;
+                    
+                    const startPrice = getStartPrice(track);
+                    const endPrice = getEndPrice(track);
+                    if (calc.invested > 0 && startPrice > 0 && endPrice > 0) {
+                        const shares = calc.invested / startPrice;
+                        totalCurrentValue += shares * endPrice;
+                    }
+                } else {
+                    const calc = calculateInvestment(track);
+                    totalResidual += calc.residual;
+                }
+            });
+            
+            // ROI Posizioni (su capitale investito)
+            const roiPositions = totalInvested > 0 ? ((totalCurrentValue - totalInvested) / totalInvested) * 100 : 0;
+            const roiPosElem = document.getElementById('roi-positions');
+            if (roiPosElem) {
+                const sign = roiPositions >= 0 ? '+' : '';
+                const colorClass = roiPositions >= 0 ? 'text-green-600' : 'text-red-600';
+                roiPosElem.innerHTML = `<span class="${colorClass} font-bold">${sign}${roiPositions.toFixed(2)}%</span>`;
+            }
+            
+            // ROI Portafoglio (su capitale totale)
+            const patrimonioAttuale = totalCurrentValue + totalResidual;
+            const roiPortfolio = totalCapital > 0 ? ((patrimonioAttuale - totalCapital) / totalCapital) * 100 : 0;
+            const roiPortElem = document.getElementById('roi-portfolio');
+            if (roiPortElem) {
+                const sign = roiPortfolio >= 0 ? '+' : '';
+                const colorClass = roiPortfolio >= 0 ? 'text-green-600' : 'text-red-600';
+                roiPortElem.innerHTML = `<span class="${colorClass} font-bold">${sign}${roiPortfolio.toFixed(2)}%</span>`;
+            }
+        }
+        
+        // v1.6.1: Max Drawdown
+        function updateMaxDrawdown(tracks) {
+            let maxDD = 0;
+            
+            tracks.forEach(track => {
+                if (track.data && track.data.length > 1) {
+                    let peak = parseFloat(track.data[0].Close) || 0;
+                    track.data.forEach(row => {
+                        const price = parseFloat(row.Close) || 0;
+                        if (price > peak) peak = price;
+                        const dd = peak > 0 ? ((peak - price) / peak) * 100 : 0;
+                        if (dd > maxDD) maxDD = dd;
+                    });
+                }
+            });
+            
+            const ddElem = document.getElementById('max-drawdown');
+            if (ddElem) {
+                if (maxDD > 0) {
+                    ddElem.innerHTML = `<span class="text-red-600 font-bold">-${maxDD.toFixed(2)}%</span>`;
+                } else {
+                    ddElem.innerHTML = '<span class="text-gray-300">--</span>';
+                }
+            }
+        }
+        
+        // v1.6.1: Top 3 Concentration
+        function updateTop3Concentration(tracks) {
+            const trackValues = [];
+            
+            tracks.forEach(track => {
+                if (track.data && track.data.length > 0) {
+                    const calc = calculateInvestment(track);
+                    const startPrice = getStartPrice(track);
+                    const endPrice = getEndPrice(track);
+                    if (calc.invested > 0 && startPrice > 0 && endPrice > 0) {
+                        const shares = calc.invested / startPrice;
+                        const value = shares * endPrice;
+                        trackValues.push(value);
+                    }
+                }
+            });
+            
+            if (trackValues.length === 0) {
+                const top3Elem = document.getElementById('top3-concentration');
+                if (top3Elem) top3Elem.innerHTML = '<span class="text-gray-300">--</span>';
+                return;
+            }
+            
+            const totalValue = trackValues.reduce((sum, v) => sum + v, 0);
+            trackValues.sort((a, b) => b - a);
+            const top3Value = trackValues.slice(0, 3).reduce((sum, v) => sum + v, 0);
+            const concentration = totalValue > 0 ? (top3Value / totalValue) * 100 : 0;
+            
+            const top3Elem = document.getElementById('top3-concentration');
+            if (top3Elem) {
+                const colorClass = concentration > 70 ? 'text-orange-600' : 'text-blue-600';
+                top3Elem.innerHTML = `<span class="${colorClass} font-bold">${concentration.toFixed(1)}%</span>`;
+            }
+        }
+        
+        // v1.6.1: Capitale a Rischio
+        function updateCapitalAtRisk(tracks) {
+            let totalCapital = 0;
+            let totalInvested = 0;
+            
+            tracks.forEach(track => {
+                totalCapital += parseFloat(track.capital) || 0;
+                if (track.data && track.data.length > 0) {
+                    const calc = calculateInvestment(track);
+                    totalInvested += calc.invested;
+                }
+            });
+            
+            const atRisk = totalCapital > 0 ? (totalInvested / totalCapital) * 100 : 0;
+            const riskElem = document.getElementById('capital-at-risk');
+            if (riskElem) {
+                const colorClass = atRisk > 80 ? 'text-red-600' : atRisk > 50 ? 'text-orange-600' : 'text-green-600';
+                riskElem.innerHTML = `<span class="${colorClass} font-bold">${atRisk.toFixed(1)}%</span>`;
             }
         }
 

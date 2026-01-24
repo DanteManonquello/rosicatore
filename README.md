@@ -1,10 +1,75 @@
-# 📊 Rosicatore v1.6.0 - Stock Price Timeline Tracker
+# 📊 Rosicatore v1.6.1 - Stock Price Timeline Tracker
 
 Analizza gli andamenti azionari con un'interfaccia stile DAW (Digital Audio Workstation) per visualizzare multiple tracce di dati finanziari.
 
-## 🎯 Versione Attuale: v1.6.0 - KPI DETTAGLIATI PER TITOLO
+## 🎯 Versione Attuale: v1.6.1 - KPI UTILI PER GUADAGNARE
 
-### ✨ Novità v1.6.0 - KPI PER TITOLO (14+ METRICHE)
+### ✨ Novità v1.6.1 - KPI CHE SERVONO DAVVERO
+
+#### 💰 DOPPIO ROI (Quello che Conta)
+**ROI Posizioni (99%)** vs **ROI Portafoglio (51%)**
+
+**Perché 2 ROI?**
+- **ROI Posizioni**: Quanto rendono le TUE SCELTE (titoli investiti)
+- **ROI Portafoglio**: Quanto cresce il TUO CAPITALE (totale)
+
+**Esempio**:
+```
+Hai 10.000€
+Investi 2.500€ (1/4) in Tesla
+Tesla raddoppia: 2.500€ → 5.000€
+
+ROI Posizioni: +100% 🚀 (hai scelto bene Tesla!)
+ROI Portafoglio: +25% 📊 (hai investito solo 1/4)
+
+Patrimonio: 12.500€ (5.000 Tesla + 7.500 cash)
+```
+
+#### 🎯 NUOVE KPI UTILI (Non Cazzate da Harvard)
+
+**SOLDI (quello che conta)**
+1. ✅ ROI Posizioni Attive - "Quanto rendono le mie scelte"
+2. ✅ ROI Portafoglio Totale - "Quanto cresce il mio capitale"
+3. ✅ Best/Worst Performer - "Chi mi fa guadagnare/perdere"
+
+**RISCHIO (non perdere soldi)**
+4. ✅ Max Drawdown - "Quanto ho perso nel peggior momento"
+5. ✅ Titoli in Loss/Gain - "Quanti stanno perdendo/guadagnando"
+6. ✅ Capitale a Rischio % - "Quanto ho esposto"
+
+**ALLOCAZIONE (dove stanno i soldi)**
+7. ✅ Top 3 Concentrazione - "Peso 3 titoli maggiori" (>70% = troppo concentrato)
+8. ✅ Capitale Investito vs Residuo - "Soldi che lavorano vs fermi"
+
+**Esempio Dashboard**:
+```
+💰 QUANTO GUADAGNO?
+ROI Posizioni: +99% (titoli scelti bene!)
+ROI Portafoglio: +51% (capitale totale)
+
+⚠️ QUANTO RISCHIO?
+Max Drawdown: -15% (massima perdita)
+Capitale a Rischio: 52% (metà esposta)
+
+📊 DOVE SONO I SOLDI?
+Top 3: 75% (concentrato su 3 titoli)
+Best: Hecla Mining +327%
+Worst: EQT Stock -6.49%
+```
+
+#### ⚙️ Impostazioni Tracce (Nuova Sezione)
+
+Spostata DOPO "Registra Movimenti", **sempre visibile**:
+- Data Inizio/Fine
+- Capitale Alloggiato
+- Frazione Investita (N/4)
+
+**Prima**: Era dentro il box upload (nascosta)  
+**Ora**: Sempre visibile, sotto Movimenti
+
+---
+
+### 📋 Funzionalità v1.6.0 (Precedenti)
 
 #### 📊 KPI Dettagliati per Ogni Titolo
 - **🎯 14+ KPI specifici** per ogni titolo con movimento

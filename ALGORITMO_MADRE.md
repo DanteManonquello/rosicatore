@@ -553,6 +553,18 @@ Max Drawdown = ((Valore Minimo - Picco Precedente) / Picco Precedente) × 100
 - ✅ Smart Expositions Parser
 - ✅ Match automatico NOME/TICKER
 
+### v1.6.1 (2025-01-24)
+- ✅ **DOPPIO ROI**: ROI Posizioni (99%) vs ROI Portafoglio (51%)
+- ✅ **KPI UTILI PER GUADAGNARE** (no cazzate accademiche):
+  - ROI Posizioni (su capitale investito)
+  - ROI Portafoglio (su capitale totale)
+  - Max Drawdown (perdita massima %)
+  - Capitale a Rischio (% esposta)
+  - Top 3 Concentrazione (peso 3 titoli maggiori)
+- ✅ **Impostazioni Tracce**: Sezione sempre visibile dopo "Registra Movimenti"
+- ✅ Formule semplificate: no Beta, Alpha, Sharpe (roba da wannabe)
+- ✅ Focus: Quanto guadagno? Quanto rischio? Dove sono i soldi?
+
 ### v1.6.0 (2025-01-24)
 - ✅ **KPI DETTAGLIATI PER TITOLO** (14+ metriche)
 - ✅ Sezione collapsabile "📊 Mostra KPI" per ogni traccia
