@@ -1,10 +1,86 @@
-# 📊 Rosicatore v1.6.2 - Stock Price Timeline Tracker
+# 📊 Rosicatore v1.6.4 - Stock Price Timeline Tracker
 
 Analizza gli andamenti azionari con un'interfaccia stile DAW (Digital Audio Workstation) per visualizzare multiple tracce di dati finanziari.
 
-## 🎯 Versione Attuale: v1.6.2 - IMPOSTAZIONI GLOBALI FUNZIONALI
+## 🎯 Versione Attuale: v1.6.4 - KPI DETTAGLIATI PER TRACCIA
 
-### ✨ Novità v1.6.2 - Capitale e Date Globali
+### ✨ Novità v1.6.4 - KPI Completi su Ogni Traccia
+
+#### 📊 KPI AGGIUNTI NEL BOX "CALCOLI INVESTIMENTO"
+
+**PRIMA (v1.6.3)** ❌
+```
+Box Calcoli Investimento:
+├─ Capitale Investito
+├─ Capitale Residuo
+└─ Azioni Possedute
+```
+
+**ORA (v1.6.4)** ✅
+```
+Box Calcoli Investimento:
+├─ 💰 ROI Posizioni (es: +99.5%)
+│   └─ Su capitale investito (quello vero)
+├─ 💰 ROI Portafoglio (es: +51.2%)
+│   └─ Su capitale totale allocato
+├─ 💵 Capitale Investito
+├─ 💵 Capitale Residuo
+├─ 📈 Azioni Possedute
+└─ 📊 % Peso su Portafoglio (es: 8.33%)
+```
+
+#### 🧮 FORMULE IMPLEMENTATE
+
+**ROI Posizioni (quello alto)**:
+```
+roiPositions = (ValoreCorrente - CapitaleInvestito) / CapitaleInvestito × 100
+
+Esempio:
+Investito: 750€
+Valore: 1.496€
+ROI = (1.496 - 750) / 750 × 100 = +99.5%
+```
+
+**ROI Portafoglio (quello reale)**:
+```
+roiPortfolio = (PatrimonioTraccia - CapitaleBase) / CapitaleBase × 100
+PatrimonioTraccia = ValoreCorrente + CapitaleResiduo
+
+Esempio:
+Capitale Base: 1.000€
+Investito: 750€
+Residuo: 250€
+Valore: 1.496€
+Patrimonio = 1.496 + 250 = 1.746€
+ROI = (1.746 - 1.000) / 1.000 × 100 = +74.6%
+```
+
+**Peso Portafoglio**:
+```
+peso = (CapitaleInvestitoTraccia / CapitaleTotalePortafoglio) × 100
+
+Esempio:
+Investito Traccia: 750€
+Capitale Totale (12 titoli): 12.000€
+Peso = 750 / 12.000 × 100 = 6.25%
+```
+
+#### 🎨 DESIGN UI
+
+**ROI Dual** (in evidenza):
+- Sfondo verde/emerald per ROI Posizioni
+- Sfondo blu/cyan per ROI Portafoglio
+- Font grande (2xl) con colori dinamici (verde/rosso)
+- Label esplicative sotto ("su capitale investito" / "su capitale totale")
+
+**Peso Portafoglio** (dedicato):
+- Box viola separato
+- Icona percentuale
+- Font xl
+
+---
+
+### 📋 Funzionalità v1.6.3 (Precedenti)
 
 #### ⚙️ IMPOSTAZIONI GLOBALI TRACCE (Finalmente Funzionanti!)
 

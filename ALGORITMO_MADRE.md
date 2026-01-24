@@ -553,7 +553,18 @@ Max Drawdown = ((Valore Minimo - Picco Precedente) / Picco Precedente) × 100
 - ✅ Smart Expositions Parser
 - ✅ Match automatico NOME/TICKER
 
-### v1.6.2 (2025-01-24)
+### v1.6.4 (2025-01-24)
+- ✅ **KPI DETTAGLIATI PER TRACCIA**: ROI Posizioni, ROI Portafoglio, % Peso aggiunti
+- ✅ **ROI Posizioni Traccia**: `(ValoreCorrente - Investito) / Investito × 100`
+- ✅ **ROI Portafoglio Traccia**: `(Patrimonio - CapitaleBase) / CapitaleBase × 100`
+- ✅ **% Peso Portafoglio**: `(InvestitoTraccia / CapitaleTotale) × 100`
+- ✅ **UI Migliorata**: Box colorati (verde/blu) per ROI, box viola per Peso
+- ✅ **Calcolo Sincrono**: `updateCalculations()` aggiornato per KPI per traccia
+- ✅ **Layout**: ROI Dual → Grid 3 (Investito/Residuo/Azioni) → Peso
+- 📊 **Formule**: Implementate formule v1.6.1 ma A LIVELLO DI SINGOLA TRACCIA
+- 🎯 **Obiettivo**: Vedere performance di ogni titolo, non solo dashboard globale
+
+### v1.6.3 (2025-01-24)
 - ✅ **IMPOSTAZIONI GLOBALI FUNZIONALI**: Sezione sopra prima traccia DAW
 - ✅ **Capitale Totale**: Input capitale portafoglio (divide equamente tra tracce)
 - ✅ **Date Globali**: Data Inizio/Fine applicate a tutte le tracce

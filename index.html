@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rosicatore v1.6.2 - Stock Price Timeline Tracker</title>
+    <title>Rosicatore v1.6.4 - Stock Price Timeline Tracker</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
@@ -89,7 +89,7 @@
         <div class="max-w-7xl mx-auto">
             <h1 class="text-4xl font-bold flex items-center gap-3">
                 <i class="fas fa-chart-line"></i>
-                Rosicatore <span class="text-lg font-normal opacity-75">v1.6.2</span>
+                Rosicatore <span class="text-lg font-normal opacity-75">v1.6.4</span>
             </h1>
             <p class="text-purple-100 mt-2">Stock Price Timeline Tracker - Analizza gli andamenti azionari con calcoli di investimento</p>
         </div>
@@ -788,6 +788,38 @@ GSM +0,5/4       (virgola italiana supportata)
                 gainLossEl.textContent = icon + ' ' + perf.gainLoss.toLocaleString('it-IT', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' € (' + perf.gainLossPercent.toFixed(2) + '%)';
             }
             
+            // v1.6.4: KPI Dettagliati per Traccia
+            // ROI Posizioni (su capitale investito)
+            const roiPositions = calc.invested > 0 ? ((perf.currentValue - calc.invested) / calc.invested) * 100 : 0;
+            const roiPosEl = document.getElementById('roi-pos-' + trackId);
+            if (roiPosEl) {
+                const sign = roiPositions >= 0 ? '+' : '';
+                const color = roiPositions >= 0 ? 'text-green-600' : 'text-red-600';
+                roiPosEl.innerHTML = `<span class="${color}">${sign}${roiPositions.toFixed(2)}%</span>`;
+            }
+            
+            // ROI Portafoglio (su capitale totale per traccia)
+            const capitalBase = parseFloat(track.capital) || 0;
+            const patrimonioTraccia = perf.currentValue + calc.residual;
+            const roiPortfolio = capitalBase > 0 ? ((patrimonioTraccia - capitalBase) / capitalBase) * 100 : 0;
+            const roiPortEl = document.getElementById('roi-port-' + trackId);
+            if (roiPortEl) {
+                const sign = roiPortfolio >= 0 ? '+' : '';
+                const color = roiPortfolio >= 0 ? 'text-green-600' : 'text-red-600';
+                roiPortEl.innerHTML = `<span class="${color}">${sign}${roiPortfolio.toFixed(2)}%</span>`;
+            }
+            
+            // % Peso Portafoglio (su capitale totale di tutte le tracce)
+            let totalCapital = 0;
+            tracks.forEach(t => {
+                totalCapital += parseFloat(t.capital) || 0;
+            });
+            const weight = totalCapital > 0 ? (calc.invested / totalCapital) * 100 : 0;
+            const weightEl = document.getElementById('weight-' + trackId);
+            if (weightEl) {
+                weightEl.textContent = weight.toFixed(2) + '%';
+            }
+            
             // Update portfolio dashboard
             updateDashboard();
         }
@@ -1323,33 +1355,7 @@ GSM +0,5/4       (virgola italiana supportata)
                     calcTitle.innerHTML = '<i class="fas fa-calculator text-purple-500"></i> Calcoli Investimento';
                     calcSection.appendChild(calcTitle);
                     
-                    // Date range
-                    const dateRangeDiv = document.createElement('div');
-                    dateRangeDiv.className = 'grid grid-cols-2 gap-4 mb-4';
-                    dateRangeDiv.innerHTML = `
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Data Inizio</label>
-                            <input type="date" id="date-start-${track.id}" value="${track.dateStart}" 
-                                   class="w-full border border-gray-300 rounded px-3 py-2 text-sm">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Data Fine (oggi default)</label>
-                            <input type="date" id="date-end-${track.id}" value="${track.dateEnd}" 
-                                   class="w-full border border-gray-300 rounded px-3 py-2 text-sm">
-                        </div>
-                    `;
-                    calcSection.appendChild(dateRangeDiv);
-                    
-                    // Capital input
-                    const capitalDiv = document.createElement('div');
-                    capitalDiv.className = 'mb-4';
-                    capitalDiv.innerHTML = `
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Capitale Alloggiato (€)</label>
-                        <input type="number" id="capital-${track.id}" value="${track.capital}" 
-                               placeholder="Es: 10000" step="100" min="0"
-                               class="w-full border border-gray-300 rounded px-3 py-2">
-                    `;
-                    calcSection.appendChild(capitalDiv);
+                    // v1.6.4: Date e Capitale gestiti SOLO da Impostazioni Globali
                     
                     // Fraction counter
                     const fractionDiv = document.createElement('div');
@@ -1379,11 +1385,30 @@ GSM +0,5/4       (virgola italiana supportata)
                     `;
                     calcSection.appendChild(fractionDiv);
                     
-                    // Calculations display
+                    // v1.6.4: KPI Dettagliati per Traccia
                     const displayDiv = document.createElement('div');
                     displayDiv.className = 'calc-display';
                     displayDiv.innerHTML = `
-                        <div class="grid grid-cols-3 gap-4 text-center">
+                        <!-- ROI Dual -->
+                        <div class="grid grid-cols-2 gap-4 text-center mb-4 pb-4 border-b border-gray-200">
+                            <div class="bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg p-3">
+                                <div class="text-xs font-medium opacity-75 mb-1">
+                                    <i class="fas fa-rocket text-green-600"></i> ROI Posizioni
+                                </div>
+                                <div class="text-2xl font-bold" id="roi-pos-${track.id}">0.00%</div>
+                                <div class="text-xs text-gray-500 mt-1">su capitale investito</div>
+                            </div>
+                            <div class="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-lg p-3">
+                                <div class="text-xs font-medium opacity-75 mb-1">
+                                    <i class="fas fa-wallet text-blue-600"></i> ROI Portafoglio
+                                </div>
+                                <div class="text-2xl font-bold" id="roi-port-${track.id}">0.00%</div>
+                                <div class="text-xs text-gray-500 mt-1">su capitale totale</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Capitale & Azioni -->
+                        <div class="grid grid-cols-3 gap-4 text-center mb-4">
                             <div>
                                 <div class="text-sm opacity-90">Capitale Investito</div>
                                 <div class="text-2xl font-bold mt-1" id="invested-${track.id}">0 €</div>
@@ -1397,6 +1422,14 @@ GSM +0,5/4       (virgola italiana supportata)
                                 <div class="text-2xl font-bold mt-1" id="shares-${track.id}">0 azioni</div>
                             </div>
                         </div>
+                        
+                        <!-- Peso Portafoglio -->
+                        <div class="text-center bg-purple-50 rounded-lg p-3">
+                            <div class="text-sm opacity-90 mb-1">
+                                <i class="fas fa-percentage text-purple-600"></i> Peso su Portafoglio Totale
+                            </div>
+                            <div class="text-xl font-bold" id="weight-${track.id}">0.00%</div>
+                        </div>
                     `;
                     calcSection.appendChild(displayDiv);
                     
@@ -1404,27 +1437,21 @@ GSM +0,5/4       (virgola italiana supportata)
                     
                     // Event listeners for calculations
                     setTimeout(() => {
-                        const dateStartInput = document.getElementById('date-start-' + track.id);
-                        const dateEndInput = document.getElementById('date-end-' + track.id);
-                        const capitalInput = document.getElementById('capital-' + track.id);
+                        // v1.6.4: Date e Capitale rimossi - gestiti da Impostazioni Globali
                         const numeratorInput = document.getElementById('numerator-' + track.id);
                         const denominatorInput = document.getElementById('denominator-' + track.id);
                         const decreaseBtn = document.getElementById('decrease-' + track.id);
                         const increaseBtn = document.getElementById('increase-' + track.id);
                         
                         const updateTrack = () => {
-                            track.dateStart = dateStartInput.value;
-                            track.dateEnd = dateEndInput.value;
-                            track.capital = capitalInput.value;
+                            // Date e capitale sono gestiti dalla sezione globale
                             track.numerator = parseInt(numeratorInput.value) || 0;
                             track.denominator = parseInt(denominatorInput.value) || 1;
                             // v1.5.0: saveTracks() DISABLED
                             updateCalculations(track.id);
                         };
                         
-                        dateStartInput.addEventListener('change', updateTrack);
-                        dateEndInput.addEventListener('change', updateTrack);
-                        capitalInput.addEventListener('input', updateTrack);
+                        // Solo listeners per frazione (N/4)
                         numeratorInput.addEventListener('input', updateTrack);
                         denominatorInput.addEventListener('input', updateTrack);
                         
