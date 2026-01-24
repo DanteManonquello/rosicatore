@@ -1,10 +1,41 @@
-# 📊 Rosicatore v1.4.6 - Stock Price Timeline Tracker
+# 📊 Rosicatore v1.4.7 - Stock Price Timeline Tracker
 
 Analizza gli andamenti azionari con un'interfaccia stile DAW (Digital Audio Workstation) per visualizzare multiple tracce di dati finanziari.
 
-## 🎯 Versione Attuale: v1.4.6 - EXTENDED KPI DASHBOARD + VIRGOLA ITALIANA
+## 🎯 Versione Attuale: v1.4.7 - CRESCITA PATRIMONIO + ALGORITMO MADRE
 
-### ✨ Novità v1.4.6
+### ✨ Novità v1.4.7
+
+#### 💎 KPI Crescita Patrimonio
+- **💰 Patrimonio Netto**: Valore totale portafoglio (posizioni + liquidità)
+- **📈 Crescita Patrimonio**: Aumento/diminuzione patrimonio in € e %
+- **🧮 Formula**: `Patrimonio Attuale - Capitale Iniziale`
+
+**Esempio Calcolo**:
+```javascript
+Capitale Alloggiato: 10.000€
+Investito: 3.000€ → Valore: 3.600€
+Residuo: 7.000€
+
+Patrimonio Netto = 3.600 + 7.000 = 10.600€
+Crescita = 10.600 - 10.000 = +600€ (+6%)
+```
+
+#### 📚 ALGORITMO_MADRE.md
+- **🔥 Cuore di Rosicatore**: File documentale con tutta la logica
+- **📊 Formule Complete**: Investimenti, PMC, Performance, Patrimonio
+- **🚧 Roadmap Futura**: Movimenti, Dividendi, CAGR, Sharpe Ratio
+- **📝 Changelog Integrato**: Storia modifiche algoritmo
+
+**Sezioni Principali**:
+1. Logica Investimenti (Frazioni)
+2. Calcolo Performance (P&L, ROI, PMC)
+3. Crescita Patrimonio
+4. TODO: Gestione Movimenti (v1.5.0)
+5. TODO: Gestione Dividendi (v1.5.0)
+6. Formule Matematiche Avanzate
+
+### 📋 Funzionalità v1.4.6 (Precedenti)
 
 #### 🔢 Supporto Virgola Italiana
 - **✅ Parser Robusto**: Supporta sia `0.5/4` che `0,5/4` (virgola italiana)

@@ -1,0 +1,386 @@
+# 🧮 ALGORITMO MADRE - Rosicatore
+
+**Versione**: v1.4.7  
+**Data**: 2025-01-24  
+**Autore**: Rosicatore Development Team
+
+---
+
+## 📌 INTRODUZIONE
+
+Questo documento è il **cuore pulsante** di Rosicatore. Definisce la logica matematica e algoritmica che governa:
+- Calcolo investimenti e frazioni
+- Performance tracking (P&L, ROI, PMC)
+- Crescita patrimonio
+- Gestione movimenti (futuro)
+- Gestione dividendi (futuro)
+
+**⚠️ IMPORTANTE**: Qualsiasi modifica alla logica di calcolo DEVE essere documentata in questo file.
+
+---
+
+## 📊 LOGICA INVESTIMENTI (Frazioni)
+
+### Frazione Investimento
+
+**Formula Base**:
+```
+frazione = numerator / denominator
+```
+
+**Esempi**:
+- `1/4` = 25% del capitale alloggiato
+- `0.5/4` = 12.5% del capitale alloggiato
+- `3/4` = 75% del capitale alloggiato
+- `4/4` = 100% del capitale alloggiato
+
+**Supporto Decimali**:
+- ✅ Virgola italiana: `0,5/4` → automaticamente convertito in `0.5/4`
+- ✅ Punto decimale: `0.5/4` → accettato direttamente
+- ✅ Frazioni maggiori di 1: `1.5/4` = 37.5%
+
+### Calcolo Capitale Investito
+
+**Formula**:
+```
+capitalInvestito = capitalAlloggiato × frazione
+```
+
+**Esempio**:
+```javascript
+Capitale Alloggiato: 10.000€
+Frazione: 3/4 = 0.75
+Capitale Investito: 10.000 × 0.75 = 7.500€
+```
+
+### Calcolo Capitale Residuo
+
+**Formula**:
+```
+capitalResiduo = capitalAlloggiato - capitalInvestito
+```
+
+**Esempio**:
+```javascript
+Capitale Alloggiato: 10.000€
+Capitale Investito: 7.500€
+Capitale Residuo: 10.000 - 7.500 = 2.500€
+```
+
+---
+
+## 💰 CALCOLO PERFORMANCE
+
+### Prezzo Medio di Carico (PMC)
+
+**Definizione**: Il PMC è il prezzo di acquisto iniziale delle azioni.
+
+**Formula**:
+```
+PMC = Prezzo all'inizio della traccia (startPrice)
+```
+
+**Calcolo Shares (Azioni Possedute)**:
+```
+shares = capitalInvestito / PMC
+```
+
+**Esempio**:
+```javascript
+Capitale Investito: 3.000€
+PMC (Prezzo Start): 100€
+Shares: 3.000 / 100 = 30 azioni
+```
+
+### Valore Corrente Posizione
+
+**Formula**:
+```
+valoreCorrente = shares × prezzoAttuale
+```
+
+**Esempio**:
+```javascript
+Shares: 30 azioni
+Prezzo Attuale (End): 120€
+Valore Corrente: 30 × 120 = 3.600€
+```
+
+### Gain/Loss (Profitto/Perdita)
+
+**Formula in €**:
+```
+gainLoss€ = valoreCorrente - capitalInvestito
+```
+
+**Formula in %**:
+```
+gainLoss% = (gainLoss€ / capitalInvestito) × 100
+```
+
+**Esempio**:
+```javascript
+Valore Corrente: 3.600€
+Capitale Investito: 3.000€
+
+Gain/Loss €: 3.600 - 3.000 = +600€
+Gain/Loss %: (600 / 3.000) × 100 = +20%
+```
+
+---
+
+## 📈 CRESCITA PATRIMONIO
+
+### Patrimonio Netto
+
+**Definizione**: Valore totale del portafoglio (posizioni + liquidità).
+
+**Formula**:
+```
+patrimonioNetto = Σ(valoriCorrenti) + Σ(capitaliResidui)
+```
+
+**Esempio**:
+```javascript
+// Traccia 1
+Valore Corrente: 3.600€
+Residuo: 7.000€
+
+// Traccia 2
+Valore Corrente: 1.200€
+Residuo: 3.800€
+
+Patrimonio Netto = (3.600 + 1.200) + (7.000 + 3.800) = 15.600€
+```
+
+### Crescita Patrimonio
+
+**Formula in €**:
+```
+crescitaPatrimonio€ = patrimonioNetto - Σ(capitaliAlloggiati)
+```
+
+**Formula in %**:
+```
+crescitaPatrimonio% = (crescitaPatrimonio€ / Σ(capitaliAlloggiati)) × 100
+```
+
+**Esempio**:
+```javascript
+Patrimonio Iniziale (Capitale Alloggiato Totale): 20.000€
+Patrimonio Netto Attuale: 21.500€
+
+Crescita Patrimonio €: 21.500 - 20.000 = +1.500€
+Crescita Patrimonio %: (1.500 / 20.000) × 100 = +7.5%
+```
+
+---
+
+## 🎯 KPI DASHBOARD
+
+### KPI Base (Sezione 1)
+1. **Capitale Alloggiato**: Somma capitali di tutte le tracce
+2. **Capitale Investito**: Somma investimenti attivi
+3. **Capitale Residuo**: Somma liquidità non investita
+4. **Titoli Diversi**: Conteggio tracce attive
+
+### KPI Performance (Sezione 2)
+1. **Liquidità Investita**: % media investimento
+2. **Quarti Investiti**: Somma frazioni (es: 12/48)
+3. **GAIN/LOSS €**: Profitto/perdita totale in euro
+4. **GAIN/LOSS %**: Profitto/perdita totale percentuale
+5. **💎 Patrimonio Netto**: Valore portafoglio totale
+6. **📈 Crescita Patrimonio**: Aumento patrimonio in € e %
+
+### KPI Extended (Sezione 3)
+1. **🏆 Best Performer**: Traccia con ROI% massimo
+2. **💀 Worst Performer**: Traccia con ROI% minimo
+3. **📊 ROI Medio %**: Media gain/loss % tutte tracce
+4. **🎯 Win Rate**: % tracce in gain
+
+### KPI Portfolio (Sezione 4)
+1. **💰 Valore Portafoglio**: Somma valori posizioni
+2. **💵 Investimento Medio**: Media capitale investito
+3. **🔥 Tracce in Gain**: Conteggio posizioni positive
+4. **❄️ Tracce in Loss**: Conteggio posizioni negative
+
+---
+
+## 🚧 TODO: GESTIONE MOVIMENTI (v1.5.0)
+
+**Funzionalità da implementare**:
+
+### 1. Acquisti Successivi (Dollar Cost Averaging)
+```javascript
+// Tracciare multiple transazioni di acquisto
+transactions: [
+  { date: '2024-01-01', shares: 10, price: 100€, amount: 1000€ },
+  { date: '2024-02-01', shares: 8, price: 125€, amount: 1000€ }
+]
+
+// PMC aggiornato
+PMC = Σ(amount) / Σ(shares)
+```
+
+### 2. Vendite Parziali
+```javascript
+// Registrare vendite parziali
+{ date: '2024-03-01', shares: -5, price: 150€, amount: 750€, type: 'sell' }
+
+// Aggiornare shares possedute
+sharesAttuali = Σ(transactions.shares)
+```
+
+### 3. Ribilanciamento Posizioni
+```javascript
+// Calcolare nuove frazioni target
+targetFraction = desiredAllocation / totalCapital
+// Suggerire operazioni per raggiungere target
+```
+
+### 4. Tracking Storico Transazioni
+```javascript
+// Database transazioni
+transactionHistory: [
+  { id, trackId, type: 'buy'|'sell', date, shares, price, amount, fees }
+]
+```
+
+---
+
+## 💵 TODO: GESTIONE DIVIDENDI (v1.5.0)
+
+**Funzionalità da implementare**:
+
+### 1. Registrazione Dividendi
+```javascript
+dividends: [
+  { date: '2024-01-15', amount: 50€, trackId: 'AAPL' },
+  { date: '2024-04-15', amount: 52€, trackId: 'AAPL' }
+]
+```
+
+### 2. Calcolo Dividend Yield
+```javascript
+dividendYield = (Σ(dividendi_annuali) / capitalInvestito) × 100
+```
+
+### 3. Reinvestimento Automatico (DRIP)
+```javascript
+// Opzione per reinvestire dividendi
+if (track.drip) {
+  newShares = dividend / currentPrice;
+  track.shares += newShares;
+}
+```
+
+### 4. Tassazione Dividendi
+```javascript
+// Calcolare ritenuta fiscale
+taxRate = 26%; // Italia
+netDividend = grossDividend × (1 - taxRate);
+```
+
+---
+
+## 🔬 FORMULE MATEMATICHE PRINCIPALI
+
+### 1. ROI (Return on Investment)
+```
+ROI% = ((Valore Finale - Investimento Iniziale) / Investimento Iniziale) × 100
+```
+
+### 2. CAGR (Compound Annual Growth Rate)
+```
+CAGR = ((Valore Finale / Valore Iniziale)^(1/anni) - 1) × 100
+```
+*[TODO: Da implementare per tracce con data inizio/fine]*
+
+### 3. Sharpe Ratio
+```
+Sharpe = (Rendimento Medio - Tasso Risk-Free) / Deviazione Standard
+```
+*[TODO: Da implementare con calcolo volatilità]*
+
+### 4. Max Drawdown
+```
+Max Drawdown = ((Valore Minimo - Picco Precedente) / Picco Precedente) × 100
+```
+*[TODO: Da implementare con analisi storica prezzi]*
+
+---
+
+## 📝 CHANGELOG
+
+### v1.4.7 (2025-01-24)
+- ✅ Creazione ALGORITMO_MADRE.md
+- ✅ Documentazione logica investimenti frazioni
+- ✅ Documentazione calcolo performance
+- ✅ Documentazione crescita patrimonio
+- ✅ Template TODO per movimenti e dividendi
+- ✅ KPI Patrimonio Netto implementato
+- ✅ KPI Crescita Patrimonio implementato
+
+### v1.4.6 (2025-01-24)
+- ✅ Supporto virgola italiana (0,5/4)
+- ✅ Fix calcoli decimali (parseFloat)
+- ✅ 8 nuovi KPI dashboard
+
+### v1.4.5 (2025-01-24)
+- ✅ Input capitale totale
+- ✅ Suddivisione automatica capitale
+
+### v1.4.4 (2025-01-24)
+- ✅ Smart Expositions Parser
+- ✅ Match automatico NOME/TICKER
+
+### v1.4.3 (2025-01-23)
+- ✅ KPI Performance Globali (GAIN/LOSS € e %)
+- ✅ Colori dinamici verde/rosso
+
+### v1.4.2 (2025-01-23)
+- ✅ Impostazioni Globali Multi Upload
+- ✅ Data Fine default = oggi
+
+### v1.4.1 (2025-01-22)
+- ✅ Multi Upload con Drag & Drop
+- ✅ Supporto ZIP/TAR.GZ
+
+---
+
+## 📚 RIFERIMENTI
+
+- **Capitale Alloggiato**: Capitale totale disponibile per investimenti (input utente)
+- **Capitale Investito**: Parte del capitale effettivamente impiegata in posizioni attive
+- **Capitale Residuo**: Liquidità non investita (capitale alloggiato - investito)
+- **PMC (Prezzo Medio di Carico)**: Prezzo medio di acquisto delle azioni
+- **Valore Corrente**: Valutazione attuale della posizione (shares × prezzo attuale)
+- **Gain/Loss (P&L)**: Profitto o perdita sulla posizione (valore corrente - investito)
+- **Patrimonio Netto**: Valore totale del portafoglio (posizioni + liquidità)
+- **Crescita Patrimonio**: Variazione del patrimonio netto rispetto all'iniziale
+
+---
+
+## 🔐 NOTE IMPORTANTI
+
+1. **Precisione Decimali**: Tutti i calcoli finanziari usano `parseFloat()` con precisione 2 decimali per display
+2. **Virgola Italiana**: Parser converte automaticamente `,` → `.` prima dei calcoli
+3. **Division by Zero**: Tutti i calcoli percentuali hanno check `if (denominatore > 0)`
+4. **Tracce Senza Dati**: Contano per capitale alloggiato MA non per performance
+5. **Date Start/End**: `dateStart` = data acquisto (PMC), `dateEnd` = data valutazione (prezzo corrente)
+
+---
+
+## 🎓 GLOSSARIO
+
+- **ROI**: Return on Investment (Ritorno sull'Investimento)
+- **P&L**: Profit & Loss (Profitto e Perdita)
+- **PMC**: Prezzo Medio di Carico
+- **DCA**: Dollar Cost Averaging (Investimento Graduale)
+- **DRIP**: Dividend Reinvestment Plan (Reinvestimento Dividendi)
+- **CAGR**: Compound Annual Growth Rate (Tasso Crescita Annuo Composto)
+- **Drawdown**: Discesa massima dal picco precedente
+
+---
+
+**🔥 Questo algoritmo è il CUORE di Rosicatore. Ogni modifica deve passare da qui.**
