@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rosicatore v1.6.1 - Stock Price Timeline Tracker</title>
+    <title>Rosicatore v1.6.2 - Stock Price Timeline Tracker</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
@@ -89,7 +89,7 @@
         <div class="max-w-7xl mx-auto">
             <h1 class="text-4xl font-bold flex items-center gap-3">
                 <i class="fas fa-chart-line"></i>
-                Rosicatore <span class="text-lg font-normal opacity-75">v1.6.1</span>
+                Rosicatore <span class="text-lg font-normal opacity-75">v1.6.2</span>
             </h1>
             <p class="text-purple-100 mt-2">Stock Price Timeline Tracker - Analizza gli andamenti azionari con calcoli di investimento</p>
         </div>
@@ -499,18 +499,53 @@ GSM +0,5/4       (virgola italiana supportata)
             </div>
         </div>
         
-        <!-- Impostazioni Globali Tracce (v1.6.1) - SEMPRE VISIBILE -->
-        <div id="global-track-settings" class="mb-6 bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg shadow-md border-2 border-purple-300 p-6">
+        <!-- Impostazioni Globali Tracce (v1.6.2) - FUNZIONALE -->
+        <div class="mb-6 bg-gradient-to-br from-orange-50 to-yellow-50 rounded-lg shadow-lg border-2 border-orange-400 p-6">
             <div class="flex items-center gap-3 mb-4">
-                <i class="fas fa-cog text-2xl text-purple-600"></i>
-                <h3 class="text-lg font-bold text-gray-800">⚙️ Impostazioni Tracce</h3>
+                <i class="fas fa-sliders-h text-3xl text-orange-600"></i>
+                <div>
+                    <h3 class="text-xl font-bold text-gray-800">⚙️ Impostazioni Globali Tracce</h3>
+                    <p class="text-sm text-gray-600">Applica capitale e date a tutte le tracce contemporaneamente</p>
+                </div>
             </div>
-            <p class="text-sm text-gray-600 mb-4">
-                Queste impostazioni saranno applicate a ogni traccia quando carichi un CSV. Modifica i valori per ciascuna traccia nel dettaglio sotto.
-            </p>
-            <div class="bg-white rounded-lg p-4 border border-purple-200">
-                <p class="text-xs text-gray-500 italic">
-                    💡 Dopo aver caricato i CSV, troverai i campi Capitale, Data Inizio/Fine e Frazione sotto ogni traccia nel box "Calcoli Investimento"
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-wallet text-orange-600"></i> Capitale Totale Portafoglio (€)
+                    </label>
+                    <input type="number" id="global-capital" placeholder="Es: 12000" step="100" min="0"
+                           class="w-full border-2 border-orange-300 rounded-lg px-4 py-3 text-lg font-bold focus:ring-2 focus:ring-orange-500 focus:border-orange-500">
+                    <p class="text-xs text-gray-500 mt-1">Sarà diviso equamente tra tutte le tracce</p>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-calendar-alt text-orange-600"></i> Data Inizio Globale
+                    </label>
+                    <input type="date" id="global-date-start"
+                           class="w-full border-2 border-orange-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-orange-500">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-calendar-check text-orange-600"></i> Data Fine Globale
+                    </label>
+                    <input type="date" id="global-date-end"
+                           class="w-full border-2 border-orange-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-orange-500">
+                </div>
+            </div>
+            
+            <button id="apply-global-settings-btn" 
+                    class="w-full bg-gradient-to-r from-orange-500 to-yellow-500 hover:from-orange-600 hover:to-yellow-600 text-white font-bold py-4 px-6 rounded-lg shadow-lg transition flex items-center justify-center gap-3">
+                <i class="fas fa-magic"></i>
+                Applica a Tutte le Tracce
+            </button>
+            
+            <div class="mt-4 p-3 bg-white rounded-lg border border-orange-200">
+                <p class="text-xs text-gray-600">
+                    💡 <strong>Come funziona:</strong> Inserisci il capitale TOTALE del portafoglio e le date.
+                    Il capitale verrà diviso equamente tra tutte le tracce. Le frazioni (N/4) rimangono invariate.
                 </p>
             </div>
         </div>
@@ -1659,6 +1694,71 @@ GSM +0,5/4       (virgola italiana supportata)
             };
         }
 
+        // v1.6.2: Apply Global Settings to All Tracks
+        function applyGlobalSettings() {
+            const globalCapital = parseFloat(document.getElementById('global-capital').value);
+            const globalDateStart = document.getElementById('global-date-start').value;
+            const globalDateEnd = document.getElementById('global-date-end').value;
+            
+            // Validation
+            if (!globalCapital || globalCapital <= 0) {
+                alert('⚠️ Inserisci un Capitale Totale valido (maggiore di 0)');
+                return;
+            }
+            
+            if (!globalDateStart || !globalDateEnd) {
+                alert('⚠️ Inserisci sia Data Inizio che Data Fine');
+                return;
+            }
+            
+            if (new Date(globalDateStart) >= new Date(globalDateEnd)) {
+                alert('⚠️ Data Inizio deve essere prima di Data Fine');
+                return;
+            }
+            
+            if (tracks.length === 0) {
+                alert('⚠️ Nessuna traccia presente.\n\nCarica almeno un CSV prima di applicare le impostazioni globali.');
+                return;
+            }
+            
+            // Divide capitale equamente tra tutte le tracce
+            const capitalPerTrack = globalCapital / tracks.length;
+            
+            let updatedCount = 0;
+            
+            // Apply to all tracks
+            tracks.forEach(track => {
+                track.capital = capitalPerTrack;
+                track.dateStart = globalDateStart;
+                track.dateEnd = globalDateEnd;
+                
+                // Update UI inputs (se esistono)
+                const capitalInput = document.getElementById('capital-' + track.id);
+                const dateStartInput = document.getElementById('date-start-' + track.id);
+                const dateEndInput = document.getElementById('date-end-' + track.id);
+                
+                if (capitalInput) capitalInput.value = capitalPerTrack.toFixed(2);
+                if (dateStartInput) dateStartInput.value = globalDateStart;
+                if (dateEndInput) dateEndInput.value = globalDateEnd;
+                
+                // Trigger recalculation for this track
+                updateCalculations(track.id);
+                
+                updatedCount++;
+            });
+            
+            // Update dashboard
+            updateDashboard();
+            
+            // Feedback
+            alert(`✅ Impostazioni Globali Applicate!\n\n` +
+                  `💰 Capitale Totale: ${globalCapital.toLocaleString('it-IT', {minimumFractionDigits: 2})}€\n` +
+                  `💵 Capitale per traccia: ${capitalPerTrack.toLocaleString('it-IT', {minimumFractionDigits: 2})}€\n` +
+                  `📅 Date: ${globalDateStart} → ${globalDateEnd}\n` +
+                  `📊 Tracce aggiornate: ${updatedCount}/${tracks.length}\n\n` +
+                  `Le frazioni (N/4) di ogni traccia sono rimaste invariate.`);
+        }
+        
         // Add track
         document.getElementById('add-track-btn').addEventListener('click', function() {
             const newTrack = migrateTrack({
@@ -2524,6 +2624,11 @@ GSM +0,5/4       (virgola italiana supportata)
                 alert(`❌ Errore durante il parsing:\n\n${error.message}\n\nVerifica il formato dei movimenti.`);
                 console.error('Errore parsing movimenti:', error);
             }
+        });
+        
+        // v1.6.2: Event Listener per Impostazioni Globali
+        document.getElementById('apply-global-settings-btn').addEventListener('click', () => {
+            applyGlobalSettings();
         });
         
         // Parse movimenti text

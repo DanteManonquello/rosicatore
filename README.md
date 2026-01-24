@@ -1,10 +1,45 @@
-# 📊 Rosicatore v1.6.1 - Stock Price Timeline Tracker
+# 📊 Rosicatore v1.6.2 - Stock Price Timeline Tracker
 
 Analizza gli andamenti azionari con un'interfaccia stile DAW (Digital Audio Workstation) per visualizzare multiple tracce di dati finanziari.
 
-## 🎯 Versione Attuale: v1.6.1 - KPI UTILI PER GUADAGNARE
+## 🎯 Versione Attuale: v1.6.2 - IMPOSTAZIONI GLOBALI FUNZIONALI
 
-### ✨ Novità v1.6.1 - KPI CHE SERVONO DAVVERO
+### ✨ Novità v1.6.2 - Capitale e Date Globali
+
+#### ⚙️ IMPOSTAZIONI GLOBALI TRACCE (Finalmente Funzionanti!)
+
+**Posizione**: Sopra la prima traccia DAW, sempre visibile
+
+**Cosa Fa**:
+- **Capitale Totale**: Inserisci capitale del portafoglio (es. 12.000€)
+- **Date Globali**: Imposta Data Inizio e Data Fine per TUTTE le tracce
+- **Pulsante Applica**: Divide capitale equamente e applica date
+
+**Esempio Pratico**:
+```
+Hai 12 titoli nel portafoglio
+Capitale Totale: 12.000€
+
+Click "Applica a Tutte le Tracce"
+
+Risultato:
+✅ Ogni traccia riceve: 1.000€
+✅ Date applicate a tutte
+✅ Frazioni (N/4) rimangono invariate
+✅ Dashboard aggiornato automaticamente
+```
+
+**Perché è Utile**:
+- Non devi inserire capitale/date manualmente per ogni titolo
+- Cambio rapido del capitale totale
+- Ribilanciamento istantaneo
+
+**Prima**: Dovevi modificare 12 input singoli (capitale + 2 date × 12 = 36 campi!)  
+**Ora**: 3 campi + 1 click = FATTO ✅
+
+---
+
+### 📋 Funzionalità v1.6.1 (Precedenti)
 
 #### 💰 DOPPIO ROI (Quello che Conta)
 **ROI Posizioni (99%)** vs **ROI Portafoglio (51%)**

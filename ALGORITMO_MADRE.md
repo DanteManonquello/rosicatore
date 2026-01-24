@@ -553,6 +553,17 @@ Max Drawdown = ((Valore Minimo - Picco Precedente) / Picco Precedente) × 100
 - ✅ Smart Expositions Parser
 - ✅ Match automatico NOME/TICKER
 
+### v1.6.2 (2025-01-24)
+- ✅ **IMPOSTAZIONI GLOBALI FUNZIONALI**: Sezione sopra prima traccia DAW
+- ✅ **Capitale Totale**: Input capitale portafoglio (divide equamente tra tracce)
+- ✅ **Date Globali**: Data Inizio/Fine applicate a tutte le tracce
+- ✅ **Pulsante Applica**: Aggiorna tutte le tracce con 1 click
+- ✅ **Validazione**: Controlli su capitale > 0, date valide, tracce presenti
+- ✅ **Divisione Equa**: `capitalPerTraccia = capitaleTotale / numTracce`
+- ✅ **Feedback Dettagliato**: Alert con riepilogo operazione
+- ✅ Frazioni (N/4) rimangono invariate
+- ❌ **RIMOSSO**: Sezione placeholder v1.6.1 (sostituita con funzionale)
+
 ### v1.6.1 (2025-01-24)
 - ✅ **DOPPIO ROI**: ROI Posizioni (99%) vs ROI Portafoglio (51%)
 - ✅ **KPI UTILI PER GUADAGNARE** (no cazzate accademiche):
