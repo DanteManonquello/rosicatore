@@ -1,10 +1,41 @@
-# 📊 Rosicatore v1.4.5 - Stock Price Timeline Tracker
+# 📊 Rosicatore v1.4.6 - Stock Price Timeline Tracker
 
 Analizza gli andamenti azionari con un'interfaccia stile DAW (Digital Audio Workstation) per visualizzare multiple tracce di dati finanziari.
 
-## 🎯 Versione Attuale: v1.4.5 - FIX CAPITALE SUDDIVISO
+## 🎯 Versione Attuale: v1.4.6 - EXTENDED KPI DASHBOARD + VIRGOLA ITALIANA
 
-### ✨ Novità v1.4.5
+### ✨ Novità v1.4.6
+
+#### 🔢 Supporto Virgola Italiana
+- **✅ Parser Robusto**: Supporta sia `0.5/4` che `0,5/4` (virgola italiana)
+- **✅ Calcoli Decimali**: Frazioni come 0.5/4, 0.25/4, 1.5/4 funzionano perfettamente
+- **✅ Fix parseFloat**: Conversione automatica virgola → punto per calcoli
+
+#### 📊 Dashboard KPI Estesa (8 Nuovi KPI)
+- **🏆 Best Performer**: Traccia con ROI% più alto (nome + %)
+- **💀 Worst Performer**: Traccia con ROI% più basso (nome + %)
+- **📈 ROI Medio %**: Media gain/loss % di tutte le tracce con dati
+- **🎯 Win Rate**: Percentuale tracce in gain (verde >50%, rosso <50%)
+- **💰 Valore Portafoglio**: Somma valori correnti di tutte le posizioni
+- **💵 Investimento Medio**: Capitale medio investito per traccia
+- **🔥 Tracce in Gain**: Conteggio posizioni positive (verde)
+- **❄️ Tracce in Loss**: Conteggio posizioni negative (rosso)
+
+#### 🧮 Test Calcoli Rigorosi
+```javascript
+// Esempio calcoli con decimali
+Capital: 10.000€
+Quota: 0.5/4 (12.5%)
+→ Investito: 1.250€ ✅
+→ Residuo: 8.750€ ✅
+
+Capital: 10.000€
+Quota: 0,5/4 (virgola italiana)
+→ Investito: 1.250€ ✅
+→ Parsing automatico virgola ✅
+```
+
+### 📋 Funzionalità v1.4.5 (Precedenti)
 - **💰 Capitale Totale Opzionale**: Input per capitale che viene diviso equamente tra tracce
 - **🔢 Suddivisione Automatica**: Capitale totale ÷ N tracce = capitale per traccia
 - **📊 Feedback Dettagliato**: Mostra capitale assegnato a ogni traccia

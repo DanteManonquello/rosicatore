@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rosicatore v1.4.5 - Stock Price Timeline Tracker</title>
+    <title>Rosicatore v1.4.6 - Stock Price Timeline Tracker</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
@@ -89,7 +89,7 @@
         <div class="max-w-7xl mx-auto">
             <h1 class="text-4xl font-bold flex items-center gap-3">
                 <i class="fas fa-chart-line"></i>
-                Rosicatore <span class="text-lg font-normal opacity-75">v1.4.5</span>
+                Rosicatore <span class="text-lg font-normal opacity-75">v1.4.6</span>
             </h1>
             <p class="text-purple-100 mt-2">Stock Price Timeline Tracker - Analizza gli andamenti azionari con calcoli di investimento</p>
         </div>
@@ -146,6 +146,77 @@
                         <i class="fas fa-percentage"></i> GAIN/LOSS %
                     </div>
                     <div class="text-2xl font-bold mt-1" id="total-gain-loss-percent">
+                        <span class="text-gray-300">--</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Extended KPI Dashboard (v1.4.6) -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t border-white/30">
+                <div class="text-center">
+                    <div class="text-sm opacity-90">
+                        <i class="fas fa-trophy"></i> Best Performer
+                    </div>
+                    <div class="text-lg font-bold mt-1" id="best-performer">
+                        <span class="text-gray-300">--</span>
+                    </div>
+                </div>
+                <div class="text-center">
+                    <div class="text-sm opacity-90">
+                        <i class="fas fa-skull-crossbones"></i> Worst Performer
+                    </div>
+                    <div class="text-lg font-bold mt-1" id="worst-performer">
+                        <span class="text-gray-300">--</span>
+                    </div>
+                </div>
+                <div class="text-center">
+                    <div class="text-sm opacity-90">
+                        <i class="fas fa-chart-bar"></i> ROI Medio %
+                    </div>
+                    <div class="text-2xl font-bold mt-1" id="avg-roi">
+                        <span class="text-gray-300">--</span>
+                    </div>
+                </div>
+                <div class="text-center">
+                    <div class="text-sm opacity-90">
+                        <i class="fas fa-percentage"></i> Win Rate
+                    </div>
+                    <div class="text-2xl font-bold mt-1" id="win-rate">
+                        <span class="text-gray-300">--</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t border-white/30">
+                <div class="text-center">
+                    <div class="text-sm opacity-90">
+                        <i class="fas fa-wallet"></i> Valore Portafoglio
+                    </div>
+                    <div class="text-2xl font-bold mt-1" id="portfolio-value">
+                        <span class="text-gray-300">--</span>
+                    </div>
+                </div>
+                <div class="text-center">
+                    <div class="text-sm opacity-90">
+                        <i class="fas fa-coins"></i> Investimento Medio
+                    </div>
+                    <div class="text-2xl font-bold mt-1" id="avg-investment">
+                        <span class="text-gray-300">--</span>
+                    </div>
+                </div>
+                <div class="text-center">
+                    <div class="text-sm opacity-90">
+                        <i class="fas fa-fire"></i> Tracce in Gain
+                    </div>
+                    <div class="text-2xl font-bold mt-1 text-green-400" id="gain-tracks">
+                        <span class="text-gray-300">--</span>
+                    </div>
+                </div>
+                <div class="text-center">
+                    <div class="text-sm opacity-90">
+                        <i class="fas fa-icicles"></i> Tracce in Loss
+                    </div>
+                    <div class="text-2xl font-bold mt-1 text-red-400" id="loss-tracks">
                         <span class="text-gray-300">--</span>
                     </div>
                 </div>
@@ -241,7 +312,7 @@
                 <div class="flex items-center gap-3">
                     <i class="fas fa-magic text-2xl text-orange-600"></i>
                     <div class="text-left">
-                        <h3 class="text-lg font-bold text-gray-800">Applica Esposizioni Intelligente (v1.4.5)</h3>
+                        <h3 class="text-lg font-bold text-gray-800">Applica Esposizioni Intelligente (v1.4.6)</h3>
                         <p class="text-sm text-gray-600">Incolla una tabella (da Excel/Sheets) e applica esposizioni automaticamente</p>
                     </div>
                 </div>
@@ -282,7 +353,7 @@ Alcoa        NYSE:AA        US0138721065        2/4        GROWTH-DIVIDEND
 • Copia-incolla diretto da Excel/Google Sheets
 • Separatori TAB o spazi multipli
 • Con o senza header (rilevamento automatico)
-• Quote decimali (es: 0.5/4)
+• Quote decimali (es: 0.5/4 o 0,5/4 virgola italiana)
 • Match automatico per NOME o TICKER"></textarea>
                     
                     <button 
@@ -443,7 +514,7 @@ Alcoa        NYSE:AA        US0138721065        2/4        GROWTH-DIVIDEND
         // Calculate investment details
         function calculateInvestment(track) {
             const capital = parseFloat(track.capital) || 0;
-            const numerator = parseInt(track.numerator) || 0;
+            const numerator = parseFloat(track.numerator) || 0; // v1.4.6: Support decimals like 0.5
             const denominator = parseInt(track.denominator) || 1;
             
             if (denominator === 0) return { invested: 0, residual: 0, shares: 0, exposure: 0, startPrice: 0, endPrice: 0 };
@@ -559,7 +630,7 @@ Alcoa        NYSE:AA        US0138721065        2/4        GROWTH-DIVIDEND
                 if (track.data && track.data.length > 0) {
                     const calc = calculateInvestment(track);
                     const capital = parseFloat(track.capital) || 0;
-                    const numerator = parseInt(track.numerator) || 0;
+                    const numerator = parseFloat(track.numerator) || 0; // v1.4.6: Support decimals like 0.5
                     const denominator = parseInt(track.denominator) || 4;
                     
                     totalCapital += capital;
@@ -619,6 +690,167 @@ Alcoa        NYSE:AA        US0138721065        2/4        GROWTH-DIVIDEND
                 const colorClass = percentGainLoss >= 0 ? 'text-green-600' : 'text-red-600';
                 const arrow = percentGainLoss >= 0 ? '⬆️' : '⬇️';
                 gainLossPercentElem.innerHTML = `<span class="${colorClass} font-bold">${sign}${percentGainLoss.toFixed(2)}% ${arrow}</span>`;
+            }
+            
+            // v1.4.6: Extended KPI
+            updateExtendedKPI(tracks);
+        }
+        
+        // v1.4.6: Calculate Extended KPI
+        function updateExtendedKPI(tracks) {
+            if (tracks.length === 0) {
+                // Reset all extended KPI to "--"
+                const kpiIds = ['best-performer', 'worst-performer', 'avg-roi', 'win-rate', 
+                                'portfolio-value', 'avg-investment', 'gain-tracks', 'loss-tracks'];
+                kpiIds.forEach(id => {
+                    const elem = document.getElementById(id);
+                    if (elem) elem.innerHTML = '<span class="text-gray-300">--</span>';
+                });
+                return;
+            }
+            
+            let totalROI = 0;
+            let roiCount = 0;
+            let gainTracksCount = 0;
+            let lossTracksCount = 0;
+            let totalPortfolioValue = 0;
+            let totalInvestmentSum = 0;
+            let bestTrack = null;
+            let worstTrack = null;
+            let bestROI = -Infinity;
+            let worstROI = Infinity;
+            
+            tracks.forEach(track => {
+                if (track.data && track.data.length > 0) {
+                    const calc = calculateInvestment(track);
+                    
+                    if (calc.invested > 0) {
+                        const startPrice = getStartPrice(track);
+                        const endPrice = getEndPrice(track);
+                        
+                        if (startPrice > 0 && endPrice > 0) {
+                            const shares = calc.invested / startPrice;
+                            const currentValue = shares * endPrice;
+                            const gainLoss = currentValue - calc.invested;
+                            const roi = (gainLoss / calc.invested) * 100;
+                            
+                            totalROI += roi;
+                            roiCount++;
+                            totalPortfolioValue += currentValue;
+                            totalInvestmentSum += calc.invested;
+                            
+                            // Track gain/loss
+                            if (gainLoss > 0) {
+                                gainTracksCount++;
+                            } else if (gainLoss < 0) {
+                                lossTracksCount++;
+                            }
+                            
+                            // Find best/worst
+                            if (roi > bestROI) {
+                                bestROI = roi;
+                                bestTrack = track;
+                            }
+                            if (roi < worstROI) {
+                                worstROI = roi;
+                                worstTrack = track;
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Best Performer
+            const bestElem = document.getElementById('best-performer');
+            if (bestElem) {
+                if (bestTrack) {
+                    const name = bestTrack.filename.replace('.csv', '').substring(0, 15);
+                    const sign = bestROI >= 0 ? '+' : '';
+                    const colorClass = bestROI >= 0 ? 'text-green-600' : 'text-red-600';
+                    bestElem.innerHTML = `<span class="${colorClass}">${name}<br>${sign}${bestROI.toFixed(2)}%</span>`;
+                } else {
+                    bestElem.innerHTML = '<span class="text-gray-300">--</span>';
+                }
+            }
+            
+            // Worst Performer
+            const worstElem = document.getElementById('worst-performer');
+            if (worstElem) {
+                if (worstTrack) {
+                    const name = worstTrack.filename.replace('.csv', '').substring(0, 15);
+                    const sign = worstROI >= 0 ? '+' : '';
+                    const colorClass = worstROI >= 0 ? 'text-green-600' : 'text-red-600';
+                    worstElem.innerHTML = `<span class="${colorClass}">${name}<br>${sign}${worstROI.toFixed(2)}%</span>`;
+                } else {
+                    worstElem.innerHTML = '<span class="text-gray-300">--</span>';
+                }
+            }
+            
+            // Average ROI
+            const avgROIElem = document.getElementById('avg-roi');
+            if (avgROIElem) {
+                if (roiCount > 0) {
+                    const avgROI = totalROI / roiCount;
+                    const sign = avgROI >= 0 ? '+' : '';
+                    const colorClass = avgROI >= 0 ? 'text-green-600' : 'text-red-600';
+                    avgROIElem.innerHTML = `<span class="${colorClass}">${sign}${avgROI.toFixed(2)}%</span>`;
+                } else {
+                    avgROIElem.innerHTML = '<span class="text-gray-300">--</span>';
+                }
+            }
+            
+            // Win Rate
+            const winRateElem = document.getElementById('win-rate');
+            if (winRateElem) {
+                const totalTracks = gainTracksCount + lossTracksCount;
+                if (totalTracks > 0) {
+                    const winRate = (gainTracksCount / totalTracks) * 100;
+                    const colorClass = winRate >= 50 ? 'text-green-600' : 'text-red-600';
+                    winRateElem.innerHTML = `<span class="${colorClass}">${winRate.toFixed(1)}%</span>`;
+                } else {
+                    winRateElem.innerHTML = '<span class="text-gray-300">--</span>';
+                }
+            }
+            
+            // Portfolio Value
+            const portfolioValueElem = document.getElementById('portfolio-value');
+            if (portfolioValueElem) {
+                if (totalPortfolioValue > 0) {
+                    portfolioValueElem.innerHTML = `<span class="text-blue-600">${totalPortfolioValue.toLocaleString('it-IT', {minimumFractionDigits: 2, maximumFractionDigits: 2})}€</span>`;
+                } else {
+                    portfolioValueElem.innerHTML = '<span class="text-gray-300">--</span>';
+                }
+            }
+            
+            // Average Investment
+            const avgInvestmentElem = document.getElementById('avg-investment');
+            if (avgInvestmentElem) {
+                if (roiCount > 0) {
+                    const avgInv = totalInvestmentSum / roiCount;
+                    avgInvestmentElem.innerHTML = `<span class="text-purple-600">${avgInv.toLocaleString('it-IT', {minimumFractionDigits: 2, maximumFractionDigits: 2})}€</span>`;
+                } else {
+                    avgInvestmentElem.innerHTML = '<span class="text-gray-300">--</span>';
+                }
+            }
+            
+            // Gain Tracks
+            const gainTracksElem = document.getElementById('gain-tracks');
+            if (gainTracksElem) {
+                if (gainTracksCount > 0) {
+                    gainTracksElem.innerHTML = `<span class="text-green-600">${gainTracksCount}</span>`;
+                } else {
+                    gainTracksElem.innerHTML = '<span class="text-gray-300">0</span>';
+                }
+            }
+            
+            // Loss Tracks
+            const lossTracksElem = document.getElementById('loss-tracks');
+            if (lossTracksElem) {
+                if (lossTracksCount > 0) {
+                    lossTracksElem.innerHTML = `<span class="text-red-600">${lossTracksCount}</span>`;
+                } else {
+                    lossTracksElem.innerHTML = '<span class="text-gray-300">0</span>';
+                }
             }
         }
 
@@ -1516,8 +1748,8 @@ Alcoa        NYSE:AA        US0138721065        2/4        GROWTH-DIVIDEND
                     
                     if (parts.length < 2) return; // Skip invalid lines
                     
-                    // Find QUOTA column (contains N/N pattern)
-                    const quotaIndex = parts.findIndex(p => /[\d.]+\s*\/\s*\d+/.test(p));
+                    // Find QUOTA column (contains N/N pattern, supports both . and ,)
+                    const quotaIndex = parts.findIndex(p => /[\d.,]+\s*\/\s*\d+/.test(p));
                     
                     if (quotaIndex === -1) return; // No quota found, skip
                     
@@ -1527,14 +1759,16 @@ Alcoa        NYSE:AA        US0138721065        2/4        GROWTH-DIVIDEND
                     // TICKER is usually second column (might have exchange prefix)
                     const ticker = parts.length > 1 ? parts[1] : '';
                     
-                    // Parse quota: "3/4" or "0.5/4" or "3 / 4"
-                    const match = quota.match(/([\d.]+)\s*\/\s*(\d+)/);
+                    // Parse quota: "3/4" or "0.5/4" or "0,5/4" (virgola italiana) or "3 / 4"
+                    const match = quota.match(/([\d.,]+)\s*\/\s*(\d+)/);
                     
                     if (match) {
+                        // Replace comma with dot for parseFloat (Italian notation support)
+                        const numeratorStr = match[1].replace(',', '.');
                         expositions.push({
                             nome: nome,
                             ticker: ticker,
-                            numerator: parseFloat(match[1]),
+                            numerator: parseFloat(numeratorStr),
                             denominator: parseInt(match[2]),
                             originalLine: line
                         });
