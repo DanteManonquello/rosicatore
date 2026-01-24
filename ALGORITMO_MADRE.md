@@ -206,7 +206,61 @@ Crescita Patrimonio %: (1.500 / 20.000) × 100 = +7.5%
 
 ---
 
-## 🚧 TODO: GESTIONE MOVIMENTI (v1.5.0)
+## ✅ GESTIONE MOVIMENTI RAPIDI (v1.5.1 - IMPLEMENTATO)
+
+**Funzionalità implementate**:
+
+### 1. Comandi Delta Esposizioni
+```javascript
+// Sintassi comando
+TICKER +NUMERATOR/DENOMINATOR  // Aggiungi frazione
+TICKER -NUMERATOR/DENOMINATOR  // Riduci frazione  
+TICKER NUMERATOR/DENOMINATOR   // Imposta frazione (override)
+
+// Esempi
+AAPL +1/4      // Frazione attuale: 2/4 → Nuova: 3/4
+TSLA -0.5/4    // Frazione attuale: 3/4 → Nuova: 2.5/4
+PBR 3/4        // Frazione attuale: 2/4 → Nuova: 3/4 (override)
+```
+
+### 2. Logica Delta vs Override
+```javascript
+function applyMovimento(track, movimento) {
+  const oldNumerator = track.numerator;
+  
+  if (movimento.isDelta) {
+    // Delta: aggiungi/sottrai
+    const delta = movimento.sign === '+' ? movimento.numerator : -movimento.numerator;
+    track.numerator = oldNumerator + delta;
+  } else {
+    // Override: imposta valore
+    track.numerator = movimento.numerator;
+  }
+  
+  track.denominator = movimento.denominator;
+}
+```
+
+### 3. Parser Multi-Formato
+```javascript
+// Supporta:
+AAPL +1/4           // Ticker semplice
+NYSE:PBR -0.5/4     // Ticker con exchange
+GSM +0,5/4          // Virgola italiana
+TSLA    3/4         // Spazi multipli
+```
+
+### 4. Auto-Match Ticker
+```javascript
+// Match intelligente per ticker
+// "NYSE:PBR" → cerca "PBR" in filename
+// "AAPL" → cerca "AAPL" in filename
+// Case-insensitive, parziale
+```
+
+---
+
+## 🚧 TODO: GESTIONE MOVIMENTI AVANZATA (v1.6.0+)
 
 **Funzionalità da implementare**:
 
@@ -311,6 +365,13 @@ Max Drawdown = ((Valore Minimo - Picco Precedente) / Picco Precedente) × 100
 ---
 
 ## 📝 CHANGELOG
+
+### v1.5.1 (2025-01-24)
+- ✅ **Registra Movimenti**: Sezione comandi rapidi esposizioni
+- ✅ **Parser Delta/Override**: Sintassi `+1/4`, `-0.5/4`, `3/4`
+- ✅ **Auto-Match Ticker**: Riconosce AAPL, NYSE:AAPL automaticamente
+- ✅ **Virgola Italiana**: Supporto `0,5/4` nei movimenti
+- 🔄 **Fix UI**: "Valore Portafoglio" → "Valore Posizioni" (chiarezza)
 
 ### v1.5.0 (2025-01-24)
 - ❌ **localStorage DISABLED**: Nessuna persistenza dati

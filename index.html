@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rosicatore v1.5.0 - Stock Price Timeline Tracker</title>
+    <title>Rosicatore v1.5.1 - Stock Price Timeline Tracker</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
@@ -89,7 +89,7 @@
         <div class="max-w-7xl mx-auto">
             <h1 class="text-4xl font-bold flex items-center gap-3">
                 <i class="fas fa-chart-line"></i>
-                Rosicatore <span class="text-lg font-normal opacity-75">v1.5.0</span>
+                Rosicatore <span class="text-lg font-normal opacity-75">v1.5.1</span>
             </h1>
             <p class="text-purple-100 mt-2">Stock Price Timeline Tracker - Analizza gli andamenti azionari con calcoli di investimento</p>
         </div>
@@ -206,7 +206,7 @@
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t border-white/30">
                 <div class="text-center">
                     <div class="text-sm opacity-90">
-                        <i class="fas fa-wallet"></i> Valore Portafoglio
+                        <i class="fas fa-briefcase"></i> Valore Posizioni
                     </div>
                     <div class="text-2xl font-bold mt-1" id="portfolio-value">
                         <span class="text-gray-300">--</span>
@@ -328,7 +328,7 @@
                 <div class="flex items-center gap-3">
                     <i class="fas fa-magic text-2xl text-orange-600"></i>
                     <div class="text-left">
-                        <h3 class="text-lg font-bold text-gray-800">Applica Esposizioni Intelligente (v1.5.0)</h3>
+                        <h3 class="text-lg font-bold text-gray-800">Applica Esposizioni Intelligente (v1.5.1)</h3>
                         <p class="text-sm text-gray-600">Incolla una tabella (da Excel/Sheets) e applica esposizioni automaticamente</p>
                     </div>
                 </div>
@@ -384,6 +384,55 @@ Alcoa        NYSE:AA        US0138721065        2/4        GROWTH-DIVIDEND
                         <span class="bg-white px-2 py-1 rounded border"><i class="fas fa-check text-green-500"></i> Match per TICKER</span>
                         <span class="bg-white px-2 py-1 rounded border"><i class="fas fa-check text-green-500"></i> Supporta decimali (0.5/4)</span>
                         <span class="bg-white px-2 py-1 rounded border"><i class="fas fa-check text-green-500"></i> Skip header automatico</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Movimenti Intelligente (v1.5.1) -->
+        <div class="mb-6 bg-white rounded-lg shadow-md border-2 border-blue-300 overflow-hidden">
+            <button id="mu-toggle-movimenti" class="w-full p-4 flex items-center justify-between hover:bg-blue-50 transition">
+                <div class="flex items-center gap-3">
+                    <i class="fas fa-exchange-alt text-2xl text-blue-600"></i>
+                    <div class="text-left">
+                        <h3 class="text-lg font-bold text-gray-800">Registra Movimenti (v1.5.1)</h3>
+                        <p class="text-sm text-gray-600">Aggiungi/riduci esposizioni con comandi rapidi (es: AAPL +1/4, TSLA -0.5/4)</p>
+                    </div>
+                </div>
+                <i id="mu-movimenti-chevron" class="fas fa-chevron-down text-gray-400 transition-transform"></i>
+            </button>
+            
+            <div id="mu-movimenti-content" class="hidden border-t border-blue-200">
+                <div class="p-4 bg-gradient-to-r from-blue-50 to-cyan-50">
+                    <textarea 
+                        id="mu-movimenti-text" 
+                        class="w-full p-4 border-2 border-blue-300 rounded-lg font-mono text-sm resize-vertical focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        rows="8"
+                        placeholder="Esempio comandi movimenti:
+
+AAPL +1/4        (aggiungi 1/4 alla frazione attuale)
+TSLA -0.5/4      (riduci 0.5/4 dalla frazione attuale)
+NYSE:PBR 3/4     (imposta frazione a 3/4)
+GSM +0,5/4       (virgola italiana supportata)
+
+✨ Supporta:
+• Delta: +1/4 o -0.5/4 (modifica frazione)
+• Override: 3/4 (imposta nuova frazione)
+• Ticker con/senza exchange (AAPL o NYSE:AAPL)
+• Virgola italiana (0,5/4)"></textarea>
+                    
+                    <button 
+                        id="mu-apply-movimenti-btn" 
+                        class="mt-4 w-full bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white font-bold py-3 px-6 rounded-lg shadow-lg transition flex items-center justify-center gap-2">
+                        <i class="fas fa-sync-alt"></i>
+                        Applica Movimenti
+                    </button>
+                    
+                    <div class="mt-3 flex flex-wrap gap-2 text-xs text-gray-600">
+                        <span class="bg-white px-2 py-1 rounded border"><i class="fas fa-plus text-green-500"></i> Delta (+/-)</span>
+                        <span class="bg-white px-2 py-1 rounded border"><i class="fas fa-equals text-blue-500"></i> Override</span>
+                        <span class="bg-white px-2 py-1 rounded border"><i class="fas fa-globe text-purple-500"></i> Ticker multi-formato</span>
+                        <span class="bg-white px-2 py-1 rounded border"><i class="fas fa-check text-green-500"></i> Virgola italiana</span>
                     </div>
                 </div>
             </div>
@@ -1442,6 +1491,14 @@ Alcoa        NYSE:AA        US0138721065        2/4        GROWTH-DIVIDEND
             chevron.classList.toggle('rotate-180');
         });
 
+        // Toggle Movimenti Section (v1.5.1)
+        document.getElementById('mu-toggle-movimenti').addEventListener('click', () => {
+            const content = document.getElementById('mu-movimenti-content');
+            const chevron = document.getElementById('mu-movimenti-chevron');
+            content.classList.toggle('hidden');
+            chevron.classList.toggle('rotate-180');
+        });
+
         // Drag & Drop handlers
         const muDropArea = document.getElementById('mu-drop-area');
         
@@ -1932,6 +1989,179 @@ Alcoa        NYSE:AA        US0138721065        2/4        GROWTH-DIVIDEND
             }
             
             return null;
+        }
+
+        // ========================================
+        // MOVIMENTI INTELLIGENTE (v1.5.1)
+        // ========================================
+        
+        document.getElementById('mu-apply-movimenti-btn').addEventListener('click', () => {
+            const text = document.getElementById('mu-movimenti-text').value;
+            
+            if (!text.trim()) {
+                alert('⚠️ Inserisci prima i movimenti nella textarea!');
+                return;
+            }
+            
+            try {
+                const movimenti = parseMovimenti(text);
+                
+                if (movimenti.length === 0) {
+                    alert('⚠️ Nessun movimento valido trovato.\n\nFormato:\nTICKER +1/4  (delta)\nTICKER 3/4   (override)');
+                    return;
+                }
+                
+                const results = applyMovimenti(movimenti);
+                
+                // Update UI
+                renderTracks();
+                updateDashboard();
+                
+                // Clear textarea
+                document.getElementById('mu-movimenti-text').value = '';
+                
+                // Feedback dettagliato
+                let message = `✅ MOVIMENTI APPLICATI CON SUCCESSO!\n\n`;
+                message += `📊 Risultati:\n`;
+                
+                results.applied.forEach(r => {
+                    const oldFrac = `${r.oldNumerator}/${r.oldDenominator}`;
+                    const newFrac = `${r.newNumerator}/${r.newDenominator}`;
+                    const delta = r.newNumerator - r.oldNumerator;
+                    const sign = delta >= 0 ? '+' : '';
+                    message += `✅ ${r.trackName}: ${oldFrac} → ${newFrac} (${sign}${delta}/${r.oldDenominator})\n`;
+                });
+                
+                if (results.notFound.length > 0) {
+                    message += `\n⚠️ Non trovate (${results.notFound.length}):\n`;
+                    results.notFound.forEach(ticker => {
+                        message += `❌ ${ticker}\n`;
+                    });
+                }
+                
+                message += `\n📈 ${results.applied.length} tracce aggiornate`;
+                message += `\n🔄 Dashboard ricalcolato automaticamente`;
+                
+                alert(message);
+                
+            } catch (error) {
+                alert(`❌ Errore durante il parsing:\n\n${error.message}\n\nVerifica il formato dei movimenti.`);
+                console.error('Errore parsing movimenti:', error);
+            }
+        });
+        
+        // Parse movimenti text
+        function parseMovimenti(text) {
+            const lines = text.split('\n')
+                .map(l => l.trim())
+                .filter(l => l.length > 0);
+            
+            if (lines.length === 0) return [];
+            
+            // Skip header se presente
+            const dataLines = lines.filter(l => {
+                const lower = l.toLowerCase();
+                return !lower.includes('esempio') && 
+                       !lower.includes('supporta') && 
+                       !lower.startsWith('•') &&
+                       !lower.startsWith('✨');
+            });
+            
+            const movimenti = [];
+            
+            dataLines.forEach((line, index) => {
+                try {
+                    // Regex: TICKER (con optional exchange) (+/-)? QUOTA
+                    // Esempi: AAPL +1/4, NYSE:PBR -0.5/4, TSLA 3/4
+                    const match = line.match(/([A-Z][A-Z0-9:]*)\s*([\+\-]?)\s*([\d.,]+\s*\/\s*\d+)/i);
+                    
+                    if (!match) return; // Skip invalid lines
+                    
+                    const ticker = match[1].trim();
+                    const sign = match[2]; // '+', '-', o ''
+                    const quota = match[3].trim();
+                    
+                    // Parse quota: "3/4" or "0.5/4" or "0,5/4"
+                    const quotaMatch = quota.match(/([\d.,]+)\s*\/\s*(\d+)/);
+                    
+                    if (quotaMatch) {
+                        // Replace comma with dot for parseFloat
+                        const numeratorStr = quotaMatch[1].replace(',', '.');
+                        
+                        movimenti.push({
+                            ticker: ticker,
+                            isDelta: sign !== '', // true se c'è + o -
+                            sign: sign,           // '+' o '-' o ''
+                            numerator: parseFloat(numeratorStr),
+                            denominator: parseInt(quotaMatch[2]),
+                            originalLine: line
+                        });
+                    }
+                } catch (error) {
+                    console.warn(`Skipping line ${index + 1}: ${line}`, error);
+                }
+            });
+            
+            return movimenti;
+        }
+        
+        // Apply movimenti to tracks
+        function applyMovimenti(movimenti) {
+            const applied = [];
+            const notFound = [];
+            
+            movimenti.forEach(mov => {
+                const track = findTrackByTicker(mov.ticker);
+                
+                if (!track) {
+                    notFound.push(mov.ticker);
+                    return;
+                }
+                
+                // Store old values
+                const oldNumerator = parseFloat(track.numerator) || 0;
+                const oldDenominator = parseInt(track.denominator) || 4;
+                
+                // Calculate new values
+                let newNumerator;
+                
+                if (mov.isDelta) {
+                    // Delta: aggiungi o sottrai
+                    const delta = mov.sign === '+' ? mov.numerator : -mov.numerator;
+                    newNumerator = oldNumerator + delta;
+                } else {
+                    // Override: imposta valore
+                    newNumerator = mov.numerator;
+                }
+                
+                // Update track
+                track.numerator = newNumerator;
+                track.denominator = mov.denominator;
+                
+                applied.push({
+                    trackName: track.filename.replace('.csv', ''),
+                    oldNumerator: oldNumerator,
+                    oldDenominator: oldDenominator,
+                    newNumerator: newNumerator,
+                    newDenominator: mov.denominator
+                });
+            });
+            
+            return { applied, notFound };
+        }
+        
+        // Find track by TICKER (similar to findMatchingTrack but ticker-focused)
+        function findTrackByTicker(ticker) {
+            // Extract symbol from "NYSE:PBR" → "PBR"
+            const symbol = ticker.includes(':') 
+                ? ticker.split(':')[1].trim() 
+                : ticker.trim();
+            
+            return tracks.find(t => {
+                if (!t.filename) return false;
+                const fn = t.filename.toLowerCase();
+                return fn.includes(symbol.toLowerCase());
+            });
         }
 
         // ========================================

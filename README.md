@@ -1,10 +1,36 @@
-# 📊 Rosicatore v1.5.0 - Stock Price Timeline Tracker
+# 📊 Rosicatore v1.5.1 - Stock Price Timeline Tracker
 
 Analizza gli andamenti azionari con un'interfaccia stile DAW (Digital Audio Workstation) per visualizzare multiple tracce di dati finanziari.
 
-## 🎯 Versione Attuale: v1.5.0 - NO PERSISTENCE (Fresh Start)
+## 🎯 Versione Attuale: v1.5.1 - MOVIMENTI INTELLIGENTE
 
-### ✨ Novità v1.5.0
+### ✨ Novità v1.5.1
+
+#### 📊 Registra Movimenti (Comandi Rapidi)
+- **🔄 Delta Esposizioni**: Aggiungi/riduci frazioni con comandi rapidi
+- **⚡ Sintassi Semplice**: `AAPL +1/4`, `TSLA -0.5/4`, `PBR 3/4`
+- **🎯 Auto-Match Ticker**: Riconosce ticker con/senza exchange
+- **🧠 Delta vs Override**: `+` = aggiungi, `-` = sottrai, nessun segno = imposta
+
+**Esempi Comandi**:
+```
+AAPL +1/4        (aggiungi 1/4 alla frazione attuale)
+TSLA -0.5/4      (riduci 0.5/4 dalla frazione attuale)
+NYSE:PBR 3/4     (imposta frazione a 3/4)
+GSM +0,5/4       (virgola italiana supportata)
+```
+
+**Logica**:
+- `+1/4` su `2/4` → `3/4` ✅ (delta)
+- `-0.5/4` su `3/4` → `2.5/4` ✅ (delta)
+- `3/4` su `2/4` → `3/4` ✅ (override)
+
+#### 💼 Fix "Valore Posizioni" (ex "Valore Portafoglio")
+- **Rinominato per chiarezza**: "Valore Posizioni" = solo valore investimenti attivi
+- **Nessun cambio logica**: Calcolo invariato
+- **Patrimonio Netto** rimane somma completa (posizioni + residuo)
+
+### 📋 Funzionalità v1.5.0 (Precedenti)
 
 #### 🔄 localStorage DISABLED - Nessuna Persistenza
 - **❌ Dati NON salvati**: Ogni refresh = ricomincia da zero
