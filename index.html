@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rosicatore v1.6.4 - Stock Price Timeline Tracker</title>
+    <title>Rosicatore v1.6.5 - Stock Price Timeline Tracker</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
@@ -89,7 +89,7 @@
         <div class="max-w-7xl mx-auto">
             <h1 class="text-4xl font-bold flex items-center gap-3">
                 <i class="fas fa-chart-line"></i>
-                Rosicatore <span class="text-lg font-normal opacity-75">v1.6.4</span>
+                Rosicatore <span class="text-lg font-normal opacity-75">v1.6.5</span>
             </h1>
             <p class="text-purple-100 mt-2">Stock Price Timeline Tracker - Analizza gli andamenti azionari con calcoli di investimento</p>
         </div>
@@ -624,6 +624,13 @@ GSM +0,5/4       (virgola italiana supportata)
             if (!track.denominator) track.denominator = 4;
             if (!track.dateStart) track.dateStart = '';
             if (!track.dateEnd) track.dateEnd = getTodayDate();
+            
+            // v1.6.5: Nuovi campi per cash attualizzato
+            if (!track.capitalAllocato) track.capitalAllocato = track.capital; // Budget dedicato
+            if (!track.realizedCash) track.realizedCash = 0; // Cash da vendite
+            if (!track.dividends) track.dividends = 0; // Dividendi incassati
+            if (!track.previousNumerator) track.previousNumerator = track.numerator; // Tracking alleggerimenti
+            
             return track;
         }
 
@@ -697,11 +704,57 @@ GSM +0,5/4       (virgola italiana supportata)
             const numerator = parseFloat(track.numerator) || 0; // v1.4.6: Support decimals like 0.5
             const denominator = parseInt(track.denominator) || 1;
             
-            if (denominator === 0) return { invested: 0, residual: 0, shares: 0, exposure: 0, startPrice: 0, endPrice: 0 };
+            if (denominator === 0) return { 
+                invested: 0, 
+                residual: 0, 
+                realizedCash: 0, 
+                shares: 0, 
+                exposure: 0, 
+                startPrice: 0, 
+                endPrice: 0 
+            };
             
             const fraction = numerator / denominator;
             const invested = capital * fraction;
-            const residual = capital - invested;
+            
+            // v1.6.5: Calcola cash realizzato da alleggerimenti
+            const previousNumerator = parseFloat(track.previousNumerator) || numerator;
+            const previousFraction = previousNumerator / denominator;
+            
+            // Se frazione diminuisce = vendita
+            if (numerator < previousNumerator && track.data && track.data.length > 0) {
+                const startPrice = getStartPrice(track);
+                const currentPrice = getEndPrice(track);
+                
+                // Azioni vendute
+                const previousShares = (capital * previousFraction) / startPrice;
+                const currentShares = invested / startPrice;
+                const soldShares = previousShares - currentShares;
+                
+                // Cash incassato al prezzo ATTUALE (non prezzo carico)
+                const cashFromSale = soldShares * currentPrice;
+                track.realizedCash = (track.realizedCash || 0) + cashFromSale;
+                
+                // Aggiorna previousNumerator
+                track.previousNumerator = numerator;
+            }
+            
+            // Se frazione aumenta (appesantimento), usa il cash per comprare
+            if (numerator > previousNumerator && track.realizedCash > 0) {
+                const additionalInvestment = invested - (capital * previousFraction);
+                
+                // Riduci cash realizzato
+                if (additionalInvestment > 0) {
+                    track.realizedCash = Math.max(0, track.realizedCash - additionalInvestment);
+                }
+                
+                track.previousNumerator = numerator;
+            }
+            
+            // Residuo = cash realizzato + capitale non investito
+            const baseResidual = capital - invested;
+            const totalResidual = baseResidual + (track.realizedCash || 0);
+            
             const exposure = (fraction * 100).toFixed(1);
             
             // Use START price to calculate shares purchased
@@ -713,7 +766,9 @@ GSM +0,5/4       (virgola italiana supportata)
             
             return {
                 invested: invested,
-                residual: residual,
+                residual: totalResidual,  // Include realized cash
+                realizedCash: track.realizedCash || 0,
+                baseResidual: baseResidual,
                 shares: shares,
                 exposure: exposure,
                 startPrice: startPrice,
@@ -766,10 +821,21 @@ GSM +0,5/4       (virgola italiana supportata)
             const sharesEl = document.getElementById('shares-' + trackId);
             const exposureEl = document.getElementById('exposure-' + trackId);
             
+            // v1.6.5: Nuovi elementi
+            const allocatoEl = document.getElementById('allocato-' + trackId);
+            const cashEl = document.getElementById('cash-' + trackId);
+            const dividendsEl = document.getElementById('dividends-' + trackId);
+            
             if (investedEl) investedEl.textContent = calc.invested.toLocaleString('it-IT', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' €';
             if (residualEl) residualEl.textContent = calc.residual.toLocaleString('it-IT', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' €';
             if (sharesEl) sharesEl.textContent = calc.shares.toLocaleString('it-IT', {minimumFractionDigits: 0, maximumFractionDigits: 6}) + ' azioni @ ' + calc.startPrice.toFixed(2) + '$/az';
             if (exposureEl) exposureEl.textContent = calc.exposure + '%';
+            
+            // v1.6.5: Update nuovi campi
+            const capitalAllocato = parseFloat(track.capitalAllocato) || parseFloat(track.capital) || 0;
+            if (allocatoEl) allocatoEl.textContent = capitalAllocato.toLocaleString('it-IT', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' €';
+            if (cashEl) cashEl.textContent = calc.realizedCash.toLocaleString('it-IT', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' €';
+            if (dividendsEl) dividendsEl.textContent = (track.dividends || 0).toLocaleString('it-IT', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' €';
             
             // Update performance metrics
             const currentValueEl = document.getElementById('current-value-' + trackId);
@@ -798,10 +864,11 @@ GSM +0,5/4       (virgola italiana supportata)
                 roiPosEl.innerHTML = `<span class="${color}">${sign}${roiPositions.toFixed(2)}%</span>`;
             }
             
-            // ROI Portafoglio (su capitale totale per traccia)
-            const capitalBase = parseFloat(track.capital) || 0;
-            const patrimonioTraccia = perf.currentValue + calc.residual;
-            const roiPortfolio = capitalBase > 0 ? ((patrimonioTraccia - capitalBase) / capitalBase) * 100 : 0;
+            // v1.6.5: ROI Portafoglio (su capitale allocato)
+            const capitalAllocato = parseFloat(track.capitalAllocato) || parseFloat(track.capital) || 0;
+            const dividends = parseFloat(track.dividends) || 0;
+            const patrimonioTraccia = perf.currentValue + calc.residual + dividends;
+            const roiPortfolio = capitalAllocato > 0 ? ((patrimonioTraccia - capitalAllocato) / capitalAllocato) * 100 : 0;
             const roiPortEl = document.getElementById('roi-port-' + trackId);
             if (roiPortEl) {
                 const sign = roiPortfolio >= 0 ? '+' : '';
@@ -1385,7 +1452,7 @@ GSM +0,5/4       (virgola italiana supportata)
                     `;
                     calcSection.appendChild(fractionDiv);
                     
-                    // v1.6.4: KPI Dettagliati per Traccia
+                    // v1.6.5: KPI Dettagliati + Cash Attualizzato
                     const displayDiv = document.createElement('div');
                     displayDiv.className = 'calc-display';
                     displayDiv.innerHTML = `
@@ -1403,23 +1470,55 @@ GSM +0,5/4       (virgola italiana supportata)
                                     <i class="fas fa-wallet text-blue-600"></i> ROI Portafoglio
                                 </div>
                                 <div class="text-2xl font-bold" id="roi-port-${track.id}">0.00%</div>
-                                <div class="text-xs text-gray-500 mt-1">su capitale totale</div>
+                                <div class="text-xs text-gray-500 mt-1">su capitale allocato</div>
                             </div>
                         </div>
                         
-                        <!-- Capitale & Azioni -->
-                        <div class="grid grid-cols-3 gap-4 text-center mb-4">
-                            <div>
-                                <div class="text-sm opacity-90">Capitale Investito</div>
-                                <div class="text-2xl font-bold mt-1" id="invested-${track.id}">0 €</div>
+                        <!-- Capitale Allocato vs Investito -->
+                        <div class="grid grid-cols-2 gap-4 text-center mb-4 pb-4 border-b border-gray-200">
+                            <div class="bg-orange-50 rounded-lg p-3">
+                                <div class="text-xs font-medium opacity-75 mb-1">
+                                    <i class="fas fa-piggy-bank text-orange-600"></i> Capitale Allocato
+                                </div>
+                                <div class="text-lg font-bold" id="allocato-${track.id}">0 €</div>
+                                <div class="text-xs text-gray-500 mt-1">budget dedicato</div>
                             </div>
-                            <div>
-                                <div class="text-sm opacity-90">Capitale Residuo</div>
-                                <div class="text-2xl font-bold mt-1" id="residual-${track.id}">0 €</div>
+                            <div class="bg-yellow-50 rounded-lg p-3">
+                                <div class="text-xs font-medium opacity-75 mb-1">
+                                    <i class="fas fa-chart-line text-yellow-600"></i> Capitale Investito
+                                </div>
+                                <div class="text-lg font-bold" id="invested-${track.id}">0 €</div>
+                                <div class="text-xs text-gray-500 mt-1">in posizione</div>
                             </div>
+                        </div>
+                        
+                        <!-- Cash Realizzato & Dividendi -->
+                        <div class="grid grid-cols-2 gap-4 text-center mb-4 pb-4 border-b border-gray-200">
+                            <div class="bg-teal-50 rounded-lg p-3">
+                                <div class="text-xs font-medium opacity-75 mb-1">
+                                    <i class="fas fa-money-bill-wave text-teal-600"></i> Cash Realizzato
+                                </div>
+                                <div class="text-lg font-bold" id="cash-${track.id}">0 €</div>
+                                <div class="text-xs text-gray-500 mt-1">da vendite</div>
+                            </div>
+                            <div class="bg-indigo-50 rounded-lg p-3">
+                                <div class="text-xs font-medium opacity-75 mb-1">
+                                    <i class="fas fa-coins text-indigo-600"></i> Dividendi
+                                </div>
+                                <div class="text-lg font-bold" id="dividends-${track.id}">0 €</div>
+                                <div class="text-xs text-gray-500 mt-1">incassati</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Azioni & Residuo Totale -->
+                        <div class="grid grid-cols-2 gap-4 text-center mb-4">
                             <div>
                                 <div class="text-sm opacity-90">Azioni Possedute</div>
-                                <div class="text-2xl font-bold mt-1" id="shares-${track.id}">0 azioni</div>
+                                <div class="text-xl font-bold mt-1" id="shares-${track.id}">0 azioni</div>
+                            </div>
+                            <div>
+                                <div class="text-sm opacity-90">Capitale Residuo Totale</div>
+                                <div class="text-xl font-bold mt-1" id="residual-${track.id}">0 €</div>
                             </div>
                         </div>
                         
@@ -1756,8 +1855,14 @@ GSM +0,5/4       (virgola italiana supportata)
             // Apply to all tracks
             tracks.forEach(track => {
                 track.capital = capitalPerTrack;
+                track.capitalAllocato = capitalPerTrack;  // v1.6.5: Budget dedicato
                 track.dateStart = globalDateStart;
                 track.dateEnd = globalDateEnd;
+                
+                // Reset cash e dividendi quando cambi capitale allocato
+                track.realizedCash = 0;
+                track.dividends = 0;
+                track.previousNumerator = track.numerator;  // Reset tracking
                 
                 // Update UI inputs (se esistono)
                 const capitalInput = document.getElementById('capital-' + track.id);

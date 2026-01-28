@@ -553,6 +553,22 @@ Max Drawdown = ((Valore Minimo - Picco Precedente) / Picco Precedente) × 100
 - ✅ Smart Expositions Parser
 - ✅ Match automatico NOME/TICKER
 
+### v1.6.5 (2025-01-24)
+- ✅ **CAPITALE RESIDUO ATTUALIZZATO**: Cash da vendite al prezzo CORRENTE
+- ✅ **Nuovi Campi Track**: `capitalAllocato`, `realizedCash`, `dividends`, `previousNumerator`
+- ✅ **Logica Alleggerimento**: Traccia frazione precedente, calcola cash vendita
+- ✅ **Formula Cash**: `soldShares × currentPrice` (non prezzo carico)
+- ✅ **Residuo Totale**: `realizedCash + (base - invested)`
+- ✅ **ROI Portafoglio Corretto**: `(Patrimonio - Allocato) / Allocato`
+- ✅ **Patrimonio**: `ValorePosizioni + Cash + Dividendi`
+- ✅ **UI Migliorata**: 8 KPI invece di 6
+  - Capitale Allocato (arancio)
+  - Capitale Investito (giallo)
+  - Cash Realizzato (teal)
+  - Dividendi (indigo)
+- 🎯 **Fix Cruciale**: Alleggerimento 4/4→2/4 ora mostra cash corretto
+- 📊 **Esempio**: 10k allocato, vendi metà @ 212 → cash = 5.729€ (non 5.000€)
+
 ### v1.6.4 (2025-01-24)
 - ✅ **KPI DETTAGLIATI PER TRACCIA**: ROI Posizioni, ROI Portafoglio, % Peso aggiunti
 - ✅ **ROI Posizioni Traccia**: `(ValoreCorrente - Investito) / Investito × 100`

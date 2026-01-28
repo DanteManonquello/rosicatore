@@ -1,10 +1,71 @@
-# 📊 Rosicatore v1.6.4 - Stock Price Timeline Tracker
+# 📊 Rosicatore v1.6.5 - Stock Price Timeline Tracker
 
 Analizza gli andamenti azionari con un'interfaccia stile DAW (Digital Audio Workstation) per visualizzare multiple tracce di dati finanziari.
 
-## 🎯 Versione Attuale: v1.6.4 - KPI DETTAGLIATI PER TRACCIA
+## 🎯 Versione Attuale: v1.6.5 - CAPITALE RESIDUO ATTUALIZZATO
 
-### ✨ Novità v1.6.4 - KPI Completi su Ogni Traccia
+### ✨ Novità v1.6.5 - Cash Realizzato & ROI Corretto
+
+#### 💰 CAPITALE RESIDUO ATTUALIZZATO
+
+**PRIMA (v1.6.4)** ❌
+```
+Residuo = Capitale Base - Capitale Investito
+        = 10.000€ - 5.000€ = 5.000€ (FISSO)
+```
+
+**ORA (v1.6.5)** ✅
+```
+Residuo = Cash Realizzato da Vendite + Capitale Non Investito
+        = 5.729€ (vendita) + 0€ = 5.729€ (ATTUALIZZATO)
+```
+
+#### 🧮 ESEMPIO ALLEGGERIMENTO 4/4 → 2/4
+
+**Scenario**:
+- Capitale Allocato: 10.000€
+- Inizio anno: 4/4 (tutto investito)
+- Metà anno: Alleggerimento a 2/4
+
+**Calcoli Corretti**:
+```
+01/01: Compra 54,05 azioni @ 185$/az = 10.000€
+30/06: Vendi 27,025 azioni @ 212$/az = 5.729€ cash
+31/12: Valore rimanente 27,025 @ 240$/az = 6.486€
+
+Patrimonio Finale = 6.486€ + 5.729€ = 12.215€
+ROI Portafoglio = (12.215 - 10.000) / 10.000 = +22,15%
+```
+
+#### 📊 NUOVI CAMPI TRACCIA
+
+Ogni traccia ora mostra:
+
+1. **💰 ROI Posizioni** - Su capitale investito
+2. **💰 ROI Portafoglio** - Su capitale allocato
+3. **🏦 Capitale Allocato** - Budget dedicato (10.000€)
+4. **📈 Capitale Investito** - In posizione (5.000€)
+5. **💵 Cash Realizzato** - Da vendite (5.729€)
+6. **💰 Dividendi** - Incassati (0€)
+7. **📊 Azioni Possedute** - 27,025
+8. **💼 Capitale Residuo Totale** - Cash + Non Investito
+
+#### 🔧 FORMULE CORRETTE
+
+```javascript
+// Capitale Residuo Attualizzato
+residual = realizedCash + (capitalBase - capitalInvested)
+
+// Patrimonio Traccia
+patrimonio = ValorePosizioni + CashRealizzato + Dividendi
+
+// ROI Portafoglio (su capitale allocato)
+roiPort = (Patrimonio - CapitaleAllocato) / CapitaleAllocato × 100
+```
+
+---
+
+### 📋 Funzionalità v1.6.4 (Precedenti)
 
 #### 📊 KPI AGGIUNTI NEL BOX "CALCOLI INVESTIMENTO"
 
