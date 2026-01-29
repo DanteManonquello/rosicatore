@@ -553,6 +553,17 @@ Max Drawdown = ((Valore Minimo - Picco Precedente) / Picco Precedente) × 100
 - ✅ Smart Expositions Parser
 - ✅ Match automatico NOME/TICKER
 
+### v1.6.7 (2025-01-28)
+- ✅ **INPUT CAPITALE ALLOCATO PER TRACCIA**: Ora modificabile manualmente
+- ✅ **Doppia Modalità**: Globale (divide equamente) + Manuale (per traccia)
+- ✅ **UI**: Capitale Allocato da readonly → input modificabile
+- ✅ **Event Listener**: Input capita allocato con validazione (min=0)
+- ✅ **Reset**: Quando cambia capitale → reset cash/dividendi
+- ✅ **Priorità**: Impostazioni Globali sovrascrivono input manuali
+- ✅ **Sync**: `track.capitalAllocato` e `track.capital` allineati
+- 🎯 **UX**: Input arancione con bordo focus ring orange-500
+- 📊 **Calcoli**: `investedCapital = capitalAllocato × (numerator/denominator)`
+
 ### v1.6.6 (2025-01-28)
 - ✅ **FIX CRITICO**: Menu accordion non si aprivano (JavaScript bloccato)
 - 🐛 **Bug**: Dichiarazione duplicata `const capitalAllocato` (righe 835 e 868)

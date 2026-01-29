@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rosicatore v1.6.6 - Stock Price Timeline Tracker</title>
+    <title>Rosicatore v1.6.7 - Stock Price Timeline Tracker</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
@@ -89,7 +89,7 @@
         <div class="max-w-7xl mx-auto">
             <h1 class="text-4xl font-bold flex items-center gap-3">
                 <i class="fas fa-chart-line"></i>
-                Rosicatore <span class="text-lg font-normal opacity-75">v1.6.6</span>
+                Rosicatore <span class="text-lg font-normal opacity-75">v1.6.7</span>
             </h1>
             <p class="text-purple-100 mt-2">Stock Price Timeline Tracker - Analizza gli andamenti azionari con calcoli di investimento</p>
         </div>
@@ -821,8 +821,8 @@ GSM +0,5/4       (virgola italiana supportata)
             const sharesEl = document.getElementById('shares-' + trackId);
             const exposureEl = document.getElementById('exposure-' + trackId);
             
-            // v1.6.5: Nuovi elementi
-            const allocatoEl = document.getElementById('allocato-' + trackId);
+            // v1.6.7: Nuovi elementi (allocato ora è input, non readonly)
+            const allocatoInput = document.getElementById('allocato-input-' + trackId);
             const cashEl = document.getElementById('cash-' + trackId);
             const dividendsEl = document.getElementById('dividends-' + trackId);
             
@@ -831,9 +831,9 @@ GSM +0,5/4       (virgola italiana supportata)
             if (sharesEl) sharesEl.textContent = calc.shares.toLocaleString('it-IT', {minimumFractionDigits: 0, maximumFractionDigits: 6}) + ' azioni @ ' + calc.startPrice.toFixed(2) + '$/az';
             if (exposureEl) exposureEl.textContent = calc.exposure + '%';
             
-            // v1.6.5: Update nuovi campi
+            // v1.6.7: Update nuovi campi (allocato è input, non aggiorniamo textContent)
             const capitalAllocato = parseFloat(track.capitalAllocato) || parseFloat(track.capital) || 0;
-            if (allocatoEl) allocatoEl.textContent = capitalAllocato.toLocaleString('it-IT', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' €';
+            // allocatoInput.value viene gestito dall'utente, non da updateCalculations
             if (cashEl) cashEl.textContent = calc.realizedCash.toLocaleString('it-IT', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' €';
             if (dividendsEl) dividendsEl.textContent = (track.dividends || 0).toLocaleString('it-IT', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' €';
             
@@ -1476,18 +1476,21 @@ GSM +0,5/4       (virgola italiana supportata)
                         <!-- Capitale Allocato vs Investito -->
                         <div class="grid grid-cols-2 gap-4 text-center mb-4 pb-4 border-b border-gray-200">
                             <div class="bg-orange-50 rounded-lg p-3">
-                                <div class="text-xs font-medium opacity-75 mb-1">
+                                <div class="text-xs font-medium opacity-75 mb-2">
                                     <i class="fas fa-piggy-bank text-orange-600"></i> Capitale Allocato
                                 </div>
-                                <div class="text-lg font-bold" id="allocato-${track.id}">0 €</div>
-                                <div class="text-xs text-gray-500 mt-1">budget dedicato</div>
+                                <input type="number" id="allocato-input-${track.id}" 
+                                       value="${track.capitalAllocato || track.capital || 0}"
+                                       placeholder="Es: 10000" step="100" min="0"
+                                       class="w-full text-center text-lg font-bold bg-white border-2 border-orange-300 rounded px-2 py-1 focus:ring-2 focus:ring-orange-500">
+                                <div class="text-xs text-gray-500 mt-1">budget dedicato (modificabile)</div>
                             </div>
                             <div class="bg-yellow-50 rounded-lg p-3">
                                 <div class="text-xs font-medium opacity-75 mb-1">
                                     <i class="fas fa-chart-line text-yellow-600"></i> Capitale Investito
                                 </div>
                                 <div class="text-lg font-bold" id="invested-${track.id}">0 €</div>
-                                <div class="text-xs text-gray-500 mt-1">in posizione</div>
+                                <div class="text-xs text-gray-500 mt-1">in posizione (calcolato)</div>
                             </div>
                         </div>
                         
@@ -1535,21 +1538,45 @@ GSM +0,5/4       (virgola italiana supportata)
                     
                     // Event listeners for calculations
                     setTimeout(() => {
-                        // v1.6.4: Date e Capitale rimossi - gestiti da Impostazioni Globali
+                        // v1.6.7: Input Capitale Allocato per traccia
+                        const allocatoInput = document.getElementById('allocato-input-' + track.id);
                         const numeratorInput = document.getElementById('numerator-' + track.id);
                         const denominatorInput = document.getElementById('denominator-' + track.id);
                         const decreaseBtn = document.getElementById('decrease-' + track.id);
                         const increaseBtn = document.getElementById('increase-' + track.id);
                         
                         const updateTrack = () => {
-                            // Date e capitale sono gestiti dalla sezione globale
                             track.numerator = parseInt(numeratorInput.value) || 0;
                             track.denominator = parseInt(denominatorInput.value) || 1;
                             // v1.5.0: saveTracks() DISABLED
                             updateCalculations(track.id);
                         };
                         
-                        // Solo listeners per frazione (N/4)
+                        // v1.6.7: Listener per Capitale Allocato manuale
+                        if (allocatoInput) {
+                            allocatoInput.addEventListener('input', () => {
+                                const newCapital = parseFloat(allocatoInput.value) || 0;
+                                
+                                if (newCapital < 0) {
+                                    allocatoInput.value = 0;
+                                    return;
+                                }
+                                
+                                // Aggiorna capitale allocato e base
+                                track.capitalAllocato = newCapital;
+                                track.capital = newCapital;
+                                
+                                // Reset cash e dividendi quando cambia capitale allocato
+                                track.realizedCash = 0;
+                                track.dividends = 0;
+                                track.previousNumerator = track.numerator;
+                                
+                                // Ricalcola
+                                updateCalculations(track.id);
+                            });
+                        }
+                        
+                        // Listeners per frazione (N/4)
                         numeratorInput.addEventListener('input', updateTrack);
                         denominatorInput.addEventListener('input', updateTrack);
                         
@@ -1864,10 +1891,12 @@ GSM +0,5/4       (virgola italiana supportata)
                 track.previousNumerator = track.numerator;  // Reset tracking
                 
                 // Update UI inputs (se esistono)
+                const allocatoInput = document.getElementById('allocato-input-' + track.id);
                 const capitalInput = document.getElementById('capital-' + track.id);
                 const dateStartInput = document.getElementById('date-start-' + track.id);
                 const dateEndInput = document.getElementById('date-end-' + track.id);
                 
+                if (allocatoInput) allocatoInput.value = capitalPerTrack.toFixed(2);
                 if (capitalInput) capitalInput.value = capitalPerTrack.toFixed(2);
                 if (dateStartInput) dateStartInput.value = globalDateStart;
                 if (dateEndInput) dateEndInput.value = globalDateEnd;

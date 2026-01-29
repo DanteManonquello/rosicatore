@@ -1,10 +1,59 @@
-# 📊 Rosicatore v1.6.6 - Stock Price Timeline Tracker
+# 📊 Rosicatore v1.6.7 - Stock Price Timeline Tracker
 
 Analizza gli andamenti azionari con un'interfaccia stile DAW (Digital Audio Workstation) per visualizzare multiple tracce di dati finanziari.
 
-## 🎯 Versione Attuale: v1.6.6 - FIX MENU TOGGLE
+## 🎯 Versione Attuale: v1.6.7 - INPUT CAPITALE ALLOCATO PER TRACCIA
 
-### ✨ Novità v1.6.6 - Menu Accordion Funzionanti
+### ✨ Novità v1.6.7 - Doppia Modalità Input Capitale
+
+#### 💰 CAPITALE ALLOCATO MODIFICABILE
+
+**PRIMA (v1.6.6)** ❌
+- Capitale Allocato: readonly (solo visualizzazione)
+- Modifica solo tramite "Impostazioni Globali"
+
+**ORA (v1.6.7)** ✅
+- **Input modificabile** per ogni traccia
+- **Due modalità**:
+  1. **Globale**: Scrivi capitale totale, divide per tutte le tracce
+  2. **Manuale**: Modifica capitale per singola traccia
+
+---
+
+#### 🎮 COME FUNZIONA
+
+**Modalità 1: Impostazioni Globali** (divide equamente)
+```
+Capitale Totale: 12.000€
+Numero Tracce: 12
+→ Ogni traccia riceve: 1.000€
+```
+
+**Modalità 2: Input Manuale** (per traccia)
+```
+Traccia 1: 1.500€ (scrivi a mano)
+Traccia 2: 800€ (scrivi a mano)
+Traccia 3: 2.000€ (scrivi a mano)
+...
+```
+
+**Priorità**: Impostazioni Globali sovrascrivono sempre gli input manuali!
+
+---
+
+#### 🔄 COMPORTAMENTO
+
+Quando modifichi Capitale Allocato manualmente:
+- ✅ `track.capitalAllocato` aggiornato
+- ✅ `track.capital` aggiornato (base per calcoli)
+- ✅ Cash Realizzato **resettato a 0**
+- ✅ Dividendi **resettati a 0**
+- ✅ Frazione (N/4) **preservata**
+- ✅ Ricalcolo automatico ROI/Investito/Residuo
+
+---
+
+### 📋 Funzionalità v1.6.6 (Precedenti)
 
 #### 🐛 BUG CRITICO RISOLTO
 
