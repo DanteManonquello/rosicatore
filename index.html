@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rosicatore v1.6.7 - Stock Price Timeline Tracker</title>
+    <title>Rosicatore v1.6.8 - Stock Price Timeline Tracker</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
@@ -89,7 +89,7 @@
         <div class="max-w-7xl mx-auto">
             <h1 class="text-4xl font-bold flex items-center gap-3">
                 <i class="fas fa-chart-line"></i>
-                Rosicatore <span class="text-lg font-normal opacity-75">v1.6.7</span>
+                Rosicatore <span class="text-lg font-normal opacity-75">v1.6.8</span>
             </h1>
             <p class="text-purple-100 mt-2">Stock Price Timeline Tracker - Analizza gli andamenti azionari con calcoli di investimento</p>
         </div>
@@ -1435,11 +1435,11 @@ GSM +0,5/4       (virgola italiana supportata)
                             <div class="flex items-center gap-2">
                                 <input type="number" id="numerator-${track.id}" value="${track.numerator}" 
                                        min="0" max="${track.denominator}"
-                                       class="w-16 border border-gray-300 rounded px-2 py-1 text-center font-bold">
+                                       class="w-16 border border-gray-300 rounded px-2 py-1 text-center font-bold text-gray-900">
                                 <span class="text-xl font-bold text-gray-400">/</span>
                                 <input type="number" id="denominator-${track.id}" value="${track.denominator}" 
                                        min="1"
-                                       class="w-16 border border-gray-300 rounded px-2 py-1 text-center font-bold">
+                                       class="w-16 border border-gray-300 rounded px-2 py-1 text-center font-bold text-gray-900">
                             </div>
                             <button class="counter-btn" id="increase-${track.id}">
                                 <i class="fas fa-plus text-sm"></i>
@@ -1482,7 +1482,7 @@ GSM +0,5/4       (virgola italiana supportata)
                                 <input type="number" id="allocato-input-${track.id}" 
                                        value="${track.capitalAllocato || track.capital || 0}"
                                        placeholder="Es: 10000" step="100" min="0"
-                                       class="w-full text-center text-lg font-bold bg-white border-2 border-orange-300 rounded px-2 py-1 focus:ring-2 focus:ring-orange-500">
+                                       class="w-full text-center text-xl font-bold text-gray-900 bg-white border-2 border-orange-300 rounded px-2 py-1 focus:ring-2 focus:ring-orange-500">
                                 <div class="text-xs text-gray-500 mt-1">budget dedicato (modificabile)</div>
                             </div>
                             <div class="bg-yellow-50 rounded-lg p-3">

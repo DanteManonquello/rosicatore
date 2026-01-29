@@ -1,10 +1,31 @@
-# 📊 Rosicatore v1.6.7 - Stock Price Timeline Tracker
+# 📊 Rosicatore v1.6.8 - Stock Price Timeline Tracker
 
 Analizza gli andamenti azionari con un'interfaccia stile DAW (Digital Audio Workstation) per visualizzare multiple tracce di dati finanziari.
 
-## 🎯 Versione Attuale: v1.6.7 - INPUT CAPITALE ALLOCATO PER TRACCIA
+## 🎯 Versione Attuale: v1.6.8 - FIX LEGGIBILITÀ INPUT
 
-### ✨ Novità v1.6.7 - Doppia Modalità Input Capitale
+### ✨ Novità v1.6.8 - Input Leggibili
+
+#### 👁️ PROBLEMA RISOLTO
+
+**PRIMA (v1.6.7)** ❌:
+- Input numeri quasi invisibili (grigio chiaro su bianco)
+- Difficile leggere valori inseriti
+- Contrasto basso
+
+**ORA (v1.6.8)** ✅:
+- Testo nero (`text-gray-900`)
+- Font più grande (`text-xl` per capitale allocato)
+- Contrasto alto WCAG compliant
+
+**Input Migliorati**:
+1. **Capitale Allocato**: `text-xl font-bold text-gray-900`
+2. **Frazione Numeratore**: `text-gray-900`
+3. **Frazione Denominatore**: `text-gray-900`
+
+---
+
+### 📋 Funzionalità v1.6.7 (Precedenti)
 
 #### 💰 CAPITALE ALLOCATO MODIFICABILE
 

@@ -553,6 +553,17 @@ Max Drawdown = ((Valore Minimo - Picco Precedente) / Picco Precedente) × 100
 - ✅ Smart Expositions Parser
 - ✅ Match automatico NOME/TICKER
 
+### v1.6.8 (2025-01-28)
+- ✅ **FIX LEGGIBILITÀ INPUT**: Testo nero invece di grigio chiaro
+- 🎨 **CSS Fix**: Aggiunto `text-gray-900` a tutti gli input number
+- 👁️ **Accessibilità**: Contrasto WCAG compliant
+- 📊 **Input Modificati**:
+  - Capitale Allocato: `text-xl font-bold text-gray-900`
+  - Numeratore Frazione: `text-gray-900`
+  - Denominatore Frazione: `text-gray-900`
+- 🐛 **Bug**: Input valori quasi invisibili (grigio chiaro su bianco)
+- ✅ **Risolto**: Nero pieno per tutti i valori numerici
+
 ### v1.6.7 (2025-01-28)
 - ✅ **INPUT CAPITALE ALLOCATO PER TRACCIA**: Ora modificabile manualmente
 - ✅ **Doppia Modalità**: Globale (divide equamente) + Manuale (per traccia)
