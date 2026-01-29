@@ -553,6 +553,14 @@ Max Drawdown = ((Valore Minimo - Picco Precedente) / Picco Precedente) × 100
 - ✅ Smart Expositions Parser
 - ✅ Match automatico NOME/TICKER
 
+### v1.6.6 (2025-01-28)
+- ✅ **FIX CRITICO**: Menu accordion non si aprivano (JavaScript bloccato)
+- 🐛 **Bug**: Dichiarazione duplicata `const capitalAllocato` (righe 835 e 868)
+- ✅ **Risolto**: Rimossa dichiarazione duplicata in ROI Portafoglio calc
+- ✅ **Impatto**: Event listeners accordion ora funzionano correttamente
+- ✅ **Test**: Playwright verifica no errori JavaScript bloccanti
+- 🎯 **Menu Funzionanti**: Caricamento Multiplo, Esposizioni, Movimenti, Impostazioni Globali
+
 ### v1.6.5 (2025-01-24)
 - ✅ **CAPITALE RESIDUO ATTUALIZZATO**: Cash da vendite al prezzo CORRENTE
 - ✅ **Nuovi Campi Track**: `capitalAllocato`, `realizedCash`, `dividends`, `previousNumerator`

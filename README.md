@@ -1,10 +1,27 @@
-# 📊 Rosicatore v1.6.5 - Stock Price Timeline Tracker
+# 📊 Rosicatore v1.6.6 - Stock Price Timeline Tracker
 
 Analizza gli andamenti azionari con un'interfaccia stile DAW (Digital Audio Workstation) per visualizzare multiple tracce di dati finanziari.
 
-## 🎯 Versione Attuale: v1.6.5 - CAPITALE RESIDUO ATTUALIZZATO
+## 🎯 Versione Attuale: v1.6.6 - FIX MENU TOGGLE
 
-### ✨ Novità v1.6.5 - Cash Realizzato & ROI Corretto
+### ✨ Novità v1.6.6 - Menu Accordion Funzionanti
+
+#### 🐛 BUG CRITICO RISOLTO
+
+**Problema**: Menu accordion (Caricamento Multiplo, Esposizioni, Movimenti, Impostazioni Globali) NON si aprivano quando cliccati!
+
+**Causa**: Errore JavaScript bloccante:
+```javascript
+❌ Identifier 'capitalAllocato' has already been declared
+```
+
+**Fix**: Rimossa dichiarazione duplicata nella funzione `updateCalculations()`
+
+**Risultato**: ✅ Tutti i menu accordion ora funzionano correttamente!
+
+---
+
+### 📋 Funzionalità v1.6.5 (Precedenti)
 
 #### 💰 CAPITALE RESIDUO ATTUALIZZATO
 
