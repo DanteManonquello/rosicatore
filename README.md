@@ -1,10 +1,114 @@
-# 📊 Rosicatore v1.6.8 - Stock Price Timeline Tracker
+# 📊 Rosicatore v1.7.0 - Stock Price Timeline Tracker
 
 Analizza gli andamenti azionari con un'interfaccia stile DAW (Digital Audio Workstation) per visualizzare multiple tracce di dati finanziari.
 
-## 🎯 Versione Attuale: v1.6.8 - FIX LEGGIBILITÀ INPUT
+## 🎯 Versione Attuale: v1.7.0 - PMC DINAMICO & SISTEMA TRANSAZIONI
 
-### ✨ Novità v1.6.8 - Input Leggibili
+### 🔥 Novità v1.7.0 - PMC Dinamico (GAME CHANGER!)
+
+#### 💥 PROBLEMA RISOLTO - IL PIÙ GRANDE BUG FINORA
+
+**PRIMA (v1.6.x)** ❌:
+```
+Scenario: AAPL 10.000€
+├─ Acquisto iniziale:  4/4 @ 185€ → 54,05 shares
+├─ Alleggerimento:     4/4 → 2/4 @ 212€ (vendi metà)
+├─ Appesantimento:     2/4 → 3/4 @ 225€ (ricompri)
+│
+└─ PMC:                185€ (SEMPRE FISSO!) ❌
+   └─ PROBLEMA:         PMC NON si aggiorna dopo movimenti
+                       Calcoli shares/performance ERRATI!
+```
+
+**ORA (v1.7.0)** ✅:
+```
+Scenario: AAPL 10.000€
+├─ Acquisto iniziale:  4/4 @ 185€ → 54,05 shares
+│  └─ PMC: 185€ ✅
+├─ Alleggerimento:     4/4 → 2/4 @ 212€
+│  └─ Vendi: 27,025 shares @ 212€ = 5.729,30€ cash
+│  └─ PMC: 185€ (unchanged) ✅
+├─ Appesantimento:     2/4 → 3/4 @ 225€
+│  └─ Acquisti: 11,11 shares @ 225€ = 2.500€
+│  └─ PMC: 196,68€ (RICALCOLATO!) ✅
+│
+└─ RISOLTO:            PMC DINAMICO ponderato
+                      Shares basate su transazioni REALI
+                      Performance ACCURATE
+```
+
+#### 🚀 COME FUNZIONA IL SISTEMA
+
+**1. Tracking Transazioni Completo**
+```javascript
+transactions = [
+  { type: 'buy',  shares: 54.05,  price: 185, amount: 10000,   date: '01/01/2024' },
+  { type: 'sell', shares: 27.025, price: 212, amount: 5729.30, date: '30/06/2024' },
+  { type: 'buy',  shares: 11.11,  price: 225, amount: 2500,    date: '30/09/2024' }
+]
+```
+
+**2. PMC Ponderato Automatico**
+```javascript
+// Formula PMC Dinamico
+PMC = Σ(importi_acquisti) / Σ(shares_totali)
+
+// Esempio dopo 3 transazioni
+PMC = (5.000€ + 2.500€) / (27,025 + 11,11) 
+    = 7.500€ / 38,135 shares
+    = 196,68€/az ✅
+```
+
+**3. Shares Accurate**
+```javascript
+// PRIMA: shares = capitalInvestito / prezzoIniziale ❌
+shares = 7.500 / 185 = 40,54 shares (ERRATO!)
+
+// ORA: shares = Σ(transazioni.shares) ✅
+shares = 27,025 + 11,11 = 38,135 shares (CORRETTO!)
+```
+
+#### 📊 NUOVI KPI & UI
+
+**1. Badge PMC Dinamico**
+```
+PMC (Prezzo Medio Carico)  🔄 DINAMICO
+196,68€/az
+(inizio: 185€)
+```
+
+**2. Storico Transazioni**
+```
+Data        Tipo         Shares    Prezzo    Totale
+──────────  ──────────  ────────  ────────  ─────────
+01/01/2024  📈 ACQUISTO   54,05     185€     10.000€
+30/06/2024  📉 VENDITA    27,025    212€      5.729€
+30/09/2024  📈 ACQUISTO   11,11     225€      2.500€
+
+Totale Transazioni: 3
+PMC Attuale: 196,68€/az
+Shares Totali: 38,135
+```
+
+**3. Console Logs Dettagliati**
+```
+[INIT] First transaction: 54.05 shares @ 185$ | Invested: 10000.00€
+[ALLEGGERIMENTO] 4/4 → 2/4 | Vendita: 27.03 shares @ 212$ | Cash: +5729.30€
+[BUY] 11.11 shares @ 225$ | PMC: 196.68$ | Total: 38.14 shares
+[APPESANTIMENTO] 2/4 → 3/4 | Acquisto: 11.11 shares @ 225$ | Used Cash: -2500.00€
+```
+
+#### ✅ BENEFICI
+
+1. **PMC Accurato**: Riflette il VERO costo medio delle azioni
+2. **Shares Corrette**: Basate su transazioni reali, non formule
+3. **Performance Reale**: ROI calcolato su dati effettivi
+4. **Cash Preciso**: Tracking esatto del cash da vendite
+5. **Storico Completo**: Tutte le operazioni registrate
+
+---
+
+### 📋 Funzionalità v1.6.8 (Precedente)
 
 #### 👁️ PROBLEMA RISOLTO
 
