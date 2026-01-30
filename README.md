@@ -1,8 +1,131 @@
-# 📊 Rosicatore v1.7.0 - Stock Price Timeline Tracker
+# 📊 Rosicatore v2.2.0 - Timeline Tracker + Performance Calculator
 
-Analizza gli andamenti azionari con un'interfaccia stile DAW (Digital Audio Workstation) per visualizzare multiple tracce di dati finanziari.
+**PARSER INTELLIGENTE** - Import automatico con linguaggio naturale italiano
 
-## 🎯 Versione Attuale: v1.7.0 - PMC DINAMICO & SISTEMA TRANSAZIONI
+## 🚀 Versione Attuale: v2.2.0 - PARSER INTELLIGENTE
+
+### 💥 NOVITÀ v2.2.0
+
+**UI COMPLETAMENTE PRESERVATA v1.7.0** ✅:
+- Sistema timeline tracker multi-traccia originale mantenuto
+- Upload CSV grafici intatto
+- Tutte le funzionalità esistenti preservate
+
+**NUOVE FUNZIONALITÀ AGGIUNTE** ✨:
+1. **Performance Calculator** (sezione espandibile)
+   - Bottone toggle per mostrare/nascondere
+   - Non interferisce con il tracker esistente
+   
+2. **Parser Dividendi Intelligente** 🤖
+   - **Auto-detect data**: riconosce "29 dicembre 2025", "26/06/2025", "2025-12-29"
+   - **Auto-detect importo**: trova automaticamente $0.014, 0.014 USD, €0.014
+   - **Skip header automatico**: ignora righe con "Data di Pagamento", "Importo"
+   - **Preview errori**: mostra cosa non è stato riconosciuto
+   
+3. **Parser Movimenti Linguaggio Naturale** 🗣️
+   - "aumentiamo di 1/4" → BUY
+   - "diminuiamo di 1/4" → SELL
+   - Supporto date italiane
+   - Auto-parsing ticker da exchange (NYSE:HL → HL)
+
+4. **Motore Calcolo Portafoglio v2.0.0**
+   - PMC dinamico ponderato
+   - Tracking transazioni completo
+   - 16+ ROI metrics (Sharpe, Sortino, Max DD)
+   - Dividendi reinvestiti
+
+---
+
+## 📋 FORMATO DIVIDENDI SUPPORTATO
+
+Il parser è **INTELLIGENTE** - basta che ci siano data + importo:
+
+```
+✅ TUTTI QUESTI FUNZIONANO:
+
+29 dicembre 2025    $0.014
+26/06/2025    0.014
+2025-12-29 | 0.014 USD
+Data: 29-12-2025 Importo: €0.014
+12 gennaio 2026    14.5
+
+Header tabella automaticamente ignorato:
+Data di Pagamento    Importo per Azione (USD)
+29 dicembre 2025     $0.014  ← QUESTO VIENE PARSATO
+26 giugno 2025       $0.014  ← QUESTO VIENE PARSATO
+```
+
+---
+
+## 📋 FORMATO MOVIMENTI SUPPORTATO
+
+```
+✅ FORMATO COMPLETO:
+
+18/08/2025 h15.39        Hecla Mining        NYSE:HL        US4227041062        diminuiamo di 1/4
+29 ottobre 2025 h14.40   EQT-Corporation     NYSE:EQT       US26884L1098        aumentiamo di 1/4
+2 dicembre 2025 h16.09   Ferroglobe PLC      NASDAQ:GSM     GB00BYW6GV68        aumentiamo di 1/3
+```
+
+**Riconoscimento Automatico:**
+- `aumentiamo/aumenta/compra/acquista` → BUY
+- `diminuiamo/diminuisco/vendi/alleggerisci` → SELL
+- Ticker estratto da `NYSE:HL` → `HL`
+- Date italiane: "29 ottobre 2025" → "2025-10-29"
+
+---
+
+## 🎯 COME USARE
+
+### 1️⃣ **Tracker Timeline** (funzionalità originale)
+- Click "Aggiungi Traccia"
+- Upload CSV con dati storici
+- Visualizza grafici temporali
+
+### 2️⃣ **Performance Calculator** (nuovo!)
+- Click bottone "Performance Calculator"
+- Incolla movimenti nella textarea sinistra
+- Incolla dividendi nella textarea destra  
+- Click "Analizza Movimenti" e "Analizza Dividendi"
+- Il parser riconosce automaticamente formato e dati
+- Preview mostra cosa è stato trovato
+- Errori mostrano cosa non ha capito
+
+---
+
+## 🔧 ARCHITETTURA
+
+**Files Principali:**
+- `src/index.tsx` - UI principale (v1.7.0 + sezione calculator)
+- `public/static/portfolio-engine.js` - Motore calcolo v2.0.0
+- `public/static/parsers.js` - Parser intelligenti auto-detect
+- `public/static/calculator.js` - Logica UI calculator
+
+**NON TOCCATO:**
+- Sistema tracce originale v1.7.0
+- Upload CSV esistente
+- Visualizzazione grafici Chart.js
+- API backend /api/upload, /api/track
+
+---
+
+## 🚀 URLs
+
+- **Produzione**: https://rosicatore.pages.dev
+- **GitHub**: https://github.com/DanteManonquello/rosicatore
+
+---
+
+## 📊 Tech Stack
+
+- **Frontend**: HTML5 + TailwindCSS + Chart.js
+- **Backend**: Hono (Cloudflare Workers)
+- **Runtime**: Cloudflare Pages
+- **Version**: v2.2.0 - Parser Intelligente
+
+---
+
+**🎯 PRINCIPIO CHIAVE**: Preservare TUTTO il codice v1.7.0, aggiungere solo nuove funzionalità in sezioni separate e collassabili.
 
 ### 🔥 Novità v1.7.0 - PMC Dinamico (GAME CHANGER!)
 

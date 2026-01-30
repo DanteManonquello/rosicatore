@@ -83,7 +83,7 @@ app.get('/', (c) => {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rosicatore - Stock Price Timeline Tracker</title>
+    <title>Rosicatore v2.2.0 - Timeline Tracker + Performance Calculator</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
@@ -107,7 +107,8 @@ app.get('/', (c) => {
                 <i class="fas fa-chart-line"></i>
                 Rosicatore
             </h1>
-            <p class="text-purple-100 mt-2">Stock Price Timeline Tracker - Analizza gli andamenti azionari</p>
+            <p class="text-purple-100 mt-2 text-lg">v2.2.0 - Parser Intelligente + Performance Calculator</p>
+            <p class="text-purple-200 mt-1 text-sm">📊 Timeline Tracker • 🧮 PMC Dinamico • 📋 Import Linguaggio Naturale</p>
         </div>
     </div>
 
@@ -125,6 +126,89 @@ app.get('/', (c) => {
                 <i class="fas fa-plus"></i>
                 Aggiungi Traccia
             </button>
+        </div>
+        
+        <!-- Toggle Performance Calculator -->
+        <div class="mt-8 text-center">
+            <button id="toggle-calculator" class="bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white font-bold py-4 px-8 rounded-lg shadow-xl transition flex items-center gap-3 mx-auto text-lg">
+                <i class="fas fa-calculator"></i>
+                Performance Calculator
+                <i class="fas fa-chevron-down"></i>
+            </button>
+        </div>
+        
+        <!-- Performance Calculator Section (nascosto di default) -->
+        <div id="calculator-section" class="hidden mt-8 bg-gradient-to-br from-purple-50 to-blue-50 rounded-lg shadow-2xl p-8 border-2 border-purple-200">
+            <h2 class="text-3xl font-bold text-gray-800 mb-6 flex items-center gap-3">
+                <i class="fas fa-chart-pie text-purple-600"></i>
+                Calcolo Performance Portafoglio
+            </h2>
+            
+            <p class="text-gray-600 mb-6">
+                ✨ Incolla i tuoi movimenti e dividendi usando <strong>linguaggio naturale italiano</strong> - il parser capisce automaticamente!
+            </p>
+            
+            <!-- Import movimenti e dividendi -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                <!-- Movimenti -->
+                <div class="bg-white rounded-lg shadow-lg p-6 border-2 border-orange-200">
+                    <h3 class="text-xl font-bold text-orange-700 mb-3 flex items-center gap-2">
+                        <i class="fas fa-exchange-alt"></i>
+                        Movimenti (aumentiamo/diminuiamo)
+                    </h3>
+                    <p class="text-sm text-gray-600 mb-3">
+                        Esempio: <code class="bg-gray-100 px-2 py-1 rounded text-xs">18/08/2025 h15.39 Hecla Mining NYSE:HL US4227041062 diminuiamo di 1/4</code>
+                    </p>
+                    <textarea id="movimentiInput" rows="6" 
+                              class="w-full border border-gray-300 rounded-lg px-4 py-3 font-mono text-sm"
+                              placeholder="Incolla qui i movimenti (uno per riga)..."></textarea>
+                    <button id="parseMovimentiBtn" class="mt-3 w-full bg-orange-600 hover:bg-orange-700 text-white font-bold py-3 px-4 rounded-lg transition">
+                        <i class="fas fa-magic"></i> Analizza Movimenti
+                    </button>
+                    <div id="movimentiPreview" class="hidden mt-4 p-3 bg-green-50 rounded border border-green-200">
+                        <h4 class="font-semibold text-sm text-green-800 mb-2">✅ Movimenti riconosciuti:</h4>
+                        <div id="movimentiPreviewList" class="text-xs space-y-1"></div>
+                    </div>
+                    <div id="movimentiErrors" class="hidden mt-4 p-3 bg-red-50 rounded border border-red-200">
+                        <h4 class="font-semibold text-sm text-red-700 mb-2">⚠️ Errori:</h4>
+                        <div id="movimentiErrorsList" class="text-xs text-red-600 space-y-1"></div>
+                    </div>
+                </div>
+                
+                <!-- Dividendi -->
+                <div class="bg-white rounded-lg shadow-lg p-6 border-2 border-blue-200">
+                    <h3 class="text-xl font-bold text-blue-700 mb-3 flex items-center gap-2">
+                        <i class="fas fa-dollar-sign"></i>
+                        Dividendi (auto-detect)
+                    </h3>
+                    <p class="text-sm text-gray-600 mb-3">
+                        Esempio: <code class="bg-gray-100 px-2 py-1 rounded text-xs">29 dicembre 2025    $0.014</code>
+                    </p>
+                    <textarea id="dividendiInput" rows="6" 
+                              class="w-full border border-gray-300 rounded-lg px-4 py-3 font-mono text-sm"
+                              placeholder="Incolla qui i dividendi (con date e importi)..."></textarea>
+                    <button id="parseDividendiBtn" class="mt-3 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition">
+                        <i class="fas fa-magic"></i> Analizza Dividendi
+                    </button>
+                    <div id="dividendiPreview" class="hidden mt-4 p-3 bg-green-50 rounded border border-green-200">
+                        <h4 class="font-semibold text-sm text-green-800 mb-2">✅ Dividendi riconosciuti:</h4>
+                        <div id="dividendiPreviewList" class="text-xs space-y-1"></div>
+                    </div>
+                    <div id="dividendiErrors" class="hidden mt-4 p-3 bg-red-50 rounded border border-red-200">
+                        <h4 class="font-semibold text-sm text-red-700 mb-2">⚠️ Errori:</h4>
+                        <div id="dividendiErrorsList" class="text-xs text-red-600 space-y-1"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Risultati Calcolo -->
+            <div id="risultatiCalcolo" class="hidden bg-white rounded-lg shadow-2xl p-6 border-2 border-green-300">
+                <h3 class="text-2xl font-bold text-green-700 mb-4 flex items-center gap-2">
+                    <i class="fas fa-trophy"></i>
+                    Risultati Performance
+                </h3>
+                <div id="risultatiContent" class="space-y-4"></div>
+            </div>
         </div>
     </div>
 
@@ -394,6 +478,10 @@ app.get('/', (c) => {
         // Initial render
         renderTracks();
     </script>
+    
+    <script src="/static/portfolio-engine.js"></script>
+    <script src="/static/parsers.js"></script>
+    <script src="/static/calculator.js"></script>
 </body>
 </html>
   `)
