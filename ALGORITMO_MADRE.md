@@ -1,7 +1,7 @@
 # 🧮 ALGORITMO MADRE - Rosicatore
 
-**Versione**: v1.6.0  
-**Data**: 2025-01-24  
+**Versione**: v1.7.0  
+**Data**: 2025-01-30  
 **Autore**: Rosicatore Development Team
 
 ---
@@ -14,9 +14,243 @@ Questo documento è il **cuore pulsante** di Rosicatore. Definisce la logica mat
 - Crescita patrimonio
 - **KPI dettagliati per titolo (v1.6.0) - 14+ metriche**
 - Gestione movimenti (v1.5.1)
+- **🆕 PMC Dinamico e Sistema Transazioni (v1.7.0)**
 - Gestione dividendi (futuro)
 
 **⚠️ IMPORTANTE**: Qualsiasi modifica alla logica di calcolo DEVE essere documentata in questo file.
+
+---
+
+## 🔥 NUOVO: SISTEMA PMC DINAMICO (v1.7.0)
+
+### Il Problema Risolto
+
+**PRIMA (v1.6.x)**: PMC statico basato solo su prezzo iniziale
+```javascript
+// ❌ VECCHIO METODO - PMC non si aggiorna mai
+PMC = startPrice (sempre 185€)
+shares = capitalInvestito / PMC
+```
+
+**Problema**: Quando fai alleggerimenti/appesantimenti, il PMC rimane fisso al prezzo iniziale, dando calcoli errati per shares e performance.
+
+**DOPO (v1.7.0)**: PMC dinamico con tracking transazioni
+```javascript
+// ✅ NUOVO METODO - PMC si aggiorna ad ogni movimento
+transactions = [
+  { type: 'buy', shares: 54.05, price: 185, amount: 10000 },
+  { type: 'sell', shares: 27.025, price: 212, amount: 5729.30 },
+  { type: 'buy', shares: 11.11, price: 225, amount: 2500 }
+]
+
+PMC = Σ(acquisti_totali) / Σ(shares_totali)
+```
+
+### Logica Sistema Transazioni
+
+**1. Inizializzazione Prima Transazione**
+```javascript
+// Al primo caricamento CSV con capitale e frazione
+function initializeFirstTransaction(track) {
+  const invested = capital × (numerator / denominator);
+  const startPrice = getStartPrice(track);
+  const shares = invested / startPrice;
+  
+  // Crea transazione iniziale
+  transactions.push({
+    type: 'buy',
+    date: dateStart,
+    shares: shares,
+    price: startPrice,
+    amount: invested
+  });
+  
+  // Imposta PMC iniziale
+  currentPMC = startPrice;
+  totalShares = shares;
+}
+```
+
+**2. Alleggerimento (Vendita)**
+```javascript
+// Quando numerator diminuisce (es: 4/4 → 2/4)
+if (numerator < previousNumerator) {
+  const deltaInvestment = previousInvested - currentInvested;
+  
+  // Calcola shares da vendere basandosi su PMC ATTUALE
+  const sharesToSell = deltaInvestment / currentPMC;
+  
+  // Registra vendita al prezzo CORRENTE
+  transactions.push({
+    type: 'sell',
+    date: dateEnd,
+    shares: sharesToSell,
+    price: currentPrice,
+    amount: sharesToSell × currentPrice
+  });
+  
+  // Aggiorna shares totali
+  totalShares -= sharesToSell;
+  
+  // PMC rimane invariato (non cambia dopo vendita)
+  // currentPMC = currentPMC (unchanged)
+  
+  // Cash incassato
+  realizedCash += sharesToSell × currentPrice;
+}
+```
+
+**3. Appesantimento (Acquisto)**
+```javascript
+// Quando numerator aumenta (es: 2/4 → 3/4)
+if (numerator > previousNumerator) {
+  const additionalInvestment = currentInvested - previousInvested;
+  
+  // Calcola shares da acquistare al prezzo CORRENTE
+  const sharesToBuy = additionalInvestment / currentPrice;
+  
+  // Registra acquisto
+  transactions.push({
+    type: 'buy',
+    date: dateEnd,
+    shares: sharesToBuy,
+    price: currentPrice,
+    amount: additionalInvestment
+  });
+  
+  // Aggiorna shares totali
+  totalShares += sharesToBuy;
+  
+  // 🔥 RICALCOLA PMC PONDERATO
+  const oldTotalValue = (totalShares - sharesToBuy) × currentPMC;
+  const newTotalValue = oldTotalValue + additionalInvestment;
+  currentPMC = newTotalValue / totalShares;
+  
+  // Usa cash realizzato se disponibile
+  if (realizedCash > 0) {
+    const usedCash = Math.min(realizedCash, additionalInvestment);
+    realizedCash -= usedCash;
+  }
+}
+```
+
+### Esempio Completo Scenario
+
+```
+📅 SCENARIO: AAPL - 10.000€ | 4/4 → 2/4 → 3/4
+
+─────────────────────────────────────────────────
+📅 FASE 1: ACQUISTO INIZIALE (01/01/2024)
+─────────────────────────────────────────────────
+Capitale Allocato:      10.000€
+Frazione:               4/4
+Capitale Investito:     10.000€
+Prezzo:                 185$/az
+
+Transazione #1: BUY
+├─ Shares:              54,05
+├─ Prezzo:              185€/az
+├─ Totale:              10.000€
+└─ PMC:                 185€/az ✅
+
+Stato:
+├─ Total Shares:        54,05
+├─ PMC:                 185€/az
+├─ Cash Residuo:        0€
+└─ Patrimonio:          10.000€
+
+─────────────────────────────────────────────────
+📅 FASE 2: ALLEGGERIMENTO (30/06/2024)
+─────────────────────────────────────────────────
+Frazione:               4/4 → 2/4
+Prezzo Corrente:        212€/az
+
+Calcolo Vendita:
+├─ Delta Capitale:      10.000 - 5.000 = 5.000€
+├─ Shares da Vendere:   5.000 / 185 = 27,025 shares
+└─ Cash Incassato:      27,025 × 212 = 5.729,30€
+
+Transazione #2: SELL
+├─ Shares:              27,025
+├─ Prezzo:              212€/az
+├─ Totale:              5.729,30€
+└─ PMC:                 185€/az (unchanged) ✅
+
+Stato:
+├─ Total Shares:        27,025
+├─ PMC:                 185€/az (invariato)
+├─ Cash Residuo:        5.729,30€
+├─ Valore Posizione:    5.729,30€ (27,025 × 212)
+└─ Patrimonio:          11.458,60€
+
+─────────────────────────────────────────────────
+📅 FASE 3: APPESANTIMENTO (30/09/2024)
+─────────────────────────────────────────────────
+Frazione:               2/4 → 3/4
+Prezzo Corrente:        225€/az
+
+Calcolo Acquisto:
+├─ Delta Capitale:      7.500 - 5.000 = 2.500€
+├─ Shares da Acquistare: 2.500 / 225 = 11,11 shares
+└─ Prezzo Acquisto:     225€/az
+
+Transazione #3: BUY
+├─ Shares:              11,11
+├─ Prezzo:              225€/az
+├─ Totale:              2.500€
+└─ PMC:                 ??? (da calcolare)
+
+🔥 RICALCOLO PMC PONDERATO:
+├─ Shares Vecchie:      27,025 @ 185€/az = 5.000€
+├─ Shares Nuove:        11,11 @ 225€/az = 2.500€
+├─ Total Shares:        38,135
+├─ Total Investito:     7.500€
+└─ NUOVO PMC:           7.500 / 38,135 = 196,68€/az ✅
+
+Stato:
+├─ Total Shares:        38,135
+├─ PMC:                 196,68€/az (aggiornato!)
+├─ Cash Residuo:        3.229,30€ (5.729,30 - 2.500)
+├─ Valore Posizione:    8.580,37€ (38,135 × 225)
+└─ Patrimonio:          11.809,67€
+
+─────────────────────────────────────────────────
+📅 FASE 4: VALUTAZIONE FINALE (31/12/2024)
+─────────────────────────────────────────────────
+Frazione:               3/4 (unchanged)
+Prezzo Corrente:        240€/az
+
+Nessuna Transazione
+
+Stato:
+├─ Total Shares:        38,135
+├─ PMC:                 196,68€/az ✅
+├─ Valore Posizione:    9.152,40€ (38,135 × 240)
+├─ Cash Residuo:        3.229,30€
+├─ Patrimonio:          12.381,70€
+├─ Gain/Loss:           +2.381,70€
+├─ ROI Posizioni:       +22,03% [(9.152,40 - 7.500) / 7.500]
+└─ ROI Portafoglio:     +23,82% [(12.381,70 - 10.000) / 10.000]
+
+─────────────────────────────────────────────────
+📊 RIEPILOGO TRANSAZIONI
+─────────────────────────────────────────────────
+1. [BUY]  01/01/2024: 54,05 shares @ 185€ = 10.000€
+2. [SELL] 30/06/2024: 27,025 shares @ 212€ = 5.729,30€
+3. [BUY]  30/09/2024: 11,11 shares @ 225€ = 2.500€
+
+Totale Transazioni: 3
+PMC Finale:         196,68€/az (dinamico!)
+Shares Finali:      38,135
+```
+
+### Vantaggi Sistema v1.7.0
+
+✅ **PMC Accurato**: Riflette il vero costo medio delle azioni possedute
+✅ **Shares Corrette**: Basate su transazioni reali, non su formule statiche
+✅ **Tracking Storico**: Tutte le operazioni registrate e visualizzabili
+✅ **Cash Realizzato**: Tracciamento preciso del cash da vendite
+✅ **Performance Reale**: ROI calcolato su dati reali, non stimati
 
 ---
 
@@ -515,6 +749,23 @@ Max Drawdown = ((Valore Minimo - Picco Precedente) / Picco Precedente) × 100
 ---
 
 ## 📝 CHANGELOG
+
+### v1.7.0 (2025-01-30) - 🔥 PMC DINAMICO & SISTEMA TRANSAZIONI
+- ✅ **SISTEMA TRANSAZIONI COMPLETO**: Tracking acquisti/vendite con storico
+- ✅ **PMC DINAMICO**: Ricalcolo PMC ponderato ad ogni acquisto
+- ✅ **SHARES CORRETTE**: Basate su transazioni reali, non formule statiche
+- ✅ **ALLEGGERIMENTI PRECISI**: Vendita shares basata su PMC attuale
+- ✅ **APPESANTIMENTI PRECISI**: Acquisto shares con ricalcolo PMC
+- ✅ **UI STORICO TRANSAZIONI**: Tabella completa transazioni nei KPI
+- ✅ **BADGE PMC DINAMICO**: Indicatore visuale quando PMC cambia
+- ✅ **CONSOLE LOGS**: Dettagli operazioni per debug
+- 🔧 **Formula PMC**: `PMC = Σ(acquisti_totali) / Σ(shares_totali)`
+- 🔧 **Variazione Prezzo**: Ora calcolata da PMC attuale, non startPrice
+- 📊 **Campi Track Nuovi**:
+  - `transactions[]`: Array storico transazioni
+  - `currentPMC`: PMC attuale dinamico
+  - `totalShares`: Shares totali possedute
+- 🎯 **Risolve Bug Critico**: PMC statico che dava calcoli errati dopo movimenti
 
 ### v1.5.1 (2025-01-24)
 - ✅ **Registra Movimenti**: Sezione comandi rapidi esposizioni

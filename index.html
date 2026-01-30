@@ -631,6 +631,11 @@ GSM +0,5/4       (virgola italiana supportata)
             if (!track.dividends) track.dividends = 0; // Dividendi incassati
             if (!track.previousNumerator) track.previousNumerator = track.numerator; // Tracking alleggerimenti
             
+            // v1.7.0: Sistema transazioni per PMC dinamico
+            if (!track.transactions) track.transactions = []; // Array transazioni [{ type: 'buy'|'sell', date, shares, price, amount }]
+            if (!track.currentPMC) track.currentPMC = 0; // Prezzo Medio di Carico attuale
+            if (!track.totalShares) track.totalShares = 0; // Shares totali possedute
+            
             return track;
         }
 
@@ -698,6 +703,64 @@ GSM +0,5/4       (virgola italiana supportata)
             return getEndPrice(track);
         }
 
+        // v1.7.0: Sistema Transazioni - Gestisce acquisti/vendite e calcola PMC dinamico
+        function processTransaction(track, type, shares, price, date = null) {
+            if (!track.transactions) track.transactions = [];
+            
+            const transaction = {
+                type: type,  // 'buy' | 'sell'
+                date: date || getTodayDate(),
+                shares: Math.abs(shares),
+                price: price,
+                amount: Math.abs(shares) * price
+            };
+            
+            track.transactions.push(transaction);
+            
+            // Aggiorna shares totali
+            if (type === 'buy') {
+                const oldTotalValue = (track.totalShares || 0) * (track.currentPMC || 0);
+                const newTotalValue = oldTotalValue + transaction.amount;
+                track.totalShares = (track.totalShares || 0) + transaction.shares;
+                
+                // Ricalcola PMC ponderato
+                track.currentPMC = track.totalShares > 0 ? newTotalValue / track.totalShares : 0;
+                
+                console.log(`[BUY] ${transaction.shares.toFixed(2)} shares @ ${price}$ | PMC: ${(track.currentPMC || 0).toFixed(2)}$ | Total: ${track.totalShares.toFixed(2)} shares`);
+            } else if (type === 'sell') {
+                track.totalShares = Math.max(0, (track.totalShares || 0) - transaction.shares);
+                // PMC rimane invariato dopo vendita
+                
+                console.log(`[SELL] ${transaction.shares.toFixed(2)} shares @ ${price}$ | PMC: ${(track.currentPMC || 0).toFixed(2)}$ (unchanged) | Total: ${track.totalShares.toFixed(2)} shares`);
+            }
+            
+            return transaction;
+        }
+        
+        // v1.7.0: Inizializza transazione iniziale (primo acquisto)
+        function initializeFirstTransaction(track) {
+            if (!track.data || track.data.length === 0) return;
+            
+            // Se già ha transazioni, non inizializzare
+            if (track.transactions && track.transactions.length > 0) return;
+            
+            const capital = parseFloat(track.capital) || 0;
+            const numerator = parseFloat(track.numerator) || 0;
+            const denominator = parseInt(track.denominator) || 1;
+            const fraction = numerator / denominator;
+            const invested = capital * fraction;
+            
+            const startPrice = getStartPrice(track);
+            if (startPrice <= 0 || invested <= 0) return;
+            
+            const shares = invested / startPrice;
+            
+            // Crea prima transazione
+            processTransaction(track, 'buy', shares, startPrice, track.dateStart);
+            
+            console.log(`[INIT] First transaction: ${shares.toFixed(2)} shares @ ${startPrice}$ | Invested: ${invested.toFixed(2)}€`);
+        }
+
         // Calculate investment details
         function calculateInvestment(track) {
             const capital = parseFloat(track.capital) || 0;
@@ -711,41 +774,63 @@ GSM +0,5/4       (virgola italiana supportata)
                 shares: 0, 
                 exposure: 0, 
                 startPrice: 0, 
-                endPrice: 0 
+                endPrice: 0,
+                pmc: 0
             };
             
             const fraction = numerator / denominator;
             const invested = capital * fraction;
             
-            // v1.6.5: Calcola cash realizzato da alleggerimenti
+            // v1.7.0: Inizializza prima transazione se necessario
+            initializeFirstTransaction(track);
+            
+            // v1.7.0: Gestione movimenti con sistema transazioni
             const previousNumerator = parseFloat(track.previousNumerator) || numerator;
             const previousFraction = previousNumerator / denominator;
+            const currentPrice = getEndPrice(track);
             
-            // Se frazione diminuisce = vendita
-            if (numerator < previousNumerator && track.data && track.data.length > 0) {
-                const startPrice = getStartPrice(track);
-                const currentPrice = getEndPrice(track);
+            // ALLEGGERIMENTO: frazione diminuisce = vendita
+            if (numerator < previousNumerator && track.data && track.data.length > 0 && currentPrice > 0) {
+                const previousInvested = capital * previousFraction;
+                const deltaInvestment = previousInvested - invested; // Capitale liberato
                 
-                // Azioni vendute
-                const previousShares = (capital * previousFraction) / startPrice;
-                const currentShares = invested / startPrice;
-                const soldShares = previousShares - currentShares;
+                // Calcola shares da vendere basandosi su PMC attuale
+                const currentPMC = track.currentPMC || getStartPrice(track);
+                const sharesToSell = currentPMC > 0 ? (deltaInvestment / currentPMC) : 0;
                 
-                // Cash incassato al prezzo ATTUALE (non prezzo carico)
-                const cashFromSale = soldShares * currentPrice;
-                track.realizedCash = (track.realizedCash || 0) + cashFromSale;
+                if (sharesToSell > 0) {
+                    // Registra vendita
+                    processTransaction(track, 'sell', sharesToSell, currentPrice, track.dateEnd);
+                    
+                    // Cash incassato al prezzo ATTUALE
+                    const cashFromSale = sharesToSell * currentPrice;
+                    track.realizedCash = (track.realizedCash || 0) + cashFromSale;
+                    
+                    console.log(`[ALLEGGERIMENTO] ${previousNumerator}/${denominator} → ${numerator}/${denominator} | Vendita: ${sharesToSell.toFixed(2)} shares @ ${currentPrice}$ | Cash: +${cashFromSale.toFixed(2)}€`);
+                }
                 
-                // Aggiorna previousNumerator
                 track.previousNumerator = numerator;
             }
             
-            // Se frazione aumenta (appesantimento), usa il cash per comprare
-            if (numerator > previousNumerator && track.realizedCash > 0) {
-                const additionalInvestment = invested - (capital * previousFraction);
+            // APPESANTIMENTO: frazione aumenta = acquisto
+            if (numerator > previousNumerator && track.data && track.data.length > 0 && currentPrice > 0) {
+                const previousInvested = capital * previousFraction;
+                const additionalInvestment = invested - previousInvested; // Capitale aggiuntivo
                 
-                // Riduci cash realizzato
                 if (additionalInvestment > 0) {
-                    track.realizedCash = Math.max(0, track.realizedCash - additionalInvestment);
+                    // Calcola shares da acquistare al prezzo ATTUALE
+                    const sharesToBuy = additionalInvestment / currentPrice;
+                    
+                    // Registra acquisto (aggiorna PMC automaticamente)
+                    processTransaction(track, 'buy', sharesToBuy, currentPrice, track.dateEnd);
+                    
+                    // Usa cash realizzato se disponibile
+                    if (track.realizedCash > 0) {
+                        const usedCash = Math.min(track.realizedCash, additionalInvestment);
+                        track.realizedCash = Math.max(0, track.realizedCash - usedCash);
+                        
+                        console.log(`[APPESANTIMENTO] ${previousNumerator}/${denominator} → ${numerator}/${denominator} | Acquisto: ${sharesToBuy.toFixed(2)} shares @ ${currentPrice}$ | Used Cash: -${usedCash.toFixed(2)}€`);
+                    }
                 }
                 
                 track.previousNumerator = numerator;
@@ -757,11 +842,10 @@ GSM +0,5/4       (virgola italiana supportata)
             
             const exposure = (fraction * 100).toFixed(1);
             
-            // Use START price to calculate shares purchased
+            // v1.7.0: Usa shares e PMC dal sistema transazioni
+            const shares = track.totalShares || 0;
+            const pmc = track.currentPMC || getStartPrice(track);
             const startPrice = getStartPrice(track);
-            const shares = startPrice > 0 ? (invested / startPrice) : 0;
-            
-            // Get END price for current value
             const endPrice = getEndPrice(track);
             
             return {
@@ -772,7 +856,8 @@ GSM +0,5/4       (virgola italiana supportata)
                 shares: shares,
                 exposure: exposure,
                 startPrice: startPrice,
-                endPrice: endPrice
+                endPrice: endPrice,
+                pmc: pmc  // PMC dinamico
             };
         }
 
@@ -786,7 +871,8 @@ GSM +0,5/4       (virgola italiana supportata)
                     gainLoss: 0,
                     gainLossPercent: 0,
                     avgBuyPrice: 0,
-                    currentPrice: 0
+                    currentPrice: 0,
+                    pmc: 0
                 };
             }
             
@@ -796,15 +882,16 @@ GSM +0,5/4       (virgola italiana supportata)
             const gainLoss = currentValue - calc.invested;
             const gainLossPercent = calc.invested > 0 ? ((gainLoss / calc.invested) * 100) : 0;
             
-            // Avg buy price is START price (what we paid)
-            const avgBuyPrice = calc.startPrice;
+            // v1.7.0: Usa PMC dinamico dal sistema transazioni
+            const avgBuyPrice = calc.pmc || calc.startPrice;
             
             return {
                 currentValue: currentValue,
                 gainLoss: gainLoss,
                 gainLossPercent: gainLossPercent,
                 avgBuyPrice: avgBuyPrice,
-                currentPrice: currentPrice
+                currentPrice: currentPrice,
+                pmc: calc.pmc  // v1.7.0: PMC dinamico
             };
         }
 
@@ -1663,12 +1750,17 @@ GSM +0,5/4       (virgola italiana supportata)
             const startPrice = calc.startPrice;
             const endPrice = calc.endPrice;
             const shares = calc.shares;
+            
+            // v1.7.0: PMC dinamico (può essere diverso da startPrice se ci sono stati movimenti)
+            const pmc = calc.pmc || startPrice;
+            const pmcChanged = Math.abs(pmc - startPrice) > 0.01; // PMC cambiato dopo movimenti
+            
             const currentValue = shares * endPrice;
             const gainLoss = currentValue - invested;
             const gainLossPercent = invested > 0 ? (gainLoss / invested) * 100 : 0;
             const roi = gainLossPercent;
-            const priceChange = endPrice - startPrice;
-            const priceChangePercent = startPrice > 0 ? (priceChange / startPrice) * 100 : 0;
+            const priceChange = endPrice - pmc;  // v1.7.0: Usa PMC invece di startPrice
+            const priceChangePercent = pmc > 0 ? (priceChange / pmc) * 100 : 0;
             
             // Percentuali portafoglio
             const capitalPercent = totalPortfolioCapital > 0 ? (capital / totalPortfolioCapital) * 100 : 0;
@@ -1761,8 +1853,14 @@ GSM +0,5/4       (virgola italiana supportata)
                         </h5>
                         <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                             <div class="bg-white rounded-lg p-3 shadow-sm">
-                                <div class="text-xs text-gray-500 mb-1">PMC (Prezzo Medio Carico)</div>
-                                <div class="font-bold text-gray-800">${startPrice.toLocaleString('it-IT', {minimumFractionDigits: 2})}€/az</div>
+                                <div class="text-xs text-gray-500 mb-1 flex items-center gap-1">
+                                    PMC (Prezzo Medio Carico)
+                                    ${pmcChanged ? '<span class="text-xs bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded font-semibold ml-1" title="PMC aggiornato dopo movimenti">🔄 DINAMICO</span>' : ''}
+                                </div>
+                                <div class="font-bold text-gray-800">
+                                    ${pmc.toLocaleString('it-IT', {minimumFractionDigits: 2})}€/az
+                                    ${pmcChanged ? `<div class="text-xs text-gray-400 mt-0.5">(inizio: ${startPrice.toLocaleString('it-IT', {minimumFractionDigits: 2})}€)</div>` : ''}
+                                </div>
                             </div>
                             <div class="bg-white rounded-lg p-3 shadow-sm">
                                 <div class="text-xs text-gray-500 mb-1">Prezzo Attuale</div>
@@ -1814,8 +1912,50 @@ GSM +0,5/4       (virgola italiana supportata)
                         </div>
                     </div>
                     
+                    <!-- 5. STORICO TRANSAZIONI (v1.7.0) -->
+                    ${track.transactions && track.transactions.length > 0 ? `
+                    <div class="mt-4">
+                        <h5 class="font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                            <i class="fas fa-history text-indigo-600"></i> 5. STORICO TRANSAZIONI
+                        </h5>
+                        <div class="bg-white rounded-lg p-4 shadow-sm max-h-48 overflow-y-auto">
+                            <table class="w-full text-xs">
+                                <thead class="border-b border-gray-200">
+                                    <tr class="text-gray-600">
+                                        <th class="text-left py-2">Data</th>
+                                        <th class="text-left py-2">Tipo</th>
+                                        <th class="text-right py-2">Shares</th>
+                                        <th class="text-right py-2">Prezzo</th>
+                                        <th class="text-right py-2">Totale</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${track.transactions.map(tx => `
+                                        <tr class="border-b border-gray-100 hover:bg-gray-50">
+                                            <td class="py-2">${tx.date || '-'}</td>
+                                            <td class="py-2">
+                                                <span class="px-2 py-0.5 rounded text-xs font-semibold ${tx.type === 'buy' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">
+                                                    ${tx.type === 'buy' ? '📈 ACQUISTO' : '📉 VENDITA'}
+                                                </span>
+                                            </td>
+                                            <td class="py-2 text-right font-mono">${tx.shares.toFixed(2)}</td>
+                                            <td class="py-2 text-right font-mono">${tx.price.toFixed(2)}€</td>
+                                            <td class="py-2 text-right font-mono font-semibold">${tx.amount.toFixed(2)}€</td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                            <div class="mt-3 pt-3 border-t border-gray-200 text-center">
+                                <span class="text-xs font-semibold text-gray-700">Totale Transazioni: ${track.transactions.length}</span>
+                                <span class="text-xs text-gray-500 ml-3">PMC Attuale: ${pmc.toFixed(2)}€/az</span>
+                                <span class="text-xs text-gray-500 ml-3">Shares Totali: ${shares.toFixed(2)}</span>
+                            </div>
+                        </div>
+                    </div>
+                    ` : ''}
+                    
                     <div class="mt-4 pt-4 border-t border-purple-200 text-xs text-gray-500 text-center">
-                        ✅ Totale: 14 KPI dettagliati | Dati aggiornati al ${new Date().toLocaleDateString('it-IT')}
+                        ✅ Totale: ${track.transactions && track.transactions.length > 0 ? '15' : '14'} KPI dettagliati | Dati aggiornati al ${new Date().toLocaleDateString('it-IT')}
                     </div>
                 </div>
             `;
