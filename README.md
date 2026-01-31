@@ -1,8 +1,154 @@
-# 📊 Rosicatore v2.2.0 - Timeline Tracker + Performance Calculator
+# 📊 Rosicatore v2.3.0 - Multi-Posizione + KPI Dashboard Completa
 
-**PARSER INTELLIGENTE** - Import automatico con linguaggio naturale italiano
+**GESTIONE MULTI-TITOLO** - Calcolo performance simultaneo su più posizioni con 16+ KPI metrics
 
-## 🚀 Versione Attuale: v2.2.0 - PARSER INTELLIGENTE
+## 🚀 Versione Attuale: v2.3.0 - MULTI-POSIZIONE + KPI DASHBOARD
+
+### 💥 NOVITÀ v2.3.0
+
+**FINALMENTE COMPLETO** ✅:
+
+1. **Gestione Multi-Posizioni** 📊
+   - Crea più posizioni contemporaneamente
+   - Lista posizioni attive con dettagli
+   - Elimina posizioni individuali
+   - Applica movimenti/dividendi a posizione specifica
+
+2. **Form Inizializzazione Completo** 📝
+   - Ticker, Nome, ISIN
+   - Data ingresso
+   - Frazione iniziale (numeratore/denominatore)
+   - CSV prezzi opzionale
+
+3. **KPI Dashboard Completa** 🎯
+   - **ROI Metrics**: Simple, Weighted, Annualized, Total
+   - **Risk Metrics**: Sharpe Ratio, Sortino Ratio, Max Drawdown, Volatility
+   - **Performance**: Capitale attuale, Gain/Loss totale, ROI %
+   - **Transazioni**: Totale, Acquisti, Vendite, Dividendi
+
+4. **Workflow Completo** 🔄
+   - 1️⃣ Crea posizione (ticker + dati base)
+   - 2️⃣ Incolla movimenti → Seleziona posizione → Applica
+   - 3️⃣ Incolla dividendi → Seleziona posizione → Applica
+   - 4️⃣ Click "Calcola Performance" → Dashboard KPI completa
+
+---
+
+## 🎯 WORKFLOW COMPLETO
+
+### **STEP 1: Crea Posizione**
+```
+Ticker: HL
+Nome: Hecla Mining
+ISIN: US4227041062
+Data Ingresso: 2025-01-15
+Frazione: 1/4
+CSV Prezzi: (opzionale)
+```
+Click → **"Crea Posizione"**
+
+### **STEP 2: Applica Movimenti**
+Incolla nella textarea movimenti:
+```
+18/08/2025 h15.39    Hecla Mining    NYSE:HL    US4227041062    diminuiamo di 1/4
+29 ottobre 2025      Hecla Mining    NYSE:HL    US4227041062    aumentiamo di 1/4
+```
+Click → **"Analizza Movimenti"** → Seleziona posizione HL → **"Applica Movimenti"**
+
+### **STEP 3: Applica Dividendi**
+Incolla nella textarea dividendi:
+```
+Data di Pagamento    Importo per Azione (USD)
+29 dicembre 2025     $0.014
+26 giugno 2025       $0.014
+26 marzo 2025        $0.014
+```
+Click → **"Analizza Dividendi"** → Seleziona posizione HL → **"Applica Dividendi"**
+
+### **STEP 4: Calcola Performance**
+Click → **"Calcola Performance Completa"**
+
+Risultato: Dashboard con TUTTI i KPI per TUTTE le posizioni!
+
+---
+
+## 📊 KPI DISPONIBILI (16+ Metrics)
+
+### **Performance Metrics**
+- ✅ ROI Totale %
+- ✅ Capitale Attuale $
+- ✅ Gain/Loss Totale $
+- ✅ PMC Dinamico
+- ✅ Shares Attuali
+
+### **ROI Breakdown**
+- ✅ ROI Simple
+- ✅ ROI Weighted
+- ✅ ROI Annualized
+- ✅ ROI Total
+
+### **Risk Metrics**
+- ✅ Sharpe Ratio
+- ✅ Sortino Ratio
+- ✅ Max Drawdown %
+- ✅ Volatility %
+
+### **Transaction Stats**
+- ✅ Totale Transazioni
+- ✅ Numero Acquisti
+- ✅ Numero Vendite
+- ✅ Numero Dividendi
+
+---
+
+## 🎨 UI PRESERVATA
+
+**Sistema Timeline Tracker v1.7.0** intatto:
+- Upload CSV multi-traccia
+- Visualizzazione grafici Chart.js
+- Tutte le funzionalità originali
+
+**Performance Calculator** (sezione espandibile):
+- Click bottone per mostrare/nascondere
+- Non interferisce con tracker
+
+---
+
+## 📋 FORMATO SUPPORTATO
+
+### **Movimenti:**
+```
+18/08/2025 h15.39        Hecla Mining        NYSE:HL        US4227041062        diminuiamo di 1/4
+29 ottobre 2025 h14.40   EQT-Corporation     NYSE:EQT       US26884L1098        aumentiamo di 1/4
+```
+
+### **Dividendi:**
+```
+29 dicembre 2025    $0.014
+26/06/2025          0.014
+2025-12-29 | 0.014 USD
+```
+
+---
+
+## 🔧 Tech Stack
+
+- **Frontend**: HTML5 + TailwindCSS + Chart.js
+- **Engine**: Position class (v2.0.0) con PMC dinamico
+- **Parser**: Auto-detect intelligente date/importi
+- **Backend**: Hono (Cloudflare Workers)
+- **Runtime**: Cloudflare Pages
+
+---
+
+## 🚀 Deploy
+
+- **GitHub**: https://github.com/DanteManonquello/rosicatore
+- **Production**: https://rosicatore.pages.dev
+
+---
+
+**🎯 PRINCIPIO**: UI v1.7.0 preservata + Performance Calculator con multi-posizione e KPI completi in sezione separata collassabile.
 
 ### 💥 NOVITÀ v2.2.0
 

@@ -83,7 +83,7 @@ app.get('/', (c) => {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rosicatore v2.2.0 - Timeline Tracker + Performance Calculator</title>
+    <title>Rosicatore v2.3.0 - Multi-Posizione + KPI Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
@@ -107,8 +107,8 @@ app.get('/', (c) => {
                 <i class="fas fa-chart-line"></i>
                 Rosicatore
             </h1>
-            <p class="text-purple-100 mt-2 text-lg">v2.2.0 - Parser Intelligente + Performance Calculator</p>
-            <p class="text-purple-200 mt-1 text-sm">📊 Timeline Tracker • 🧮 PMC Dinamico • 📋 Import Linguaggio Naturale</p>
+            <p class="text-purple-100 mt-2 text-lg">v2.3.0 - Multi-Posizione + KPI Dashboard Completa</p>
+            <p class="text-purple-200 mt-1 text-sm">📊 Timeline Tracker • 🧮 16+ ROI Metrics • 📋 Multi-Titolo • 🤖 Parser Intelligente</p>
         </div>
     </div>
 
@@ -145,8 +145,64 @@ app.get('/', (c) => {
             </h2>
             
             <p class="text-gray-600 mb-6">
-                ✨ Incolla i tuoi movimenti e dividendi usando <strong>linguaggio naturale italiano</strong> - il parser capisce automaticamente!
+                ✨ Crea posizioni, incolla movimenti/dividendi con <strong>linguaggio naturale italiano</strong> e calcola performance!
             </p>
+            
+            <!-- Gestione Posizioni -->
+            <div class="bg-white rounded-lg shadow-lg p-6 mb-8 border-2 border-purple-200">
+                <h3 class="text-2xl font-bold text-purple-700 mb-4 flex items-center gap-2">
+                    <i class="fas fa-briefcase"></i>
+                    Gestione Posizioni
+                </h3>
+                
+                <!-- Form Nuova Posizione -->
+                <div class="bg-purple-50 rounded-lg p-4 mb-4">
+                    <h4 class="font-bold text-purple-800 mb-3">➕ Crea Nuova Posizione</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">Ticker</label>
+                            <input type="text" id="newTicker" placeholder="HL" class="w-full border border-gray-300 rounded px-3 py-2">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">Nome Titolo</label>
+                            <input type="text" id="newName" placeholder="Hecla Mining" class="w-full border border-gray-300 rounded px-3 py-2">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">ISIN</label>
+                            <input type="text" id="newISIN" placeholder="US4227041062" class="w-full border border-gray-300 rounded px-3 py-2">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-3">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">Data Ingresso</label>
+                            <input type="date" id="newDateStart" class="w-full border border-gray-300 rounded px-3 py-2">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">Frazione Iniziale (numeratore)</label>
+                            <input type="number" id="newFracNum" value="1" min="1" class="w-full border border-gray-300 rounded px-3 py-2">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">Frazione Iniziale (denominatore)</label>
+                            <input type="number" id="newFracDen" value="4" min="1" class="w-full border border-gray-300 rounded px-3 py-2">
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">CSV Prezzi (opzionale)</label>
+                        <textarea id="newPriceCSV" rows="3" placeholder="Date,Price&#10;2025-01-01,10.50&#10;2025-01-02,10.75" class="w-full border border-gray-300 rounded px-3 py-2 font-mono text-xs"></textarea>
+                    </div>
+                    <button id="createPositionBtn" class="mt-3 w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-4 rounded-lg transition">
+                        <i class="fas fa-plus-circle"></i> Crea Posizione
+                    </button>
+                </div>
+                
+                <!-- Lista Posizioni Attive -->
+                <div id="positionsList" class="space-y-3">
+                    <h4 class="font-bold text-gray-700 mb-2">📋 Posizioni Attive:</h4>
+                    <div id="positionsContainer" class="space-y-2">
+                        <p class="text-gray-500 text-sm italic">Nessuna posizione creata. Crea la prima!</p>
+                    </div>
+                </div>
+            </div>
             
             <!-- Import movimenti e dividendi -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
@@ -168,6 +224,15 @@ app.get('/', (c) => {
                     <div id="movimentiPreview" class="hidden mt-4 p-3 bg-green-50 rounded border border-green-200">
                         <h4 class="font-semibold text-sm text-green-800 mb-2">✅ Movimenti riconosciuti:</h4>
                         <div id="movimentiPreviewList" class="text-xs space-y-1"></div>
+                        <div class="mt-3">
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">Applica a posizione:</label>
+                            <select id="movimentiPositionSelect" class="w-full border border-gray-300 rounded px-3 py-2 mb-2">
+                                <option value="">Seleziona posizione...</option>
+                            </select>
+                            <button id="applyMovimentiBtn" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition">
+                                <i class="fas fa-check"></i> Applica Movimenti
+                            </button>
+                        </div>
                     </div>
                     <div id="movimentiErrors" class="hidden mt-4 p-3 bg-red-50 rounded border border-red-200">
                         <h4 class="font-semibold text-sm text-red-700 mb-2">⚠️ Errori:</h4>
@@ -193,6 +258,15 @@ app.get('/', (c) => {
                     <div id="dividendiPreview" class="hidden mt-4 p-3 bg-green-50 rounded border border-green-200">
                         <h4 class="font-semibold text-sm text-green-800 mb-2">✅ Dividendi riconosciuti:</h4>
                         <div id="dividendiPreviewList" class="text-xs space-y-1"></div>
+                        <div class="mt-3">
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">Applica a posizione:</label>
+                            <select id="dividendiPositionSelect" class="w-full border border-gray-300 rounded px-3 py-2 mb-2">
+                                <option value="">Seleziona posizione...</option>
+                            </select>
+                            <button id="applyDividendiBtn" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition">
+                                <i class="fas fa-check"></i> Applica Dividendi
+                            </button>
+                        </div>
                     </div>
                     <div id="dividendiErrors" class="hidden mt-4 p-3 bg-red-50 rounded border border-red-200">
                         <h4 class="font-semibold text-sm text-red-700 mb-2">⚠️ Errori:</h4>
@@ -201,13 +275,22 @@ app.get('/', (c) => {
                 </div>
             </div>
             
+            <!-- Bottone Calcola Performance -->
+            <div class="mt-8 text-center">
+                <button id="calculatePerformanceBtn" class="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold py-4 px-12 rounded-lg shadow-xl transition text-xl">
+                    <i class="fas fa-calculator"></i>
+                    Calcola Performance Completa
+                </button>
+                <p class="text-gray-600 text-sm mt-2">Calcola tutti i KPI per le posizioni attive</p>
+            </div>
+            
             <!-- Risultati Calcolo -->
-            <div id="risultatiCalcolo" class="hidden bg-white rounded-lg shadow-2xl p-6 border-2 border-green-300">
-                <h3 class="text-2xl font-bold text-green-700 mb-4 flex items-center gap-2">
+            <div id="risultatiCalcolo" class="hidden mt-8 bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg shadow-2xl p-6 border-2 border-green-300">
+                <h3 class="text-3xl font-bold text-green-700 mb-6 flex items-center gap-3">
                     <i class="fas fa-trophy"></i>
-                    Risultati Performance
+                    Dashboard Performance
                 </h3>
-                <div id="risultatiContent" class="space-y-4"></div>
+                <div id="risultatiContent" class="space-y-6"></div>
             </div>
         </div>
     </div>
