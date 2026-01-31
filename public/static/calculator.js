@@ -1,17 +1,17 @@
 /**
- * ROSICATORE v2.3.0 - Performance Calculator con Multi-Posizioni e KPI
+ * ROSICATORE v2.4.0 - Workflow Semplificato
+ * Upload multiplo CSV → Data globale → Parser auto-crea titoli
  */
 
+let uploadedCSVs = {}; // { 'HL': 'Date,Price\n...', 'EQT': '...' }
 let parsedMovimenti = [];
 let parsedDividendi = [];
-let positions = {}; // { ticker: Position instance }
-let selectedPositionTicker = null;
+let positions = {}; // { 'HL': Position instance }
 
 // ===================================================================
-// GESTIONE POSIZIONI
+// TOGGLE CALCULATOR
 // ===================================================================
 
-// Toggle calculator
 document.getElementById('toggle-calculator').addEventListener('click', () => {
     const section = document.getElementById('calculator-section');
     const icon = document.querySelector('#toggle-calculator i:last-child');
@@ -27,119 +27,61 @@ document.getElementById('toggle-calculator').addEventListener('click', () => {
     }
 });
 
-// Crea nuova posizione
-document.getElementById('createPositionBtn').addEventListener('click', () => {
-    const ticker = document.getElementById('newTicker').value.trim().toUpperCase();
-    const name = document.getElementById('newName').value.trim();
-    const isin = document.getElementById('newISIN').value.trim();
-    const dateStart = document.getElementById('newDateStart').value;
-    const fracNum = parseInt(document.getElementById('newFracNum').value);
-    const fracDen = parseInt(document.getElementById('newFracDen').value);
-    const csvData = document.getElementById('newPriceCSV').value.trim();
+// ===================================================================
+// STEP 1: UPLOAD CSV MULTIPLI
+// ===================================================================
+
+document.getElementById('csvFiles').addEventListener('change', (e) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
     
-    // Validazioni
-    if (!ticker) {
-        alert('⚠️ Inserisci il ticker!');
-        return;
-    }
-    if (!name) {
-        alert('⚠️ Inserisci il nome del titolo!');
-        return;
-    }
-    if (!dateStart) {
-        alert('⚠️ Seleziona la data di ingresso!');
-        return;
-    }
-    if (fracNum <= 0 || fracDen <= 0) {
-        alert('⚠️ Frazione iniziale non valida!');
-        return;
-    }
+    uploadedCSVs = {};
     
-    // Check duplicati
-    if (positions[ticker]) {
-        alert('⚠️ Posizione ' + ticker + ' già esistente!');
-        return;
-    }
-    
-    // Crea Position instance
-    try {
-        const position = new Position(ticker, name, isin, 'NYSE', dateStart, fracNum, fracDen);
+    for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const filename = file.name;
         
-        // Load CSV se fornito
-        if (csvData) {
-            position.loadPriceHistory(csvData);
-        }
+        // Estrai ticker dal nome file (es: HL.csv → HL)
+        const ticker = filename.replace('.csv', '').toUpperCase();
         
-        positions[ticker] = position;
-        
-        // Clear form
-        document.getElementById('newTicker').value = '';
-        document.getElementById('newName').value = '';
-        document.getElementById('newISIN').value = '';
-        document.getElementById('newDateStart').value = '';
-        document.getElementById('newFracNum').value = '1';
-        document.getElementById('newFracDen').value = '4';
-        document.getElementById('newPriceCSV').value = '';
-        
-        updatePositionsList();
-        updatePositionSelects();
-        
-        alert('✅ Posizione ' + ticker + ' creata!');
-    } catch (error) {
-        alert('❌ Errore: ' + error.message);
+        const reader = new FileReader();
+        reader.onload = function(event) {
+            uploadedCSVs[ticker] = event.target.result;
+            updateUploadedFilesList();
+        };
+        reader.readAsText(file);
     }
 });
 
-// Aggiorna lista posizioni
-function updatePositionsList() {
-    const container = document.getElementById('positionsContainer');
+function updateUploadedFilesList() {
+    const container = document.getElementById('filesContainer');
+    const filesDiv = document.getElementById('uploadedFiles');
     
-    if (Object.keys(positions).length === 0) {
-        container.innerHTML = '<p class="text-gray-500 text-sm italic">Nessuna posizione creata. Crea la prima!</p>';
+    if (Object.keys(uploadedCSVs).length === 0) {
+        filesDiv.classList.add('hidden');
         return;
     }
     
-    container.innerHTML = Object.keys(positions).map(ticker => {
-        const pos = positions[ticker];
-        return '<div class="flex items-center justify-between bg-purple-100 rounded-lg p-3">' +
-            '<div>' +
-            '<span class="font-bold text-purple-800">' + pos.ticker + '</span>' +
-            '<span class="text-gray-600 ml-2">(' + pos.name + ')</span>' +
-            '<span class="text-xs text-gray-500 ml-2">ISIN: ' + pos.isin + '</span>' +
-            '</div>' +
-            '<button onclick="deletePosition(\'' + ticker + '\')" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm">' +
-            '<i class="fas fa-trash"></i> Elimina' +
-            '</button>' +
-            '</div>';
-    }).join('');
+    filesDiv.classList.remove('hidden');
+    container.innerHTML = Object.keys(uploadedCSVs).map(ticker => 
+        '<div class="bg-green-100 border-2 border-green-300 rounded-lg p-3 text-center">' +
+        '<i class="fas fa-file-csv text-green-600 text-2xl mb-1"></i>' +
+        '<div class="font-bold text-green-800">' + ticker + '</div>' +
+        '<div class="text-xs text-gray-600">' + ticker + '.csv</div>' +
+        '<button onclick="removeCSV(\'' + ticker + '\')" class="mt-2 text-xs bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded">' +
+        '<i class="fas fa-times"></i> Rimuovi' +
+        '</button>' +
+        '</div>'
+    ).join('');
 }
 
-// Elimina posizione
-window.deletePosition = function(ticker) {
-    if (confirm('Eliminare posizione ' + ticker + '?')) {
-        delete positions[ticker];
-        updatePositionsList();
-        updatePositionSelects();
-        alert('✅ Posizione eliminata');
-    }
+window.removeCSV = function(ticker) {
+    delete uploadedCSVs[ticker];
+    updateUploadedFilesList();
 };
 
-// Aggiorna select posizioni
-function updatePositionSelects() {
-    const movSelect = document.getElementById('movimentiPositionSelect');
-    const divSelect = document.getElementById('dividendiPositionSelect');
-    
-    const options = '<option value="">Seleziona posizione...</option>' +
-        Object.keys(positions).map(ticker => 
-            '<option value="' + ticker + '">' + ticker + ' - ' + positions[ticker].name + '</option>'
-        ).join('');
-    
-    movSelect.innerHTML = options;
-    divSelect.innerHTML = options;
-}
-
 // ===================================================================
-// PARSER MOVIMENTI
+// STEP 2: PARSER MOVIMENTI (AUTO-CREA TITOLI)
 // ===================================================================
 
 document.getElementById('parseMovimentiBtn').addEventListener('click', () => {
@@ -161,11 +103,11 @@ document.getElementById('parseMovimentiBtn').addEventListener('click', () => {
         previewList.innerHTML = movimenti.map((m, i) => {
             const tipoColor = m.type === 'BUY' ? 'text-green-600' : 'text-red-600';
             return '<div class="flex items-center gap-2 p-2 bg-white rounded">' +
-                '<span class="font-bold">' + (i + 1) + '.</span>' +
+                '<span class="font-bold text-gray-600">' + (i + 1) + '.</span>' +
                 '<span class="' + tipoColor + ' font-bold">' + m.type + '</span>' +
-                '<span>' + m.date + '</span>' +
-                '<span class="font-mono">' + m.numerator + '/' + m.denominator + '</span>' +
-                '<span class="text-gray-500">' + m.ticker + '</span>' +
+                '<span class="text-gray-700">' + m.date + '</span>' +
+                '<span class="font-mono bg-blue-100 px-2 py-1 rounded">' + m.numerator + '/' + m.denominator + '</span>' +
+                '<span class="text-purple-700 font-bold">' + m.ticker + '</span>' +
                 '</div>';
         }).join('');
     }
@@ -179,7 +121,7 @@ document.getElementById('parseMovimentiBtn').addEventListener('click', () => {
         errorsList.innerHTML = errori.map(e => 
             '<div class="p-2 bg-white rounded">' +
             '<strong>Riga ' + e.riga + ':</strong> ' + e.errore + '<br>' +
-            '<code class="text-xs">' + e.testo + '</code>' +
+            '<code class="text-xs bg-gray-200 px-1">' + e.testo + '</code>' +
             '</div>'
         ).join('');
     } else {
@@ -187,50 +129,13 @@ document.getElementById('parseMovimentiBtn').addEventListener('click', () => {
     }
     
     alert('✅ Trovati ' + movimenti.length + ' movimenti (' + errori.length + ' errori)');
-});
-
-// Applica movimenti
-document.getElementById('applyMovimentiBtn').addEventListener('click', () => {
-    const ticker = document.getElementById('movimentiPositionSelect').value;
     
-    if (!ticker) {
-        alert('⚠️ Seleziona una posizione!');
-        return;
-    }
-    
-    if (parsedMovimenti.length === 0) {
-        alert('⚠️ Nessun movimento da applicare!');
-        return;
-    }
-    
-    const position = positions[ticker];
-    let successi = 0;
-    let falliti = 0;
-    
-    for (const mov of parsedMovimenti) {
-        try {
-            if (mov.type === 'BUY') {
-                position.buyFraction(mov.date, mov.numerator, mov.denominator, mov.notes);
-            } else if (mov.type === 'SELL') {
-                position.sellFraction(mov.date, mov.numerator, mov.denominator, mov.notes);
-            }
-            successi++;
-        } catch (error) {
-            console.error('Errore movimento:', error);
-            falliti++;
-        }
-    }
-    
-    alert('✅ Applicati ' + successi + ' movimenti a ' + ticker + ' (' + falliti + ' falliti)');
-    
-    // Clear
-    document.getElementById('movimentiInput').value = '';
-    document.getElementById('movimentiPreview').classList.add('hidden');
-    parsedMovimenti = [];
+    // Auto-crea titoli
+    autoCreatePositions();
 });
 
 // ===================================================================
-// PARSER DIVIDENDI
+// STEP 2: PARSER DIVIDENDI (AUTO-ASSOCIA AI TITOLI)
 // ===================================================================
 
 document.getElementById('parseDividendiBtn').addEventListener('click', () => {
@@ -251,9 +156,10 @@ document.getElementById('parseDividendiBtn').addEventListener('click', () => {
         previewDiv.classList.remove('hidden');
         previewList.innerHTML = dividendi.map((d, i) => 
             '<div class="flex items-center gap-2 p-2 bg-white rounded">' +
-            '<span class="font-bold">' + (i + 1) + '.</span>' +
-            '<span>' + d.date + '</span>' +
+            '<span class="font-bold text-gray-600">' + (i + 1) + '.</span>' +
+            '<span class="text-gray-700">' + d.date + '</span>' +
             '<span class="text-green-600 font-mono font-bold">$' + d.amount.toFixed(4) + '</span>' +
+            (d.ticker ? '<span class="text-purple-700 font-bold">' + d.ticker + '</span>' : '') +
             '</div>'
         ).join('');
     }
@@ -267,7 +173,7 @@ document.getElementById('parseDividendiBtn').addEventListener('click', () => {
         errorsList.innerHTML = errori.map(e => 
             '<div class="p-2 bg-white rounded">' +
             '<strong>Riga ' + e.riga + ':</strong> ' + e.errore + '<br>' +
-            '<code class="text-xs">' + e.testo + '</code>' +
+            '<code class="text-xs bg-gray-200 px-1">' + e.testo + '</code>' +
             '</div>'
         ).join('');
     } else {
@@ -277,49 +183,104 @@ document.getElementById('parseDividendiBtn').addEventListener('click', () => {
     alert('✅ Trovati ' + dividendi.length + ' dividendi (' + errori.length + ' errori)');
 });
 
-// Applica dividendi
-document.getElementById('applyDividendiBtn').addEventListener('click', () => {
-    const ticker = document.getElementById('dividendiPositionSelect').value;
+// ===================================================================
+// AUTO-CREA POSIZIONI DAI TICKER RILEVATI
+// ===================================================================
+
+function autoCreatePositions() {
+    const globalDate = document.getElementById('globalDateStart').value;
+    const globalFracNum = parseInt(document.getElementById('globalFracNum').value);
+    const globalFracDen = parseInt(document.getElementById('globalFracDen').value);
     
-    if (!ticker) {
-        alert('⚠️ Seleziona una posizione!');
+    if (!globalDate) {
+        alert('⚠️ Imposta prima la data globale!');
         return;
     }
     
-    if (parsedDividendi.length === 0) {
-        alert('⚠️ Nessun dividendo da applicare!');
-        return;
-    }
+    // Estrai tutti i ticker unici dai movimenti
+    const tickers = [...new Set(parsedMovimenti.map(m => m.ticker))];
     
-    const position = positions[ticker];
-    let successi = 0;
-    let falliti = 0;
-    
-    for (const div of parsedDividendi) {
+    for (const ticker of tickers) {
+        if (positions[ticker]) {
+            console.log('Posizione ' + ticker + ' già esistente, skip');
+            continue;
+        }
+        
+        // Crea Position
         try {
-            position.addDividend(div.date, div.amount, 'Dividendo $' + div.amount + '/share');
-            successi++;
+            const name = ticker; // Default name = ticker
+            const isin = parsedMovimenti.find(m => m.ticker === ticker)?.isin || '';
+            
+            const position = new Position(ticker, name, isin, 'NYSE', globalDate, globalFracNum, globalFracDen);
+            
+            // Carica CSV se disponibile
+            if (uploadedCSVs[ticker]) {
+                position.loadPriceHistory(uploadedCSVs[ticker]);
+            }
+            
+            // Applica movimenti del ticker
+            for (const mov of parsedMovimenti) {
+                if (mov.ticker === ticker) {
+                    if (mov.type === 'BUY') {
+                        position.buyFraction(mov.date, mov.numerator, mov.denominator, mov.notes);
+                    } else if (mov.type === 'SELL') {
+                        position.sellFraction(mov.date, mov.numerator, mov.denominator, mov.notes);
+                    }
+                }
+            }
+            
+            // Applica dividendi del ticker
+            for (const div of parsedDividendi) {
+                if (div.ticker === ticker) {
+                    position.addDividend(div.date, div.amount, 'Dividendo $' + div.amount);
+                }
+            }
+            
+            positions[ticker] = position;
+            console.log('✅ Creata posizione ' + ticker);
+            
         } catch (error) {
-            console.error('Errore dividendo:', error);
-            falliti++;
+            console.error('❌ Errore creando ' + ticker + ':', error);
         }
     }
     
-    alert('✅ Applicati ' + successi + ' dividendi a ' + ticker + ' (' + falliti + ' falliti)');
+    updateDetectedStocks();
+}
+
+// Mostra titoli rilevati
+function updateDetectedStocks() {
+    const container = document.getElementById('stocksList');
+    const section = document.getElementById('detectedStocks');
     
-    // Clear
-    document.getElementById('dividendiInput').value = '';
-    document.getElementById('dividendiPreview').classList.add('hidden');
-    parsedDividendi = [];
-});
+    if (Object.keys(positions).length === 0) {
+        section.classList.add('hidden');
+        return;
+    }
+    
+    section.classList.remove('hidden');
+    container.innerHTML = Object.keys(positions).map(ticker => {
+        const pos = positions[ticker];
+        return '<div class="bg-green-50 border-2 border-green-300 rounded-lg p-4">' +
+            '<div class="flex items-center justify-between mb-2">' +
+            '<span class="text-2xl font-bold text-green-700">' + ticker + '</span>' +
+            '<i class="fas fa-check-circle text-green-500 text-xl"></i>' +
+            '</div>' +
+            '<div class="text-sm text-gray-700">' +
+            '<div>Transazioni: <strong>' + pos.transactions.length + '</strong></div>' +
+            '<div>Data ingresso: <strong>' + pos.dateStart + '</strong></div>' +
+            '<div>Frazione: <strong>' + pos.initialFractionNum + '/' + pos.initialFractionDen + '</strong></div>' +
+            '</div>' +
+            '</div>';
+    }).join('');
+}
 
 // ===================================================================
-// CALCOLA PERFORMANCE
+// STEP 3: CALCOLA PERFORMANCE
 // ===================================================================
 
 document.getElementById('calculatePerformanceBtn').addEventListener('click', () => {
     if (Object.keys(positions).length === 0) {
-        alert('⚠️ Nessuna posizione da calcolare!');
+        alert('⚠️ Nessun titolo rilevato! Prima:\n1. Carica CSV\n2. Imposta data globale\n3. Incolla movimenti/dividendi');
         return;
     }
     
@@ -343,7 +304,7 @@ document.getElementById('calculatePerformanceBtn').addEventListener('click', () 
     resultsDiv.scrollIntoView({ behavior: 'smooth' });
 });
 
-// Crea card KPI per una posizione
+// Crea card KPI
 function createKPICard(position, kpis) {
     return '<div class="bg-white rounded-lg shadow-xl p-6 border-2 border-green-200">' +
         '<h4 class="text-2xl font-bold text-purple-700 mb-4 flex items-center gap-2">' +

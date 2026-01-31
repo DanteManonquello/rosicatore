@@ -144,9 +144,29 @@ const RosicatoreParser = {
       throw new Error('Importo non trovato nel testo');
     }
     
+    // ============================================
+    // STEP 3: TROVA TICKER (opzionale)
+    // ============================================
+    let tickerTrovato = null;
+    
+    // Cerca pattern ticker (2-5 lettere maiuscole isolate)
+    const regexTicker = /\b([A-Z]{2,5})\b/g;
+    const tickersMatch = testo.match(regexTicker);
+    if (tickersMatch) {
+      // Filtra ticker plausibili (non mesi, non valute)
+      const blacklist = ['USD', 'EUR', 'GBP', 'JPY', 'DATA', 'IMPORTO', 'PAGAMENTO'];
+      for (const tick of tickersMatch) {
+        if (!blacklist.includes(tick)) {
+          tickerTrovato = tick;
+          break;
+        }
+      }
+    }
+    
     return {
       date: dataTrovata,
-      amount: importoTrovato
+      amount: importoTrovato,
+      ticker: tickerTrovato
     };
   },
   

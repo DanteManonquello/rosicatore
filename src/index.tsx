@@ -83,7 +83,7 @@ app.get('/', (c) => {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rosicatore v2.3.0 - Multi-Posizione + KPI Dashboard</title>
+    <title>Rosicatore v2.4.0 - Workflow Semplificato: Upload CSV → Data Globale → Parser Auto</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
@@ -107,8 +107,8 @@ app.get('/', (c) => {
                 <i class="fas fa-chart-line"></i>
                 Rosicatore
             </h1>
-            <p class="text-purple-100 mt-2 text-lg">v2.3.0 - Multi-Posizione + KPI Dashboard Completa</p>
-            <p class="text-purple-200 mt-1 text-sm">📊 Timeline Tracker • 🧮 16+ ROI Metrics • 📋 Multi-Titolo • 🤖 Parser Intelligente</p>
+            <p class="text-purple-100 mt-2 text-lg">v2.4.0 - Workflow Semplificato: CSV Multipli + Auto-Detect</p>
+            <p class="text-purple-200 mt-1 text-sm">📂 Upload Multiplo • 🌍 Data Globale • 🤖 Auto-Crea Titoli • 📊 16+ KPI</p>
         </div>
     </div>
 
@@ -145,98 +145,87 @@ app.get('/', (c) => {
             </h2>
             
             <p class="text-gray-600 mb-6">
-                ✨ Crea posizioni, incolla movimenti/dividendi con <strong>linguaggio naturale italiano</strong> e calcola performance!
+                ✨ <strong>Workflow semplice:</strong> Carica CSV → Imposta data globale → Incolla movimenti/dividendi → Calcola!
             </p>
             
-            <!-- Gestione Posizioni -->
+            <!-- Step 1: Upload CSV + Data Globale -->
             <div class="bg-white rounded-lg shadow-lg p-6 mb-8 border-2 border-purple-200">
                 <h3 class="text-2xl font-bold text-purple-700 mb-4 flex items-center gap-2">
-                    <i class="fas fa-briefcase"></i>
-                    Gestione Posizioni
+                    <i class="fas fa-upload"></i>
+                    Step 1: Carica CSV Prezzi (multipli)
                 </h3>
                 
-                <!-- Form Nuova Posizione -->
-                <div class="bg-purple-50 rounded-lg p-4 mb-4">
-                    <h4 class="font-bold text-purple-800 mb-3">➕ Crea Nuova Posizione</h4>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-1">Ticker</label>
-                            <input type="text" id="newTicker" placeholder="HL" class="w-full border border-gray-300 rounded px-3 py-2">
+                <div class="bg-purple-50 rounded-lg p-6 mb-4 border-2 border-dashed border-purple-300">
+                    <label class="block text-center cursor-pointer">
+                        <input type="file" id="csvFiles" multiple accept=".csv" class="hidden">
+                        <div class="text-center">
+                            <i class="fas fa-cloud-upload-alt text-6xl text-purple-400 mb-3"></i>
+                            <p class="text-lg font-bold text-purple-700 mb-2">
+                                Click per selezionare CSV o trascina qui
+                            </p>
+                            <p class="text-sm text-gray-600">
+                                Carica più file CSV insieme (HL.csv, EQT.csv, GSM.csv...)
+                            </p>
+                            <p class="text-xs text-gray-500 mt-2">
+                                Formato richiesto: <code class="bg-gray-200 px-1">Date,Price</code>
+                            </p>
                         </div>
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-1">Nome Titolo</label>
-                            <input type="text" id="newName" placeholder="Hecla Mining" class="w-full border border-gray-300 rounded px-3 py-2">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-1">ISIN</label>
-                            <input type="text" id="newISIN" placeholder="US4227041062" class="w-full border border-gray-300 rounded px-3 py-2">
-                        </div>
-                    </div>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-3">
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-1">Data Ingresso</label>
-                            <input type="date" id="newDateStart" class="w-full border border-gray-300 rounded px-3 py-2">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-1">Frazione Iniziale (numeratore)</label>
-                            <input type="number" id="newFracNum" value="1" min="1" class="w-full border border-gray-300 rounded px-3 py-2">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-1">Frazione Iniziale (denominatore)</label>
-                            <input type="number" id="newFracDen" value="4" min="1" class="w-full border border-gray-300 rounded px-3 py-2">
-                        </div>
-                    </div>
-                    <div class="mt-3">
-                        <label class="block text-sm font-semibold text-gray-700 mb-1">CSV Prezzi (opzionale)</label>
-                        <textarea id="newPriceCSV" rows="3" placeholder="Date,Price&#10;2025-01-01,10.50&#10;2025-01-02,10.75" class="w-full border border-gray-300 rounded px-3 py-2 font-mono text-xs"></textarea>
-                    </div>
-                    <button id="createPositionBtn" class="mt-3 w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-4 rounded-lg transition">
-                        <i class="fas fa-plus-circle"></i> Crea Posizione
-                    </button>
+                    </label>
                 </div>
                 
-                <!-- Lista Posizioni Attive -->
-                <div id="positionsList" class="space-y-3">
-                    <h4 class="font-bold text-gray-700 mb-2">📋 Posizioni Attive:</h4>
-                    <div id="positionsContainer" class="space-y-2">
-                        <p class="text-gray-500 text-sm italic">Nessuna posizione creata. Crea la prima!</p>
+                <!-- File caricati -->
+                <div id="uploadedFiles" class="hidden mb-4">
+                    <h4 class="font-bold text-gray-700 mb-2">📁 File Caricati:</h4>
+                    <div id="filesContainer" class="grid grid-cols-2 md:grid-cols-4 gap-2"></div>
+                </div>
+                
+                <!-- Data Globale + Frazione Globale -->
+                <div class="bg-blue-50 rounded-lg p-4">
+                    <h4 class="font-bold text-blue-800 mb-3">🌍 Impostazioni Globali (valgono per tutti i titoli)</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">Data Ingresso Globale</label>
+                            <input type="date" id="globalDateStart" class="w-full border border-gray-300 rounded px-3 py-2">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">Frazione Iniziale Globale (num)</label>
+                            <input type="number" id="globalFracNum" value="1" min="1" class="w-full border border-gray-300 rounded px-3 py-2">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">Frazione Iniziale Globale (den)</label>
+                            <input type="number" id="globalFracDen" value="4" min="1" class="w-full border border-gray-300 rounded px-3 py-2">
+                        </div>
                     </div>
                 </div>
             </div>
             
-            <!-- Import movimenti e dividendi -->
+            <!-- Step 2: Import movimenti e dividendi -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                 <!-- Movimenti -->
                 <div class="bg-white rounded-lg shadow-lg p-6 border-2 border-orange-200">
                     <h3 class="text-xl font-bold text-orange-700 mb-3 flex items-center gap-2">
                         <i class="fas fa-exchange-alt"></i>
-                        Movimenti (aumentiamo/diminuiamo)
+                        Step 2a: Movimenti (tutti insieme)
                     </h3>
                     <p class="text-sm text-gray-600 mb-3">
-                        Esempio: <code class="bg-gray-100 px-2 py-1 rounded text-xs">18/08/2025 h15.39 Hecla Mining NYSE:HL US4227041062 diminuiamo di 1/4</code>
+                        💡 Incolla TUTTI i movimenti (anche titoli diversi) - il parser riconosce automaticamente il ticker!
                     </p>
-                    <textarea id="movimentiInput" rows="6" 
+                    <p class="text-xs text-gray-500 mb-3">
+                        Esempio: <code class="bg-gray-100 px-1">18/08/2025 NYSE:HL diminuiamo di 1/4</code>
+                    </p>
+                    <textarea id="movimentiInput" rows="8" 
                               class="w-full border border-gray-300 rounded-lg px-4 py-3 font-mono text-sm"
-                              placeholder="Incolla qui i movimenti (uno per riga)..."></textarea>
+                              placeholder="Incolla qui TUTTI i movimenti (uno per riga)..."></textarea>
                     <button id="parseMovimentiBtn" class="mt-3 w-full bg-orange-600 hover:bg-orange-700 text-white font-bold py-3 px-4 rounded-lg transition">
                         <i class="fas fa-magic"></i> Analizza Movimenti
                     </button>
                     <div id="movimentiPreview" class="hidden mt-4 p-3 bg-green-50 rounded border border-green-200">
                         <h4 class="font-semibold text-sm text-green-800 mb-2">✅ Movimenti riconosciuti:</h4>
-                        <div id="movimentiPreviewList" class="text-xs space-y-1"></div>
-                        <div class="mt-3">
-                            <label class="block text-sm font-semibold text-gray-700 mb-1">Applica a posizione:</label>
-                            <select id="movimentiPositionSelect" class="w-full border border-gray-300 rounded px-3 py-2 mb-2">
-                                <option value="">Seleziona posizione...</option>
-                            </select>
-                            <button id="applyMovimentiBtn" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition">
-                                <i class="fas fa-check"></i> Applica Movimenti
-                            </button>
-                        </div>
+                        <div id="movimentiPreviewList" class="text-xs space-y-1 max-h-60 overflow-y-auto"></div>
                     </div>
                     <div id="movimentiErrors" class="hidden mt-4 p-3 bg-red-50 rounded border border-red-200">
                         <h4 class="font-semibold text-sm text-red-700 mb-2">⚠️ Errori:</h4>
-                        <div id="movimentiErrorsList" class="text-xs text-red-600 space-y-1"></div>
+                        <div id="movimentiErrorsList" class="text-xs text-red-600 space-y-1 max-h-40 overflow-y-auto"></div>
                     </div>
                 </div>
                 
@@ -244,44 +233,47 @@ app.get('/', (c) => {
                 <div class="bg-white rounded-lg shadow-lg p-6 border-2 border-blue-200">
                     <h3 class="text-xl font-bold text-blue-700 mb-3 flex items-center gap-2">
                         <i class="fas fa-dollar-sign"></i>
-                        Dividendi (auto-detect)
+                        Step 2b: Dividendi (tutti insieme)
                     </h3>
                     <p class="text-sm text-gray-600 mb-3">
-                        Esempio: <code class="bg-gray-100 px-2 py-1 rounded text-xs">29 dicembre 2025    $0.014</code>
+                        💡 Incolla TUTTI i dividendi (anche titoli diversi) - il parser associa automaticamente!
                     </p>
-                    <textarea id="dividendiInput" rows="6" 
+                    <p class="text-xs text-gray-500 mb-3">
+                        Esempio: <code class="bg-gray-100 px-1">29 dicembre 2025 HL $0.014</code>
+                    </p>
+                    <textarea id="dividendiInput" rows="8" 
                               class="w-full border border-gray-300 rounded-lg px-4 py-3 font-mono text-sm"
-                              placeholder="Incolla qui i dividendi (con date e importi)..."></textarea>
+                              placeholder="Incolla qui TUTTI i dividendi..."></textarea>
                     <button id="parseDividendiBtn" class="mt-3 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition">
                         <i class="fas fa-magic"></i> Analizza Dividendi
                     </button>
                     <div id="dividendiPreview" class="hidden mt-4 p-3 bg-green-50 rounded border border-green-200">
                         <h4 class="font-semibold text-sm text-green-800 mb-2">✅ Dividendi riconosciuti:</h4>
-                        <div id="dividendiPreviewList" class="text-xs space-y-1"></div>
-                        <div class="mt-3">
-                            <label class="block text-sm font-semibold text-gray-700 mb-1">Applica a posizione:</label>
-                            <select id="dividendiPositionSelect" class="w-full border border-gray-300 rounded px-3 py-2 mb-2">
-                                <option value="">Seleziona posizione...</option>
-                            </select>
-                            <button id="applyDividendiBtn" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition">
-                                <i class="fas fa-check"></i> Applica Dividendi
-                            </button>
-                        </div>
+                        <div id="dividendiPreviewList" class="text-xs space-y-1 max-h-60 overflow-y-auto"></div>
                     </div>
                     <div id="dividendiErrors" class="hidden mt-4 p-3 bg-red-50 rounded border border-red-200">
                         <h4 class="font-semibold text-sm text-red-700 mb-2">⚠️ Errori:</h4>
-                        <div id="dividendiErrorsList" class="text-xs text-red-600 space-y-1"></div>
+                        <div id="dividendiErrorsList" class="text-xs text-red-600 space-y-1 max-h-40 overflow-y-auto"></div>
                     </div>
                 </div>
             </div>
             
+            <!-- Titoli Rilevati (creati automaticamente) -->
+            <div id="detectedStocks" class="hidden mb-8 bg-white rounded-lg shadow-lg p-6 border-2 border-green-300">
+                <h3 class="text-2xl font-bold text-green-700 mb-4 flex items-center gap-2">
+                    <i class="fas fa-list-check"></i>
+                    Titoli Rilevati Automaticamente
+                </h3>
+                <div id="stocksList" class="grid grid-cols-1 md:grid-cols-3 gap-3"></div>
+            </div>
+            
             <!-- Bottone Calcola Performance -->
             <div class="mt-8 text-center">
-                <button id="calculatePerformanceBtn" class="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold py-4 px-12 rounded-lg shadow-xl transition text-xl">
+                <button id="calculatePerformanceBtn" class="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold py-5 px-16 rounded-lg shadow-xl transition text-2xl disabled:opacity-50 disabled:cursor-not-allowed">
                     <i class="fas fa-calculator"></i>
-                    Calcola Performance Completa
+                    Step 3: Calcola Performance Completa
                 </button>
-                <p class="text-gray-600 text-sm mt-2">Calcola tutti i KPI per le posizioni attive</p>
+                <p class="text-gray-600 text-sm mt-3">Calcola tutti i KPI per i titoli rilevati automaticamente dai movimenti/dividendi</p>
             </div>
             
             <!-- Risultati Calcolo -->
