@@ -46,29 +46,69 @@ function setupFileUploads() {
     uploads.forEach(type => {
         const input = document.getElementById(`upload-${type}`);
         const status = document.getElementById(`status-${type}`);
+        const slot = document.getElementById(`slot-${type}`);
         
+        // File input change handler
         input.addEventListener('change', async (e) => {
             const file = e.target.files[0];
             if (!file) return;
+            await handleFileUpload(file, type, status);
+        });
+        
+        // Drag & Drop handlers
+        slot.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            slot.style.transform = 'scale(1.05)';
+            slot.style.opacity = '0.8';
+        });
+        
+        slot.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            slot.style.transform = '';
+            slot.style.opacity = '';
+        });
+        
+        slot.addEventListener('drop', async (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            slot.style.transform = '';
+            slot.style.opacity = '';
             
-            status.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>Caricamento...';
+            const file = e.dataTransfer.files[0];
+            if (!file) return;
             
-            try {
-                const data = await parseCSV(file);
-                state.csvData[type] = data;
-                status.innerHTML = '<i class="fas fa-check-circle mr-1 status-loaded"></i>Caricato ✓';
-                status.className = 'mt-3 text-xs status-loaded';
-                
-                // Validate data
-                validateCSV(type, data);
-                
-            } catch (error) {
-                status.innerHTML = '<i class="fas fa-times-circle mr-1 status-error"></i>Errore: ' + error.message;
+            // Check if it's a CSV file
+            if (!file.name.endsWith('.csv')) {
+                status.innerHTML = '<i class="fas fa-times-circle mr-1 status-error"></i>Solo file CSV';
                 status.className = 'mt-3 text-xs status-error';
-                state.csvData[type] = null;
+                return;
             }
+            
+            await handleFileUpload(file, type, status);
         });
     });
+}
+
+// Handle file upload (shared for input and drag&drop)
+async function handleFileUpload(file, type, status) {
+    status.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>Caricamento...';
+    
+    try {
+        const data = await parseCSV(file);
+        state.csvData[type] = data;
+        status.innerHTML = `<i class="fas fa-check-circle mr-1 status-loaded"></i>${file.name} ✓`;
+        status.className = 'mt-3 text-xs status-loaded';
+        
+        // Validate data
+        validateCSV(type, data);
+        
+    } catch (error) {
+        status.innerHTML = '<i class="fas fa-times-circle mr-1 status-error"></i>Errore: ' + error.message;
+        status.className = 'mt-3 text-xs status-error';
+        state.csvData[type] = null;
+    }
 }
 
 // Parse CSV file
