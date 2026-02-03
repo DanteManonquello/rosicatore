@@ -1,4 +1,4 @@
-# ROSICATORE v3.0.0
+# ROSICATORE v3.0.1
 
 ## 🎯 Project Overview
 **Rosicatore** è un Portfolio Tracker Algorithm avanzato per il monitoraggio e l'analisi del valore attualizzato di portafogli azionari nel tempo.
@@ -172,12 +172,18 @@ wrangler pages deploy dist --project-name rosicatore
 - **Deployment**: Cloudflare Pages
 
 ## 📝 Status
-- **Version**: v3.0.0
+- **Version**: v3.0.1
 - **Status**: ✅ ATTIVO
 - **Deployment**: Local sandbox
 - **Last Updated**: 2026-02-03
 
 ## 🗺️ Roadmap
+
+### v3.0.1 (COMPLETATO)
+- ✅ Drag & Drop support per CSV upload
+- ✅ Visual feedback durante drag
+- ✅ Validazione formato file (.csv only)
+- ✅ Nome file mostrato dopo upload
 
 ### v3.0.0 (COMPLETATO)
 - ✅ Calcolo attualizzazione temporale
