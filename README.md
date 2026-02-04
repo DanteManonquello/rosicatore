@@ -1,4 +1,4 @@
-# ROSICATORE v3.2.0
+# ROSICATORE v3.2.1
 
 ## 🎯 Project Overview
 **Rosicatore** è un Portfolio Tracker Algorithm avanzato per il monitoraggio e l'analisi del valore attualizzato di portafogli azionari nel tempo.
