@@ -1,4 +1,4 @@
-// Rosicatore v3.8.0 - Portfolio Tracker Calculator
+// Rosicatore v3.9.0 - Portfolio Tracker Calculator
 // Main Application Logic
 
 // Global state
@@ -392,56 +392,19 @@ function calculatePortfolio() {
     const { capitaleTotale, dataInizio, dataFine } = state.config;
     const { titoli, valori, movimenti, dividendi } = state.csvData;
     
-    // FILTRO TITOLI PER DATA PRIMO BUY
+    // CALCOLA TUTTI I TITOLI IN info_titoli.csv
+    // Tutti i titoli ENTRANO con dataInizio (frazione iniziale da info_titoli.csv)
+    // Movimenti.csv contiene SOLO le modifiche (BUY/SELL extra)
     const allResults = [];
     const titoliSkipped = [];
     
     for (const titoloInfo of titoli) {
         const ticker = titoloInfo.ticker;
         
-        // Trova primo movimento BUY per questo ticker
-        const primoMovimento = movimenti
-            ? movimenti
-                .filter(m => m.ticker === ticker && m.azione === 'BUY')
-                .sort((a, b) => new Date(a.data) - new Date(b.data))[0]
-            : null;
-        
-        // Se NON c'è primo BUY, SKIP
-        if (!primoMovimento) {
-            console.log(`SKIP ${ticker}: nessun movimento BUY trovato`);
-            titoliSkipped.push({
-                ticker,
-                nome: titoloInfo.nome,
-                motivo: 'Nessun movimento BUY nei dati'
-            });
-            continue;
-        }
-        
-        const dataPrimoBuy = primoMovimento.data;
-        
-        // SKIP se primo BUY è DOPO la dataFine
-        if (dataPrimoBuy > dataFine) {
-            console.log(`SKIP ${ticker}: primo BUY ${dataPrimoBuy} è dopo dataFine ${dataFine}`);
-            titoliSkipped.push({
-                ticker,
-                nome: titoloInfo.nome,
-                dataPrimoBuy,
-                motivo: `Non ancora acquistato (primo BUY: ${dataPrimoBuy})`
-            });
-            continue;
-        }
-        
-        // Determina data ingresso effettiva:
-        // - Se primo BUY < dataInizio → usa dataInizio (già in portafoglio)
-        // - Se primo BUY >= dataInizio → usa primo BUY (entra nel periodo)
-        const dataIngressoEffettiva = dataPrimoBuy < dataInizio ? dataInizio : dataPrimoBuy;
-        
-        console.log('Calculating for ticker:', ticker, 'Primo BUY:', dataPrimoBuy, 'Ingresso effettivo:', dataIngressoEffettiva);
+        console.log('Calculating for ticker:', ticker, 'Ingresso:', dataInizio, 'Uscita:', dataFine);
         
         try {
-            const result = calculateSingleTicker(ticker, titoloInfo, capitaleTotale, dataIngressoEffettiva, dataFine, valori, movimenti, dividendi);
-            result.dataPrimoBuy = dataPrimoBuy;
-            result.dataIngressoEffettiva = dataIngressoEffettiva;
+            const result = calculateSingleTicker(ticker, titoloInfo, capitaleTotale, dataInizio, dataFine, valori, movimenti, dividendi);
             allResults.push(result);
         } catch (error) {
             console.error(`Error calculating ${ticker}:`, error);
@@ -449,7 +412,6 @@ function calculatePortfolio() {
             titoliSkipped.push({
                 ticker,
                 nome: titoloInfo.nome,
-                dataPrimoBuy,
                 motivo: `Errore: ${error.message}`
             });
         }
@@ -1279,33 +1241,34 @@ function renderPeriodoAnalisi(periodoInfo, titoliSkipped) {
                 <div>
                     <h4 class="text-lg font-bold text-yellow-300 mb-2">📋 Come Funziona il Date Picker</h4>
                     <div class="text-sm text-gray-200 space-y-2">
-                        <p><strong>REGOLA BASE:</strong> Un titolo appare nella performance <strong>SOLO SE</strong> è stato <strong>comprato (BUY) prima o durante il periodo</strong>!</p>
+                        <p><strong>REGOLA BASE:</strong> Il Date Picker definisce <strong>il periodo di analisi</strong> del portafoglio!</p>
                         
-                        <p><strong>1. Primo BUY:</strong> Per ogni titolo, cerco il <strong>primo movimento BUY</strong> nei dati. Quella è la data in cui il titolo viene <strong>effettivamente acquistato</strong>.</p>
+                        <p><strong>1. Titoli in Portafoglio:</strong> TUTTI i titoli in <code>info_titoli.csv</code> sono <strong>già in portafoglio</strong> con la loro frazione iniziale (es. PBR 3/4, HL 4/4).</p>
                         
-                        <p><strong>2. Filtro per Periodo:</strong></p>
+                        <p><strong>2. Data Ingresso:</strong> TUTTI i titoli entrano il giorno <strong>${periodoInfo.dataInizio}</strong> (inizio del periodo di analisi) con la frazione indicata in <code>info_titoli.csv</code>.</p>
+                        
+                        <p><strong>3. Movimenti:</strong> Il file <code>movimenti.csv</code> contiene SOLO le modifiche (BUY/SELL) durante il periodo:</p>
                         <ul class="list-disc list-inside ml-4 space-y-1">
-                            <li>❌ <strong>Escludo</strong>: Titoli con primo BUY > ${periodoInfo.dataFine} (non ancora comprati)</li>
-                            <li>✅ <strong>Includo</strong>: Titoli con primo BUY ≤ ${periodoInfo.dataFine}</li>
-                            <li>Se primo BUY < ${periodoInfo.dataInizio} → Uso ${periodoInfo.dataInizio} come ingresso (già in portafoglio)</li>
-                            <li>Se primo BUY ≥ ${periodoInfo.dataInizio} → Uso primo BUY come ingresso (entra nel periodo)</li>
+                            <li>✅ <strong>BUY</strong>: Appesantimento (aumento frazione)</li>
+                            <li>✅ <strong>SELL</strong>: Alleggerimento (riduzione frazione)</li>
+                            <li>✅ <strong>Movimenti nel periodo</strong>: Applicati solo se tra ${periodoInfo.dataInizio} e ${periodoInfo.dataFine}</li>
                         </ul>
                         
-                        <p><strong>3. Calcolo Performance:</strong> Dal giorno di ingresso effettivo fino a ${periodoInfo.dataFine}.</p>
+                        <p><strong>4. Data Uscita:</strong> Tutti i titoli escono il giorno <strong>${periodoInfo.dataFine}</strong> (valutazione finale).</p>
                         
-                        <p><strong>Esempio:</strong> Se periodo è <code>01/01/2025 → 09/01/2025</code> e GSM ha primo BUY il <code>13/01/2025</code>, GSM viene <strong>escluso</strong> perché non ancora comprato nel periodo.</p>
+                        <p><strong>Esempio:</strong> PBR parte con 3/4 il <code>01/01/2025</code>, nessun movimento nel 2025, valutazione finale al <code>01/01/2026</code> con frazione ancora 3/4.</p>
                     </div>
                 </div>
             </div>
         </div>
         
-        <!-- TITOLI ATTIVI -->
+        <!-- TITOLI CALCOLATI -->
         <div class="bg-green-900 bg-opacity-30 border-l-4 border-green-500 rounded-lg p-4 mb-4">
             <h4 class="text-lg font-bold text-green-300 mb-2">
                 <i class="fas fa-check-circle mr-2"></i>
                 Titoli Calcolati: ${periodoInfo.titoliAttivi}
             </h4>
-            <p class="text-sm text-gray-300">Questi titoli hanno primo BUY ≤ ${periodoInfo.dataFine} e sono inclusi nei calcoli.</p>
+            <p class="text-sm text-gray-300">Tutti i titoli in <code>info_titoli.csv</code> vengono calcolati per il periodo ${periodoInfo.dataInizio} → ${periodoInfo.dataFine}.</p>
         </div>
     `;
     
