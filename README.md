@@ -1,15 +1,16 @@
-# ROSICATORE v3.8.0 🎯
+# ROSICATORE v3.9.0 🎯
 
 ## 🎯 Project Overview
-**Rosicatore** è un Portfolio Tracker Algorithm avanzato per il monitoraggio e l'analisi del valore attualizzato di portafogli azionari nel tempo.
+**Rosicatore** è un Portfolio Tracker Algorithm che calcola il valore nel tempo di TUTTI i titoli del portafoglio.
 
 ### Caratteristiche Principali
-- ✅ **CAPITALE FISSO PER TITOLO**: 1.000 USD per ogni titolo (non diviso)
+- ✅ **TUTTI I TITOLI CALCOLATI**: Ogni titolo in `info_titoli.csv` viene analizzato
+- ✅ **DATE PICKER = PERIODO ANALISI**: Definisce inizio/fine calcolo performance
+- ✅ **FRAZIONE INIZIALE**: Ogni titolo parte con la quota indicata in CSV (es. PBR 3/4)
+- ✅ **MOVIMENTI = MODIFICHE**: `movimenti.csv` contiene SOLO BUY/SELL aggiuntivi
+- ✅ **CAPITALE FISSO PER TITOLO**: 1.000 USD per ogni titolo
 - ✅ **FORMULA UNIVERSALE**: `(cash + valore azioni) / 4 × frazione` per BUY/SELL
 - ✅ **DIVIDENDI A CASH**: Dividendi aggiunti al cash (NON reinvestiti)
-- ✅ **FILTRO PRIMO BUY**: Mostra solo titoli con primo BUY ≤ dataFine (già comprati)
-- ✅ **DATA INGRESSO EFFETTIVA**: Se primo BUY < dataInizio → usa dataInizio; altrimenti primo BUY
-- ✅ **SPIEGAZIONE DATE PICKER**: Box informativo con logica filtro (primo BUY)
 - ✅ **MENU HAMBURGER**: Navigazione laterale con tutte le sezioni
 - ✅ **SEZIONE CALCOLI DETTAGLIATA**: Formato PDF step-by-step FASE per FASE
 - ✅ **AUTO-CARICAMENTO CSV**: Caricamento automatico all'avvio (dati persistenti in /public/static/data/)
@@ -294,33 +295,34 @@ wrangler pages deploy dist --project-name rosicatore
 
 ## 🗺️ Roadmap
 
-### v3.8.0 (COMPLETATO) 🔥 **CURRENT - LOGICA DEFINITIVA!**
-- ✅ **FILTRO PER PRIMO BUY** (Finalmente corretto!)
-  - Trova primo movimento BUY per ogni titolo
-  - ❌ SKIP se primo BUY > dataFine (non ancora comprato)
-  - ✅ Includi se primo BUY ≤ dataFine
-  - Se primo BUY < dataInizio → usa dataInizio come ingresso (già in portafoglio)
-  - Se primo BUY ≥ dataInizio → usa primo BUY come ingresso (entra nel periodo)
+### v3.9.0 (COMPLETATO) ✅ **CURRENT - LOGICA FINALMENTE CORRETTA!**
+- ✅ **TUTTI I TITOLI CALCOLATI**
+  - Ogni titolo in `info_titoli.csv` viene analizzato
+  - NESSUN filtro basato su movimenti.csv
+  - Frazione iniziale da info_titoli.csv (es. PBR 3/4, HL 4/4)
+- ✅ **DATE PICKER = PERIODO ANALISI**
+  - dataInizio: Tutti i titoli entrano con frazione iniziale
+  - dataFine: Valutazione finale performance
+  - Movimenti BUY/SELL applicati solo se nel periodo
+- ✅ **MOVIMENTI.CSV = SOLO MODIFICHE**
+  - BUY: Appesantimento (aumento frazione)
+  - SELL: Alleggerimento (riduzione frazione)
+  - Se nessun movimento → titolo resta con frazione iniziale
 - ✅ **SPIEGAZIONE CORRETTA**
-  - Box spiega: "Titolo appare SOLO SE comprato prima o durante il periodo"
-  - Esempio: Periodo 01/01→09/01, GSM primo BUY 13/01 → ESCLUSO
-- ✅ **ELENCO TITOLI ESCLUSI**
-  - Mostra titoli non ancora comprati con data primo BUY
-  - Motivo chiaro: "Non ancora acquistato (primo BUY: ...)"
+  - Box spiega: "Tutti i titoli sono già in portafoglio"
+  - movimenti.csv contiene solo le modifiche
 
-### v3.7.0 (OBSOLETO - ERRORE OPPOSTO) ❌
-- ❌ Nessun filtro: mostrava TUTTI i titoli sempre
-- ❌ Bug: titoli futuri apparivano in periodi passati
-- ❌ Logica errata: ignorava completamente primo BUY
+### v3.8.0 (OBSOLETO - ERRORE GRAVE) ❌
+- ❌ Filtrava per primo BUY nei movimenti
+- ❌ Escludeva titoli senza BUY in movimenti.csv
+- ❌ Non capiva che info_titoli.csv = portafoglio iniziale
 
-### v3.6.0 (OBSOLETO - LOGICA ERRATA) ❌
-- ❌ Filtro sbagliato: escludeva titoli senza BUY
-- ❌ Bug: filtrava troppo aggressivamente
+### v3.7.0 (OBSOLETO) ❌
+- ❌ Nessun filtro ma logica confusa
 
 ### v3.5.0 (COMPLETATO) 💰
-- ✅ **CAPITALE FISSO PER TITOLO: 1.000€**
-- ✅ **NUOVI CSV MOVIMENTI E TITOLI**
-- ✅ **DATE AGGIORNATE**: 01/01/2025 → 01/01/2026
+- ✅ Capitale fisso 1.000€ per titolo
+- ✅ Date: 01/01/2025 → 01/01/2026
 
 ### v3.2.1 (COMPLETATO) 🔧
 - ✅ **FIX CAPITALE ALLOCATO** - Ogni titolo usa il SUO capitale proporzionale!
