@@ -1,4 +1,4 @@
-// Rosicatore v3.0.1 - Portfolio Tracker Calculator
+// Rosicatore v3.0.2 - Portfolio Tracker Calculator
 // Main Application Logic
 
 // Global state
