@@ -1,0 +1,4 @@
+data,ora,ticker,azione,frazione_numeratore,frazione_denominatore,note
+2025-08-18,15:39,HL,SELL,1,4,diminuiamo di 1/4
+2025-10-29,14:40,EQT,BUY,1,4,aumentiamo di 1/4
+2025-12-02,16:09,GSM,BUY,1,4,aumentiamo di 1/4

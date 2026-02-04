@@ -1,11 +1,11 @@
-// Rosicatore v3.0.2 - Portfolio Tracker Calculator
+// Rosicatore v3.2.0 - Portfolio Tracker Calculator
 // Main Application Logic
 
 // Global state
 const state = {
     csvData: {
         titoli: null,
-        valori: null,
+        valori: {}, // Map: ticker -> price history
         movimenti: null,
         dividendi: null
     },
@@ -15,24 +15,38 @@ const state = {
         dataFine: null
     },
     results: null,
-    errors: []
+    errors: [],
+    loading: false
+};
+
+// Ticker to CSV filename mapping
+const TICKER_CSV_MAP = {
+    'IRD': 'Opus Genetics Stock Price History.csv',
+    'EQT': 'EQT Stock Price History.csv',
+    'AA': 'Alcoa Stock Price History.csv',
+    'GSM': 'Ferroglobe Stock Price History.csv',
+    'HL': 'Hecla Mining Stock Price History.csv',
+    'URG': 'Ur Energy Stock Price History.csv',
+    'MARA': 'Marathon Digital Stock Price History.csv',
+    'PMET': 'PMET Resources Stock Price History.csv',
+    'VZLA': 'Vizsla Silver Stock Price History.csv',
+    'PLL': 'Elevra Lithium DRC Stock Price History.csv',
+    'ABRA': 'AbraSilver Resource Stock Price History.csv',
+    'PBR': 'Petroleo Brasileiro Petrobras ADR Stock Price History.csv'
 };
 
 // Initialize app
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     initializeDatePickers();
     setupFileUploads();
     setupCalculateButton();
+    await autoLoadCSVs(); // Auto-load on startup
 });
 
-// Set default dates (last 6 months)
+// Set default dates (11 July 2025 - 1 January 2026)
 function initializeDatePickers() {
-    const today = new Date();
-    const sixMonthsAgo = new Date();
-    sixMonthsAgo.setMonth(today.getMonth() - 6);
-    
-    document.getElementById('dataInizio').value = formatDateForInput(sixMonthsAgo);
-    document.getElementById('dataFine').value = formatDateForInput(today);
+    document.getElementById('dataInizio').value = '2025-07-11';
+    document.getElementById('dataFine').value = '2026-01-01';
 }
 
 function formatDateForInput(date) {
@@ -91,13 +105,121 @@ function setupFileUploads() {
     });
 }
 
+// Auto-load CSV files from server on startup
+async function autoLoadCSVs() {
+    state.loading = true;
+    updateLoadingStatus('Caricamento dati persistenti...', true);
+    
+    try {
+        // Load info_titoli
+        const titoliResponse = await fetch('/static/data/info_titoli.csv');
+        const titoliText = await titoliResponse.text();
+        state.csvData.titoli = await parseCSVText(titoliText);
+        updateSlotStatus('titoli', 'info_titoli.csv ✓ (auto-caricato)');
+        
+        // Load movimenti
+        const movimentiResponse = await fetch('/static/data/movimenti.csv');
+        const movimentiText = await movimentiResponse.text();
+        state.csvData.movimenti = await parseCSVText(movimentiText);
+        updateSlotStatus('movimenti', 'movimenti.csv ✓ (auto-caricato)');
+        
+        // Load dividendi
+        const dividendiResponse = await fetch('/static/data/dividendi.csv');
+        const dividendiText = await dividendiResponse.text();
+        state.csvData.dividendi = await parseCSVText(dividendiText);
+        updateSlotStatus('dividendi', 'dividendi.csv ✓ (auto-caricato)');
+        
+        // Load all price history CSVs
+        const pricePromises = Object.entries(TICKER_CSV_MAP).map(async ([ticker, filename]) => {
+            try {
+                const response = await fetch(`/static/data/${filename}`);
+                const text = await response.text();
+                const data = await parseCSVText(text);
+                state.csvData.valori[ticker] = data;
+                return { ticker, success: true };
+            } catch (error) {
+                console.warn(`Failed to load ${filename}:`, error);
+                return { ticker, success: false };
+            }
+        });
+        
+        const priceResults = await Promise.all(pricePromises);
+        const loaded = priceResults.filter(r => r.success).length;
+        updateSlotStatus('valori', `${loaded}/${Object.keys(TICKER_CSV_MAP).length} ticker caricati ✓`);
+        
+        updateLoadingStatus('Dati caricati! Pronto per calcolare.', false);
+        state.loading = false;
+        
+    } catch (error) {
+        console.error('Auto-load error:', error);
+        updateLoadingStatus('⚠️ Errore caricamento automatico. Usa upload manuale.', false);
+        state.loading = false;
+    }
+}
+
+// Parse CSV from text
+function parseCSVText(text) {
+    return new Promise((resolve, reject) => {
+        Papa.parse(text, {
+            header: true,
+            dynamicTyping: true,
+            skipEmptyLines: true,
+            complete: (results) => {
+                if (results.errors.length > 0) {
+                    reject(new Error('Errore parsing CSV: ' + results.errors[0].message));
+                } else {
+                    resolve(results.data);
+                }
+            },
+            error: (error) => {
+                reject(error);
+            }
+        });
+    });
+}
+
+// Update slot status UI
+function updateSlotStatus(type, message) {
+    const status = document.getElementById(`status-${type}`);
+    if (status) {
+        status.innerHTML = `<i class="fas fa-check-circle mr-1 status-loaded"></i>${message}`;
+        status.className = 'mt-3 text-xs status-loaded';
+    }
+}
+
+// Update loading status in UI
+function updateLoadingStatus(message, loading) {
+    const btn = document.getElementById('btnCalcola');
+    if (loading) {
+        btn.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i>${message}`;
+        btn.disabled = true;
+    } else {
+        btn.innerHTML = '<i class="fas fa-calculator mr-2"></i>CALCOLA PORTAFOGLIO';
+        btn.disabled = false;
+        
+        // Show message in console or status area
+        console.log(message);
+    }
+}
+
 // Handle file upload (shared for input and drag&drop)
 async function handleFileUpload(file, type, status) {
     status.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>Caricamento...';
     
     try {
         const data = await parseCSV(file);
-        state.csvData[type] = data;
+        
+        // For 'valori', need special handling (manual override for all tickers)
+        if (type === 'valori') {
+            // Clear all and use this CSV for all tickers (backward compatibility)
+            state.csvData.valori = {};
+            Object.keys(TICKER_CSV_MAP).forEach(ticker => {
+                state.csvData.valori[ticker] = data;
+            });
+        } else {
+            state.csvData[type] = data;
+        }
+        
         status.innerHTML = `<i class="fas fa-check-circle mr-1 status-loaded"></i>${file.name} ✓`;
         status.className = 'mt-3 text-xs status-loaded';
         
@@ -107,7 +229,12 @@ async function handleFileUpload(file, type, status) {
     } catch (error) {
         status.innerHTML = '<i class="fas fa-times-circle mr-1 status-error"></i>Errore: ' + error.message;
         status.className = 'mt-3 text-xs status-error';
-        state.csvData[type] = null;
+        
+        if (type === 'valori') {
+            state.csvData.valori = {};
+        } else {
+            state.csvData[type] = null;
+        }
     }
 }
 
@@ -501,6 +628,14 @@ function calculateSingleTicker(ticker, titoloInfo, capitaleTotalePortafoglio, da
 // NOTE: For now, assumes single CSV with all prices
 // TODO: Support multiple CSV files (one per ticker)
 function getPrezzoByDate(valori, targetDate, ticker) {
+    // Get price history for this specific ticker
+    const tickerData = valori[ticker];
+    
+    if (!tickerData || tickerData.length === 0) {
+        console.warn(`No price data for ticker ${ticker}`);
+        return null;
+    }
+    
     // Convert date formats
     const target = dayjs(targetDate);
     
@@ -508,7 +643,7 @@ function getPrezzoByDate(valori, targetDate, ticker) {
     let closestPrice = null;
     let minDiff = Infinity;
     
-    valori.forEach(row => {
+    tickerData.forEach(row => {
         const rowDate = dayjs(row.Date, 'MM/DD/YYYY');
         const diff = Math.abs(target.diff(rowDate, 'day'));
         

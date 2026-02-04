@@ -1,16 +1,19 @@
-# ROSICATORE v3.1.1
+# ROSICATORE v3.2.0
 
 ## 🎯 Project Overview
 **Rosicatore** è un Portfolio Tracker Algorithm avanzato per il monitoraggio e l'analisi del valore attualizzato di portafogli azionari nel tempo.
 
 ### Caratteristiche Principali
+- ✅ **AUTO-CARICAMENTO CSV**: Caricamento automatico all'avvio (dati persistenti in /public/static/data/)
+- ✅ **Date Preimpostate**: 11 Luglio 2025 → 1 Gennaio 2026 (modificabili)
+- ✅ **Multi-Ticker Automatico**: 12 CSV prezzi pre-caricati per ogni ticker
 - ✅ Calcolo attualizzazione temporale con date range selezionabili
 - ✅ Gestione movimenti: Appesantimento (BUY) e Alleggerimento (SELL)
 - ✅ Reinvestimento automatico dividendi
 - ✅ 22 KPI completi (USD + %)
 - ✅ Tracking completo storico operazioni
 - ✅ Sistema errori/warning integrato
-- ✅ 4 slot caricamento CSV (Titoli, Valori, Movimenti, Dividendi)
+- ✅ 4 slot caricamento CSV (override manuale se necessario)
 
 ## 📊 URLs
 - **Local Dev**: http://localhost:3000
@@ -20,8 +23,9 @@
 ## 🏗️ Architettura Dati
 
 ### Storage
-- **NO Database**: Tutto client-side, nessuna persistenza
-- **CSV Upload**: Caricamento manuale file ad ogni sessione
+- **Dati Persistenti**: CSV pre-caricati in `/public/static/data/`
+- **Auto-Load**: Caricamento automatico all'avvio dell'app
+- **Override Manuale**: Possibilità di caricare CSV personalizzati tramite UI
 
 ### Modelli Dati
 
