@@ -1,10 +1,13 @@
-# ROSICATORE v3.9.0 🎯
+# ROSICATORE v3.12.0 🎯
 
 ## 🎯 Project Overview
 **Rosicatore** è un Portfolio Tracker Algorithm che calcola il valore nel tempo di TUTTI i titoli del portafoglio.
 
 ### Caratteristiche Principali
-- ✅ **TUTTI I TITOLI CALCOLATI**: Ogni titolo in `info_titoli.csv` viene analizzato
+- ✅ **LOGICA INGRESSO/USCITA CORRETTA (v3.12.0)**: Identifica dinamicamente INGRESSO (0→>0 quarti) e USCITA (>0→0 quarti) nel periodo selezionato
+- ✅ **SKIP TITOLI FUORI PERIODO**: Titoli con primo INGRESSO dopo `dataFine` vengono esclusi dal calcolo
+- ✅ **CALCOLO QUARTI DINAMICO**: Timeline completa di tutti i movimenti per tracciare quarti posseduti giorno per giorno
+- ✅ **TUTTI I TITOLI CALCOLATI**: Ogni titolo in `info_titoli.csv` viene analizzato se presente nel periodo
 - ✅ **DATE PICKER = PERIODO ANALISI**: Definisce inizio/fine calcolo performance
 - ✅ **FRAZIONE INIZIALE**: Ogni titolo parte con la quota indicata in CSV (es. PBR 3/4)
 - ✅ **MOVIMENTI = MODIFICHE**: `movimenti.csv` contiene SOLO BUY/SELL aggiuntivi
@@ -24,10 +27,10 @@
 - ✅ 4 slot caricamento CSV (override manuale se necessario)
 
 ## 📊 URLs
-- **Sandbox Dev**: https://3000-ili0eab6ol2wmxk3wr51n-2e1b9533.sandbox.novita.ai
-- **GitHub**: (da configurare)
+- **Sandbox Dev**: https://3000-i2ubmb13xm7pk5sakzkyq-5634da27.sandbox.novita.ai
+- **GitHub**: https://github.com/DanteManonquello/rosicatore
 - **Cloudflare Pages**: (da deployare)
-- **Backup v3.2.2**: https://www.genspark.ai/api/files/s/vwirvKuZ
+- **Backup v3.12.0**: https://www.genspark.ai/api/files/s/OIx5DVEd
 
 ## 🏗️ Architettura Dati
 
