@@ -10,7 +10,7 @@ const state = {
         dividendi: null
     },
     config: {
-        capitaleTotale: 2000,
+        capitaleTotale: 12000,  // FISSO: 12.000€
         dataInizio: null,
         dataFine: null
     },
@@ -40,6 +40,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     initializeDatePickers();
     setupFileUploads();
     setupCalculateButton();
+    setupHamburgerMenu();
     await autoLoadCSVs(); // Auto-load on startup
 });
 
@@ -424,21 +425,36 @@ function calculatePortfolio() {
 // Calculate single ticker
 function calculateSingleTicker(ticker, titoloInfo, capitaleTotalePortafoglio, dataInizio, dataFine, valori, movimenti, dividendi) {
     
-    // Calculate capital allocated for THIS ticker based on fraction
-    const frazioneIniziale = titoloInfo.quota_numeratore / titoloInfo.quota_denominatore;
-    const capitaleAllocatoIniziale = capitaleTotalePortafoglio * frazioneIniziale;  // ← Capitale per QUESTO titolo
-    let capitaleInvestito = capitaleAllocatoIniziale;  // CUMULATIVE! Will increase with BUY operations
+    // CORREZIONE ALGORITMO:
+    // 1. Capitale Allocato per titolo = Capitale Totale / Numero Titoli (es. 12000 / 12 = 1000€)
+    // 2. Capitale Investito = Capitale Allocato × Frazione (es. 1000 × 2/4 = 500€)
+    // 3. Cash Residuo iniziale = Capitale Allocato - Capitale Investito (es. 1000 - 500 = 500€)
+    
+    const numTitoli = state.csvData.titoli.length;
+    const capitaleAllocato = capitaleTotalePortafoglio / numTitoli;  // Es: 12000 / 12 = 1000€
+    
+    const frazioneIniziale = titoloInfo.quota_numeratore / titoloInfo.quota_denominatore;  // Es: 2/4 = 0.5
+    let capitaleInvestito = capitaleAllocato * frazioneIniziale;  // Es: 1000 × 0.5 = 500€
     
     const prezzoIngresso = getPrezzoByDate(valori, dataInizio, ticker);
     if (!prezzoIngresso) {
         throw new Error(`Prezzo ingresso non trovato per ${ticker} data ${dataInizio}`);
     }
     
-    let azioni = capitaleInvestito / prezzoIngresso;
-    let cashResiduo = 0;  // Initially no cash for this ticker (all invested)
+    let azioni = capitaleInvestito / prezzoIngresso;  // Es: 500 / 3.92 = 127.55 azioni
+    let cashResiduo = capitaleAllocato - capitaleInvestito;  // Es: 1000 - 500 = 500€
     let frazioneAttuale = frazioneIniziale;
     
-    console.log('Ingresso:', { capitaleInvestito, prezzoIngresso, azioni, cashResiduo, frazioneAttuale });
+    console.log('Ingresso:', { 
+        ticker, 
+        capitaleAllocato, 
+        frazioneIniziale, 
+        capitaleInvestito, 
+        prezzoIngresso, 
+        azioni, 
+        cashResiduo, 
+        frazioneAttuale 
+    });
     
     // Get all events (movimenti + dividendi) sorted by date
     const eventi = [];
@@ -485,7 +501,8 @@ function calculateSingleTicker(ticker, titoloInfo, capitaleTotalePortafoglio, da
         prezzo: prezzoIngresso,
         valoreAzioni: azioni * prezzoIngresso,
         cashResiduo,
-        patrimonioTotale: (azioni * prezzoIngresso) + cashResiduo
+        patrimonioTotale: (azioni * prezzoIngresso) + cashResiduo,
+        frazioneAttuale: frazioneIniziale
     }];
     
     // Process events
@@ -505,15 +522,16 @@ function calculateSingleTicker(ticker, titoloInfo, capitaleTotalePortafoglio, da
         }
         
         if (evento.tipo === 'BUY') {
-            // APPESANTIMENTO
+            // APPESANTIMENTO (+1/4)
+            // Capitale Nuovo = Capitale Allocato × Frazione (es. 1000 × 1/4 = 250€)
             const frazione = evento.frazione_num / evento.frazione_den;
-            const capitaleNuovo = capitaleTotalePortafoglio * frazione;  // ← Calcolo sulla TORTA TOTALE
+            const capitaleNuovo = capitaleAllocato * frazione;  // Es: 1000 × 0.25 = 250€
             const azioniNuove = capitaleNuovo / prezzoEvento;
             
             azioni += azioniNuove;
             cashResiduo -= capitaleNuovo;
             frazioneAttuale += frazione;
-            capitaleInvestito += capitaleNuovo;  // ← AGGIORNA IL CUMULATIVE!
+            capitaleInvestito += capitaleNuovo;  // Cumulativo
             
             history.push({
                 data: dataEvento,
@@ -523,19 +541,21 @@ function calculateSingleTicker(ticker, titoloInfo, capitaleTotalePortafoglio, da
                 valoreAzioni: azioni * prezzoEvento,
                 cashResiduo,
                 patrimonioTotale: (azioni * prezzoEvento) + cashResiduo,
-                note: evento.note
+                frazioneAttuale,
+                note: evento.note,
+                dettagli: `Investito: ${capitaleNuovo.toFixed(2)}€, Azioni nuove: ${azioniNuove.toFixed(4)}`
             });
             
         } else if (evento.tipo === 'SELL') {
-            // ALLEGGERIMENTO
-            const valoreAttuale = azioni * prezzoEvento;
+            // ALLEGGERIMENTO (-1/4)
             const frazione = evento.frazione_num / evento.frazione_den;
-            const valoreDaVendere = valoreAttuale * frazione;
-            const azioniDaVendere = valoreDaVendere / prezzoEvento;
+            const capitaleDaVendere = capitaleAllocato * frazione;
+            const azioniDaVendere = capitaleDaVendere / prezzoEvento;
             
             azioni -= azioniDaVendere;
-            cashResiduo += valoreDaVendere;
+            cashResiduo += capitaleDaVendere;
             frazioneAttuale -= frazione;
+            capitaleInvestito -= capitaleDaVendere;  // Decremento
             
             history.push({
                 data: dataEvento,
@@ -545,7 +565,9 @@ function calculateSingleTicker(ticker, titoloInfo, capitaleTotalePortafoglio, da
                 valoreAzioni: azioni * prezzoEvento,
                 cashResiduo,
                 patrimonioTotale: (azioni * prezzoEvento) + cashResiduo,
-                note: evento.note
+                frazioneAttuale,
+                note: evento.note,
+                dettagli: `Venduto: ${capitaleDaVendere.toFixed(2)}€, Azioni vendute: ${azioniDaVendere.toFixed(4)}`
             });
             
         } else if (evento.tipo === 'DIVIDEND') {
@@ -564,8 +586,10 @@ function calculateSingleTicker(ticker, titoloInfo, capitaleTotalePortafoglio, da
                 valoreAzioni: azioni * prezzoEvento,
                 cashResiduo,
                 patrimonioTotale: (azioni * prezzoEvento) + cashResiduo,
+                frazioneAttuale,
                 dividendoTotale,
-                azioniNuove
+                azioniNuove,
+                dettagli: `Dividendo: ${dividendoTotale.toFixed(2)}€, Azioni nuove: ${azioniNuove.toFixed(4)}`
             });
         }
     });
@@ -578,8 +602,8 @@ function calculateSingleTicker(ticker, titoloInfo, capitaleTotalePortafoglio, da
     
     const valorePosizioneFinale = azioni * prezzoFinale;
     const patrimonioFinale = valorePosizioneFinale + cashResiduo;
-    const gainLoss = patrimonioFinale - capitaleInvestito;  // ← Gain vs capitale INVESTITO (cumulativo)
-    const roiPortafoglio = (gainLoss / capitaleInvestito) * 100;
+    const gainLoss = patrimonioFinale - capitaleAllocato;  // Gain vs capitale ALLOCATO
+    const roiPortafoglio = (gainLoss / capitaleAllocato) * 100;
     
     history.push({
         data: dataFine,
@@ -588,14 +612,15 @@ function calculateSingleTicker(ticker, titoloInfo, capitaleTotalePortafoglio, da
         prezzo: prezzoFinale,
         valoreAzioni: valorePosizioneFinale,
         cashResiduo,
-        patrimonioTotale: patrimonioFinale
+        patrimonioTotale: patrimonioFinale,
+        frazioneAttuale
     });
     
     // Calculate KPIs
     const kpis = calculateKPIs({
         ticker,
-        capitaleAllocato: capitaleAllocatoIniziale,  // ← Capitale allocato iniziale
-        capitaleInvestito,  // ← Capitale effettivamente investito (cumulativo)
+        capitaleAllocato,  // Capitale allocato FISSO per il titolo
+        capitaleInvestito,  // Capitale effettivamente investito (varia con BUY/SELL)
         valorePosizioneFinale,
         patrimonioFinale,
         cashResiduo,
@@ -613,8 +638,8 @@ function calculateSingleTicker(ticker, titoloInfo, capitaleTotalePortafoglio, da
         kpis,
         history,
         summary: {
-            capitaleAllocato: capitaleAllocatoIniziale,  // ← Capitale ALLOCATO iniziale
-            capitaleInvestito,  // ← Capitale INVESTITO cumulativo (con BUY)
+            capitaleAllocato,  // Capitale ALLOCATO (fisso)
+            capitaleInvestito,  // Capitale INVESTITO (cumulativo con BUY/SELL)
             valorePosizioneFinale,
             patrimonioFinale,
             cashResiduo,
@@ -622,7 +647,8 @@ function calculateSingleTicker(ticker, titoloInfo, capitaleTotalePortafoglio, da
             prezzoIngresso,
             prezzoFinale,
             gainLoss,
-            roiPortafoglio
+            roiPortafoglio,
+            frazioneAttuale
         }
     };
 }
@@ -753,6 +779,12 @@ function displayResults(results) {
         renderDetailedHistory(results.stocks[0].history, results.stocks[0].ticker);
     }
     
+    // Render calculations section (VITA MORTE MIRACOLI)
+    renderCalculationsSection(results.stocks);
+    
+    // Update sidebar info
+    updateSidebarInfo();
+    
     // Scroll to results
     kpiSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
@@ -845,7 +877,7 @@ function renderStockSummaryMulti(stocks) {
         const tipoTitolo = titoloInfo ? titoloInfo.tipo : 'N/A';
         
         const {
-            capitaleAllocato,      // ← Capitale allocato iniziale
+            capitaleAllocato,      // ← Capitale allocato FISSO
             capitaleInvestito,     // ← Capitale effettivamente investito (cumulativo)
             valorePosizioneFinale,
             patrimonioFinale,
@@ -854,11 +886,13 @@ function renderStockSummaryMulti(stocks) {
             prezzoIngresso,
             prezzoFinale,
             gainLoss,
-            roiPortafoglio
+            roiPortafoglio,
+            frazioneAttuale
         } = summary;
         
         // Calculate additional metrics
-        const frazioneInvestita = titoloInfo ? `${titoloInfo.quota_numeratore}/${titoloInfo.quota_denominatore}` : 'N/A';
+        const frazioneInizialeStr = titoloInfo ? `${titoloInfo.quota_numeratore}/${titoloInfo.quota_denominatore}` : 'N/A';
+        const frazioneAttualeStr = `${(frazioneAttuale * titoloInfo.quota_denominatore).toFixed(2)}/${titoloInfo.quota_denominatore}`;
         const pesoPortafoglio = (valorePosizioneFinale / patrimonioFinale) * 100;
         const variazionePrezzo = ((prezzoFinale - prezzoIngresso) / prezzoIngresso) * 100;
         
@@ -877,7 +911,9 @@ function renderStockSummaryMulti(stocks) {
                 </td>
                 <td class="py-3 px-4 text-right font-medium">$${capitaleAllocato.toFixed(2)}</td>
                 <td class="py-3 px-4 text-right">$${capitaleInvestito.toFixed(2)}</td>
-                <td class="py-3 px-4 text-right text-gray-400">${frazioneInvestita}</td>
+                <td class="py-3 px-4 text-right text-gray-400">
+                    <span title="Frazione iniziale: ${frazioneInizialeStr}">${frazioneAttualeStr}</span>
+                </td>
                 <td class="py-3 px-4 text-right">${azioni.toFixed(4)}</td>
                 <td class="py-3 px-4 text-right">$${prezzoIngresso.toFixed(3)}</td>
                 <td class="py-3 px-4 text-right font-medium">$${prezzoFinale.toFixed(3)}</td>
@@ -922,7 +958,7 @@ function renderStockSummary(results) {
     const tipoTitolo = titoloInfo ? titoloInfo.tipo : 'N/A';
     
     const {
-        capitaleAllocato,      // ← Capitale allocato iniziale
+        capitaleAllocato,      // ← Capitale allocato FISSO
         capitaleInvestito,     // ← Capitale effettivamente investito (cumulativo)
         valorePosizioneFinale,
         patrimonioFinale,
@@ -931,11 +967,13 @@ function renderStockSummary(results) {
         prezzoIngresso,
         prezzoFinale,
         gainLoss,
-        roiPortafoglio
+        roiPortafoglio,
+        frazioneAttuale
     } = summary;
     
     // Calculate additional metrics
-    const frazioneInvestita = titoloInfo ? `${titoloInfo.quota_numeratore}/${titoloInfo.quota_denominatore}` : 'N/A';
+    const frazioneInizialeStr = titoloInfo ? `${titoloInfo.quota_numeratore}/${titoloInfo.quota_denominatore}` : 'N/A';
+    const frazioneAttualeStr = `${(frazioneAttuale * titoloInfo.quota_denominatore).toFixed(2)}/${titoloInfo.quota_denominatore}`;
     const pesoPortafoglio = (valorePosizioneFinale / patrimonioFinale) * 100;
     const variazionePrezzo = ((prezzoFinale - prezzoIngresso) / prezzoIngresso) * 100;
     
@@ -976,7 +1014,9 @@ function renderStockSummary(results) {
                         </td>
                         <td class="py-3 px-4 text-right font-medium">$${capitaleAllocato.toFixed(2)}</td>
                         <td class="py-3 px-4 text-right">$${capitaleInvestito.toFixed(2)}</td>
-                        <td class="py-3 px-4 text-right text-gray-400">${frazioneInvestita}</td>
+                        <td class="py-3 px-4 text-right text-gray-400">
+                            <span title="Frazione iniziale: ${frazioneInizialeStr}">${frazioneAttualeStr}</span>
+                        </td>
                         <td class="py-3 px-4 text-right">${azioni.toFixed(4)}</td>
                         <td class="py-3 px-4 text-right">$${prezzoIngresso.toFixed(3)}</td>
                         <td class="py-3 px-4 text-right font-medium">$${prezzoFinale.toFixed(3)}</td>
@@ -1079,4 +1119,163 @@ function showErrors() {
 
 function hideErrors() {
     document.getElementById('errorsSection').classList.add('hidden');
+}
+
+// Setup hamburger menu
+function setupHamburgerMenu() {
+    const menuToggle = document.getElementById('menuToggle');
+    const menuClose = document.getElementById('menuClose');
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('overlay');
+    
+    // Open menu
+    menuToggle.addEventListener('click', () => {
+        sidebar.classList.remove('translate-x-full');
+        overlay.classList.remove('hidden');
+    });
+    
+    // Close menu
+    const closeMenu = () => {
+        sidebar.classList.add('translate-x-full');
+        overlay.classList.add('hidden');
+    };
+    
+    menuClose.addEventListener('click', closeMenu);
+    overlay.addEventListener('click', closeMenu);
+    
+    // Close menu when clicking on menu items
+    document.querySelectorAll('.menu-item').forEach(item => {
+        item.addEventListener('click', () => {
+            closeMenu();
+        });
+    });
+    
+    // Update sidebar info
+    updateSidebarInfo();
+}
+
+// Update sidebar info
+function updateSidebarInfo() {
+    const titoliCount = state.csvData.titoli ? state.csvData.titoli.length : '-';
+    const sidebarElement = document.getElementById('sidebarTitoliCount');
+    if (sidebarElement) {
+        sidebarElement.textContent = titoliCount;
+    }
+}
+
+// Render calculations section - VITA MORTE MIRACOLI di ogni titolo
+function renderCalculationsSection(stocks) {
+    const content = document.getElementById('calculationsContent');
+    
+    let html = '';
+    
+    stocks.forEach((stock, index) => {
+        const { ticker, summary, history } = stock;
+        
+        // Get titolo info
+        const titoloInfo = state.csvData.titoli.find(t => t.ticker === ticker);
+        const titoloNome = titoloInfo ? titoloInfo.nome : ticker;
+        
+        html += `
+            <div class="mb-8 ${index > 0 ? 'border-t border-gray-700 pt-8' : ''}">
+                <div class="flex items-center justify-between mb-4">
+                    <h4 class="text-2xl font-bold text-blue-400">
+                        <i class="fas fa-chart-line mr-2"></i>
+                        ${ticker} - ${titoloNome}
+                    </h4>
+                    <div class="text-right">
+                        <div class="text-sm text-gray-400">Patrimonio Finale</div>
+                        <div class="text-xl font-bold ${summary.gainLoss >= 0 ? 'text-green-400' : 'text-red-400'}">
+                            $${summary.patrimonioFinale.toFixed(2)}
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Riepilogo rapido -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 bg-gray-750 p-4 rounded-lg">
+                    <div>
+                        <div class="text-xs text-gray-400">Capitale Allocato</div>
+                        <div class="text-lg font-bold text-white">$${summary.capitaleAllocato.toFixed(2)}</div>
+                    </div>
+                    <div>
+                        <div class="text-xs text-gray-400">Capitale Investito</div>
+                        <div class="text-lg font-bold text-white">$${summary.capitaleInvestito.toFixed(2)}</div>
+                    </div>
+                    <div>
+                        <div class="text-xs text-gray-400">Frazione Attuale</div>
+                        <div class="text-lg font-bold text-white">${summary.frazioneAttuale.toFixed(2)}</div>
+                    </div>
+                    <div>
+                        <div class="text-xs text-gray-400">Gain/Loss</div>
+                        <div class="text-lg font-bold ${summary.gainLoss >= 0 ? 'text-green-400' : 'text-red-400'}">
+                            ${summary.gainLoss >= 0 ? '+' : ''}$${summary.gainLoss.toFixed(2)}
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Cronologia operazioni dettagliata -->
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="bg-gray-750 border-b-2 border-gray-600">
+                                <th class="text-left py-3 px-3 font-semibold">Data</th>
+                                <th class="text-left py-3 px-3 font-semibold">Evento</th>
+                                <th class="text-left py-3 px-3 font-semibold">Dettagli</th>
+                                <th class="text-right py-3 px-3 font-semibold">Azioni</th>
+                                <th class="text-right py-3 px-3 font-semibold">Prezzo</th>
+                                <th class="text-right py-3 px-3 font-semibold">Valore Azioni</th>
+                                <th class="text-right py-3 px-3 font-semibold">Cash</th>
+                                <th class="text-right py-3 px-3 font-semibold">Patrimonio</th>
+                                <th class="text-right py-3 px-3 font-semibold">Frazione</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+        `;
+        
+        history.forEach((h, histIndex) => {
+            const eventoClass = 
+                h.evento.includes('BUY') ? 'text-green-400 font-bold' :
+                h.evento.includes('SELL') ? 'text-red-400 font-bold' :
+                h.evento.includes('DIVIDEND') ? 'text-yellow-400 font-bold' :
+                h.evento === 'INGRESSO' ? 'text-blue-400 font-bold' :
+                h.evento === 'FINE PERIODO' ? 'text-purple-400 font-bold' :
+                'text-gray-300';
+            
+            const dettagli = h.dettagli || h.note || '-';
+            const frazioneDisplay = h.frazioneAttuale ? h.frazioneAttuale.toFixed(2) : '-';
+            
+            html += `
+                <tr class="border-b border-gray-800 hover:bg-gray-750 ${histIndex % 2 === 0 ? 'bg-gray-800' : ''}">
+                    <td class="py-3 px-3">${h.data}</td>
+                    <td class="py-3 px-3 ${eventoClass}">${h.evento}</td>
+                    <td class="py-3 px-3 text-xs text-gray-400">${dettagli}</td>
+                    <td class="py-3 px-3 text-right">${h.azioni.toFixed(4)}</td>
+                    <td class="py-3 px-3 text-right">$${h.prezzo.toFixed(3)}</td>
+                    <td class="py-3 px-3 text-right">$${h.valoreAzioni.toFixed(2)}</td>
+                    <td class="py-3 px-3 text-right">$${h.cashResiduo.toFixed(2)}</td>
+                    <td class="py-3 px-3 text-right font-bold">$${h.patrimonioTotale.toFixed(2)}</td>
+                    <td class="py-3 px-3 text-right text-gray-400">${frazioneDisplay}</td>
+                </tr>
+            `;
+        });
+        
+        html += `
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Note finali -->
+                <div class="mt-4 p-4 bg-gray-750 rounded-lg text-xs text-gray-400">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                        <div><i class="fas fa-info-circle mr-1"></i>Totale operazioni: <strong>${history.length}</strong></div>
+                        <div><i class="fas fa-chart-line mr-1"></i>Prezzo ingresso: <strong>$${summary.prezzoIngresso.toFixed(3)}</strong></div>
+                        <div><i class="fas fa-chart-line mr-1"></i>Prezzo finale: <strong>$${summary.prezzoFinale.toFixed(3)}</strong></div>
+                        <div><i class="fas fa-percentage mr-1"></i>ROI: <strong class="${summary.roiPortafoglio >= 0 ? 'text-green-400' : 'text-red-400'}">${summary.roiPortafoglio >= 0 ? '+' : ''}${summary.roiPortafoglio.toFixed(2)}%</strong></div>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    
+    content.innerHTML = html;
 }

@@ -32,6 +32,60 @@ app.get('/', (c) => {
     </head>
     <body class="bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900 min-h-screen text-white">
         
+        <!-- Hamburger Menu Button (Mobile/Desktop) -->
+        <button id="menuToggle" class="fixed top-4 right-4 z-50 bg-gray-800 hover:bg-gray-700 p-3 rounded-lg border border-gray-600 transition-all">
+            <i class="fas fa-bars text-xl"></i>
+        </button>
+
+        <!-- Sidebar Menu -->
+        <div id="sidebar" class="fixed top-0 right-0 h-full w-80 bg-gray-900 border-l border-gray-700 shadow-2xl transform translate-x-full transition-transform duration-300 z-40 overflow-y-auto">
+            <div class="p-6">
+                <div class="flex items-center justify-between mb-8">
+                    <h2 class="text-2xl font-bold text-green-400">
+                        <i class="fas fa-bars mr-2"></i>Menu
+                    </h2>
+                    <button id="menuClose" class="text-gray-400 hover:text-white">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+
+                <!-- Menu Items -->
+                <nav class="space-y-2">
+                    <a href="#configSection" class="menu-item block px-4 py-3 rounded-lg hover:bg-gray-800 transition-colors">
+                        <i class="fas fa-cog mr-3 text-blue-400"></i>
+                        Configurazione
+                    </a>
+                    <a href="#kpiSection" class="menu-item block px-4 py-3 rounded-lg hover:bg-gray-800 transition-colors">
+                        <i class="fas fa-tachometer-alt mr-3 text-green-400"></i>
+                        KPI Performance
+                    </a>
+                    <a href="#stockSummary" class="menu-item block px-4 py-3 rounded-lg hover:bg-gray-800 transition-colors">
+                        <i class="fas fa-table mr-3 text-purple-400"></i>
+                        Riepilogo Titoli
+                    </a>
+                    <a href="#detailedResults" class="menu-item block px-4 py-3 rounded-lg hover:bg-gray-800 transition-colors">
+                        <i class="fas fa-history mr-3 text-yellow-400"></i>
+                        Storico Operazioni
+                    </a>
+                    <a href="#calculationsSection" class="menu-item block px-4 py-3 rounded-lg hover:bg-gray-800 transition-colors">
+                        <i class="fas fa-calculator mr-3 text-red-400"></i>
+                        Calcoli Dettagliati
+                    </a>
+                </nav>
+
+                <div class="mt-8 pt-8 border-t border-gray-700">
+                    <div class="text-sm text-gray-400">
+                        <div class="mb-2"><strong>Versione:</strong> 3.2.2</div>
+                        <div class="mb-2"><strong>Capitale Fisso:</strong> $12,000</div>
+                        <div><strong>Titoli:</strong> <span id="sidebarTitoliCount">-</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Overlay -->
+        <div id="overlay" class="fixed inset-0 bg-black bg-opacity-50 z-30 hidden"></div>
+        
         <!-- Header -->
         <div class="container mx-auto px-4 py-6">
             <div class="flex items-center justify-between mb-8">
@@ -49,7 +103,7 @@ app.get('/', (c) => {
             </div>
 
             <!-- Configuration Section -->
-            <div class="bg-gray-800 rounded-lg p-6 mb-6 border border-gray-700">
+            <div id="configSection" class="bg-gray-800 rounded-lg p-6 mb-6 border border-gray-700">
                 <h2 class="text-2xl font-bold mb-4 flex items-center gap-2">
                     <i class="fas fa-cog text-blue-400"></i>
                     Configurazione Analisi
@@ -64,10 +118,12 @@ app.get('/', (c) => {
                         <input 
                             type="number" 
                             id="capitaleTotale" 
-                            value="2000"
-                            class="w-full bg-gray-700 border border-gray-600 rounded px-4 py-2 text-white focus:outline-none focus:border-blue-500"
-                            placeholder="2000"
+                            value="12000"
+                            readonly
+                            class="w-full bg-gray-600 border border-gray-600 rounded px-4 py-2 text-gray-300 cursor-not-allowed"
+                            placeholder="12000"
                         />
+                        <p class="text-xs text-gray-400 mt-1"><i class="fas fa-lock mr-1"></i>Capitale fisso</p>
                     </div>
 
                     <!-- Start Date -->
@@ -196,9 +252,21 @@ app.get('/', (c) => {
                 </div>
 
                 <!-- Detailed Results -->
-                <div id="detailedResults" class="bg-gray-800 rounded-lg p-6 border border-gray-700">
+                <div id="detailedResults" class="bg-gray-800 rounded-lg p-6 border border-gray-700 mb-6">
                     <h3 class="text-xl font-bold mb-4">Storico Operazioni</h3>
                     <div id="detailedContent"></div>
+                </div>
+
+                <!-- Calculations Section - VITA MORTE MIRACOLI -->
+                <div id="calculationsSection" class="bg-gray-800 rounded-lg p-6 border border-gray-700">
+                    <h3 class="text-xl font-bold mb-4 flex items-center gap-2">
+                        <i class="fas fa-calculator text-red-400"></i>
+                        Calcoli Dettagliati per Titolo
+                    </h3>
+                    <p class="text-sm text-gray-400 mb-4">
+                        Questa sezione mostra la cronologia completa di ogni titolo: ingressi, esposizioni, movimenti, dividendi, vendite e tutte le operazioni.
+                    </p>
+                    <div id="calculationsContent"></div>
                 </div>
             </div>
 
