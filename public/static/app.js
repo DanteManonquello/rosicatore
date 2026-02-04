@@ -1,4 +1,4 @@
-// Rosicatore v3.2.0 - Portfolio Tracker Calculator
+// Rosicatore v3.3.0 - Portfolio Tracker Calculator
 // Main Application Logic
 
 // Global state
@@ -522,16 +522,15 @@ function calculateSingleTicker(ticker, titoloInfo, capitaleTotalePortafoglio, da
         }
         
         if (evento.tipo === 'BUY') {
-            // APPESANTIMENTO (+1/4)
-            // Capitale Nuovo = Capitale Allocato × Frazione (es. 1000 × 1/4 = 250€)
+            // APPESANTIMENTO - Prendi dal CASH e moltiplica per frazione
             const frazione = evento.frazione_num / evento.frazione_den;
-            const capitaleNuovo = capitaleAllocato * frazione;  // Es: 1000 × 0.25 = 250€
-            const azioniNuove = capitaleNuovo / prezzoEvento;
+            const capitaleDaInvestire = cashResiduo * frazione;  // ← CASH × frazione (DINAMICO!)
+            const azioniNuove = capitaleDaInvestire / prezzoEvento;
             
             azioni += azioniNuove;
-            cashResiduo -= capitaleNuovo;
+            cashResiduo -= capitaleDaInvestire;
             frazioneAttuale += frazione;
-            capitaleInvestito += capitaleNuovo;  // Cumulativo
+            capitaleInvestito += capitaleDaInvestire;
             
             history.push({
                 data: dataEvento,
@@ -543,19 +542,20 @@ function calculateSingleTicker(ticker, titoloInfo, capitaleTotalePortafoglio, da
                 patrimonioTotale: (azioni * prezzoEvento) + cashResiduo,
                 frazioneAttuale,
                 note: evento.note,
-                dettagli: `Investito: ${capitaleNuovo.toFixed(2)}€, Azioni nuove: ${azioniNuove.toFixed(4)}`
+                dettagli: `Cash disponibile: ${(cashResiduo + capitaleDaInvestire).toFixed(2)}€, Investito: ${capitaleDaInvestire.toFixed(2)}€ (${(frazione * 100).toFixed(0)}% del cash), Azioni nuove: ${azioniNuove.toFixed(4)}`
             });
             
         } else if (evento.tipo === 'SELL') {
-            // ALLEGGERIMENTO (-1/4)
+            // ALLEGGERIMENTO - Prendi dal VALORE INVESTITO e moltiplica per frazione
             const frazione = evento.frazione_num / evento.frazione_den;
-            const capitaleDaVendere = capitaleAllocato * frazione;
-            const azioniDaVendere = capitaleDaVendere / prezzoEvento;
+            const valoreInvestito = azioni * prezzoEvento;  // ← Valore ATTUALE azioni (rivalutato!)
+            const valoreDaVendere = valoreInvestito * frazione;  // ← Frazione del valore attuale
+            const azioniDaVendere = valoreDaVendere / prezzoEvento;
             
             azioni -= azioniDaVendere;
-            cashResiduo += capitaleDaVendere;
+            cashResiduo += valoreDaVendere;
             frazioneAttuale -= frazione;
-            capitaleInvestito -= capitaleDaVendere;  // Decremento
+            capitaleInvestito -= valoreDaVendere;
             
             history.push({
                 data: dataEvento,
@@ -567,16 +567,13 @@ function calculateSingleTicker(ticker, titoloInfo, capitaleTotalePortafoglio, da
                 patrimonioTotale: (azioni * prezzoEvento) + cashResiduo,
                 frazioneAttuale,
                 note: evento.note,
-                dettagli: `Venduto: ${capitaleDaVendere.toFixed(2)}€, Azioni vendute: ${azioniDaVendere.toFixed(4)}`
+                dettagli: `Valore investito: ${valoreInvestito.toFixed(2)}€, Venduto: ${valoreDaVendere.toFixed(2)}€ (${(frazione * 100).toFixed(0)}% del valore), Azioni vendute: ${azioniDaVendere.toFixed(4)}, Cash ricevuto: +${valoreDaVendere.toFixed(2)}€`
             });
             
         } else if (evento.tipo === 'DIVIDEND') {
-            // DIVIDENDO REINVESTITO
+            // DIVIDENDO - Aggiungi solo al CASH (NON reinvestire)
             const dividendoTotale = azioni * evento.importo;
-            const azioniNuove = dividendoTotale / prezzoEvento;
-            
-            azioni += azioniNuove;
-            // NO cash update (reinvested)
+            cashResiduo += dividendoTotale;  // ← Aggiunge al CASH!
             
             history.push({
                 data: dataEvento,
@@ -588,8 +585,7 @@ function calculateSingleTicker(ticker, titoloInfo, capitaleTotalePortafoglio, da
                 patrimonioTotale: (azioni * prezzoEvento) + cashResiduo,
                 frazioneAttuale,
                 dividendoTotale,
-                azioniNuove,
-                dettagli: `Dividendo: ${dividendoTotale.toFixed(2)}€, Azioni nuove: ${azioniNuove.toFixed(4)}`
+                dettagli: `Dividendo ricevuto: ${dividendoTotale.toFixed(2)}€ (${azioni.toFixed(4)} azioni × $${evento.importo}), Aggiunto al cash (NON reinvestito)`
             });
         }
     });
@@ -1163,7 +1159,7 @@ function updateSidebarInfo() {
     }
 }
 
-// Render calculations section - VITA MORTE MIRACOLI di ogni titolo
+// Render calculations section - VITA MORTE MIRACOLI di ogni titolo (FORMATO PDF DETTAGLIATO)
 function renderCalculationsSection(stocks) {
     const content = document.getElementById('calculationsContent');
     
@@ -1175,102 +1171,239 @@ function renderCalculationsSection(stocks) {
         // Get titolo info
         const titoloInfo = state.csvData.titoli.find(t => t.ticker === ticker);
         const titoloNome = titoloInfo ? titoloInfo.nome : ticker;
+        const tipoTitolo = titoloInfo ? titoloInfo.tipo : 'N/A';
         
         html += `
-            <div class="mb-8 ${index > 0 ? 'border-t border-gray-700 pt-8' : ''}">
-                <div class="flex items-center justify-between mb-4">
-                    <h4 class="text-2xl font-bold text-blue-400">
-                        <i class="fas fa-chart-line mr-2"></i>
-                        ${ticker} - ${titoloNome}
-                    </h4>
-                    <div class="text-right">
-                        <div class="text-sm text-gray-400">Patrimonio Finale</div>
-                        <div class="text-xl font-bold ${summary.gainLoss >= 0 ? 'text-green-400' : 'text-red-400'}">
-                            $${summary.patrimonioFinale.toFixed(2)}
+            <div class="mb-12 ${index > 0 ? 'border-t-4 border-gray-600 pt-12' : ''}">
+                <!-- HEADER TITOLO -->
+                <div class="bg-gradient-to-r from-blue-900 to-purple-900 rounded-lg p-6 mb-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h4 class="text-3xl font-bold text-white mb-2">
+                                ${ticker} - ${titoloNome}
+                            </h4>
+                            <div class="flex items-center gap-4">
+                                <span class="px-3 py-1 rounded text-sm font-medium ${
+                                    tipoTitolo.includes('DIVIDEND') ? 'bg-green-700 text-green-200' :
+                                    tipoTitolo.includes('GROWTH') ? 'bg-blue-700 text-blue-200' :
+                                    'bg-purple-700 text-purple-200'
+                                }">
+                                    ${tipoTitolo}
+                                </span>
+                                <span class="text-gray-300">ISIN: ${titoloInfo ? titoloInfo.isin : 'N/A'}</span>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-sm text-gray-300">Patrimonio Finale</div>
+                            <div class="text-3xl font-bold ${summary.gainLoss >= 0 ? 'text-green-400' : 'text-red-400'}">
+                                $${summary.patrimonioFinale.toFixed(2)}
+                            </div>
+                            <div class="text-lg ${summary.gainLoss >= 0 ? 'text-green-400' : 'text-red-400'}">
+                                ${summary.gainLoss >= 0 ? '+' : ''}$${summary.gainLoss.toFixed(2)} (${summary.roiPortafoglio.toFixed(2)}%)
+                            </div>
                         </div>
                     </div>
                 </div>
                 
-                <!-- Riepilogo rapido -->
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 bg-gray-750 p-4 rounded-lg">
-                    <div>
-                        <div class="text-xs text-gray-400">Capitale Allocato</div>
-                        <div class="text-lg font-bold text-white">$${summary.capitaleAllocato.toFixed(2)}</div>
-                    </div>
-                    <div>
-                        <div class="text-xs text-gray-400">Capitale Investito</div>
-                        <div class="text-lg font-bold text-white">$${summary.capitaleInvestito.toFixed(2)}</div>
-                    </div>
-                    <div>
-                        <div class="text-xs text-gray-400">Frazione Attuale</div>
-                        <div class="text-lg font-bold text-white">${summary.frazioneAttuale.toFixed(2)}</div>
-                    </div>
-                    <div>
-                        <div class="text-xs text-gray-400">Gain/Loss</div>
-                        <div class="text-lg font-bold ${summary.gainLoss >= 0 ? 'text-green-400' : 'text-red-400'}">
-                            ${summary.gainLoss >= 0 ? '+' : ''}$${summary.gainLoss.toFixed(2)}
+                <!-- SETUP INIZIALE -->
+                <div class="bg-gray-800 rounded-lg p-6 mb-6 border-l-4 border-blue-500">
+                    <h5 class="text-xl font-bold mb-4 text-blue-400">📋 SETUP INIZIALE</h5>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                        <div>
+                            <div class="text-gray-400">Capitale Allocato</div>
+                            <div class="text-lg font-bold text-white">$${summary.capitaleAllocato.toFixed(2)}</div>
+                        </div>
+                        <div>
+                            <div class="text-gray-400">Frazione Iniziale</div>
+                            <div class="text-lg font-bold text-white">${titoloInfo ? titoloInfo.quota_numeratore : '?'}/${titoloInfo ? titoloInfo.quota_denominatore : '?'} (${((titoloInfo.quota_numeratore / titoloInfo.quota_denominatore) * 100).toFixed(0)}%)</div>
+                        </div>
+                        <div>
+                            <div class="text-gray-400">Prezzo Ingresso</div>
+                            <div class="text-lg font-bold text-white">$${summary.prezzoIngresso.toFixed(3)}</div>
+                        </div>
+                        <div>
+                            <div class="text-gray-400">Azioni Iniziali</div>
+                            <div class="text-lg font-bold text-white">${history[0].azioni.toFixed(4)} az</div>
                         </div>
                     </div>
                 </div>
-                
-                <!-- Cronologia operazioni dettagliata -->
-                <div class="overflow-x-auto">
-                    <table class="w-full text-sm">
-                        <thead>
-                            <tr class="bg-gray-750 border-b-2 border-gray-600">
-                                <th class="text-left py-3 px-3 font-semibold">Data</th>
-                                <th class="text-left py-3 px-3 font-semibold">Evento</th>
-                                <th class="text-left py-3 px-3 font-semibold">Dettagli</th>
-                                <th class="text-right py-3 px-3 font-semibold">Azioni</th>
-                                <th class="text-right py-3 px-3 font-semibold">Prezzo</th>
-                                <th class="text-right py-3 px-3 font-semibold">Valore Azioni</th>
-                                <th class="text-right py-3 px-3 font-semibold">Cash</th>
-                                <th class="text-right py-3 px-3 font-semibold">Patrimonio</th>
-                                <th class="text-right py-3 px-3 font-semibold">Frazione</th>
-                            </tr>
-                        </thead>
-                        <tbody>
         `;
         
+        // CRONOLOGIA DETTAGLIATA - FASE PER FASE
         history.forEach((h, histIndex) => {
-            const eventoClass = 
-                h.evento.includes('BUY') ? 'text-green-400 font-bold' :
-                h.evento.includes('SELL') ? 'text-red-400 font-bold' :
-                h.evento.includes('DIVIDEND') ? 'text-yellow-400 font-bold' :
-                h.evento === 'INGRESSO' ? 'text-blue-400 font-bold' :
-                h.evento === 'FINE PERIODO' ? 'text-purple-400 font-bold' :
-                'text-gray-300';
+            const isIngresso = h.evento === 'INGRESSO';
+            const isBuy = h.evento.includes('BUY');
+            const isSell = h.evento.includes('SELL');
+            const isDividend = h.evento.includes('DIVIDEND');
+            const isFine = h.evento === 'FINE PERIODO';
             
-            const dettagli = h.dettagli || h.note || '-';
-            const frazioneDisplay = h.frazioneAttuale ? h.frazioneAttuale.toFixed(2) : '-';
+            let borderColor = 'border-gray-700';
+            let bgColor = 'bg-gray-800';
+            let iconColor = 'text-gray-400';
+            let icon = 'fa-circle';
+            let faseTitle = h.evento;
+            
+            if (isIngresso) {
+                borderColor = 'border-blue-500';
+                bgColor = 'bg-blue-900 bg-opacity-20';
+                iconColor = 'text-blue-400';
+                icon = 'fa-sign-in-alt';
+                faseTitle = `FASE ${histIndex + 1}: INGRESSO`;
+            } else if (isBuy) {
+                borderColor = 'border-green-500';
+                bgColor = 'bg-green-900 bg-opacity-20';
+                iconColor = 'text-green-400';
+                icon = 'fa-arrow-up';
+                faseTitle = `FASE ${histIndex + 1}: APPESANTIMENTO ${h.evento.replace('BUY ', '')}`;
+            } else if (isSell) {
+                borderColor = 'border-red-500';
+                bgColor = 'bg-red-900 bg-opacity-20';
+                iconColor = 'text-red-400';
+                icon = 'fa-arrow-down';
+                faseTitle = `FASE ${histIndex + 1}: ALLEGGERIMENTO ${h.evento.replace('SELL ', '')}`;
+            } else if (isDividend) {
+                borderColor = 'border-yellow-500';
+                bgColor = 'bg-yellow-900 bg-opacity-20';
+                iconColor = 'text-yellow-400';
+                icon = 'fa-coins';
+                faseTitle = `FASE ${histIndex + 1}: DIVIDENDO`;
+            } else if (isFine) {
+                borderColor = 'border-purple-500';
+                bgColor = 'bg-purple-900 bg-opacity-20';
+                iconColor = 'text-purple-400';
+                icon = 'fa-flag-checkered';
+                faseTitle = `FASE ${histIndex + 1}: VALUTAZIONE FINALE`;
+            }
             
             html += `
-                <tr class="border-b border-gray-800 hover:bg-gray-750 ${histIndex % 2 === 0 ? 'bg-gray-800' : ''}">
-                    <td class="py-3 px-3">${h.data}</td>
-                    <td class="py-3 px-3 ${eventoClass}">${h.evento}</td>
-                    <td class="py-3 px-3 text-xs text-gray-400">${dettagli}</td>
-                    <td class="py-3 px-3 text-right">${h.azioni.toFixed(4)}</td>
-                    <td class="py-3 px-3 text-right">$${h.prezzo.toFixed(3)}</td>
-                    <td class="py-3 px-3 text-right">$${h.valoreAzioni.toFixed(2)}</td>
-                    <td class="py-3 px-3 text-right">$${h.cashResiduo.toFixed(2)}</td>
-                    <td class="py-3 px-3 text-right font-bold">$${h.patrimonioTotale.toFixed(2)}</td>
-                    <td class="py-3 px-3 text-right text-gray-400">${frazioneDisplay}</td>
-                </tr>
+                <div class="mb-6 border-l-4 ${borderColor} ${bgColor} rounded-lg p-6">
+                    <div class="flex items-center gap-3 mb-4">
+                        <i class="fas ${icon} text-2xl ${iconColor}"></i>
+                        <div>
+                            <h6 class="text-lg font-bold text-white">${faseTitle}</h6>
+                            <div class="text-sm text-gray-400">${h.data}</div>
+                        </div>
+                    </div>
+                    
+                    <!-- DETTAGLI OPERAZIONE -->
+                    ${h.dettagli ? `
+                        <div class="bg-gray-900 bg-opacity-50 rounded p-3 mb-4 text-sm text-gray-300">
+                            <i class="fas fa-info-circle mr-2 ${iconColor}"></i>
+                            ${h.dettagli}
+                        </div>
+                    ` : ''}
+                    
+                    ${h.note ? `
+                        <div class="bg-gray-900 bg-opacity-50 rounded p-3 mb-4 text-sm italic text-gray-400">
+                            <i class="fas fa-sticky-note mr-2"></i>
+                            ${h.note}
+                        </div>
+                    ` : ''}
+                    
+                    <!-- STEP BY STEP -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div class="bg-gray-900 bg-opacity-50 rounded p-3">
+                            <div class="text-xs text-gray-400 mb-1">
+                                <i class="fas fa-chart-line mr-1"></i>Prezzo
+                            </div>
+                            <div class="text-lg font-bold text-white">$${h.prezzo.toFixed(3)}</div>
+                        </div>
+                        
+                        <div class="bg-gray-900 bg-opacity-50 rounded p-3">
+                            <div class="text-xs text-gray-400 mb-1">
+                                <i class="fas fa-layer-group mr-1"></i>Azioni Possedute
+                            </div>
+                            <div class="text-lg font-bold text-white">${h.azioni.toFixed(4)} az</div>
+                        </div>
+                        
+                        <div class="bg-gray-900 bg-opacity-50 rounded p-3">
+                            <div class="text-xs text-gray-400 mb-1">
+                                <i class="fas fa-chart-area mr-1"></i>Valore Azioni
+                            </div>
+                            <div class="text-lg font-bold text-green-400">$${h.valoreAzioni.toFixed(2)}</div>
+                        </div>
+                        
+                        <div class="bg-gray-900 bg-opacity-50 rounded p-3">
+                            <div class="text-xs text-gray-400 mb-1">
+                                <i class="fas fa-wallet mr-1"></i>Cash Residuo
+                            </div>
+                            <div class="text-lg font-bold text-blue-400">$${h.cashResiduo.toFixed(2)}</div>
+                        </div>
+                        
+                        <div class="bg-gray-900 bg-opacity-50 rounded p-3">
+                            <div class="text-xs text-gray-400 mb-1">
+                                <i class="fas fa-piggy-bank mr-1"></i>Patrimonio Totale
+                            </div>
+                            <div class="text-lg font-bold text-purple-400">$${h.patrimonioTotale.toFixed(2)}</div>
+                        </div>
+                        
+                        ${h.frazioneAttuale !== undefined ? `
+                            <div class="bg-gray-900 bg-opacity-50 rounded p-3">
+                                <div class="text-xs text-gray-400 mb-1">
+                                    <i class="fas fa-percentage mr-1"></i>Frazione Attuale
+                                </div>
+                                <div class="text-lg font-bold text-yellow-400">${h.frazioneAttuale.toFixed(2)}</div>
+                            </div>
+                        ` : ''}
+                        
+                        ${h.dividendoTotale !== undefined ? `
+                            <div class="bg-gray-900 bg-opacity-50 rounded p-3">
+                                <div class="text-xs text-gray-400 mb-1">
+                                    <i class="fas fa-coins mr-1"></i>Dividendo Ricevuto
+                                </div>
+                                <div class="text-lg font-bold text-yellow-400">$${h.dividendoTotale.toFixed(2)}</div>
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
             `;
         });
         
+        // RISULTATO FINALE
         html += `
-                        </tbody>
-                    </table>
-                </div>
-                
-                <!-- Note finali -->
-                <div class="mt-4 p-4 bg-gray-750 rounded-lg text-xs text-gray-400">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
-                        <div><i class="fas fa-info-circle mr-1"></i>Totale operazioni: <strong>${history.length}</strong></div>
-                        <div><i class="fas fa-chart-line mr-1"></i>Prezzo ingresso: <strong>$${summary.prezzoIngresso.toFixed(3)}</strong></div>
-                        <div><i class="fas fa-chart-line mr-1"></i>Prezzo finale: <strong>$${summary.prezzoFinale.toFixed(3)}</strong></div>
-                        <div><i class="fas fa-percentage mr-1"></i>ROI: <strong class="${summary.roiPortafoglio >= 0 ? 'text-green-400' : 'text-red-400'}">${summary.roiPortafoglio >= 0 ? '+' : ''}${summary.roiPortafoglio.toFixed(2)}%</strong></div>
+                <div class="bg-gradient-to-r from-purple-900 to-blue-900 rounded-lg p-6 mt-6">
+                    <h5 class="text-xl font-bold mb-4 text-white">
+                        <i class="fas fa-trophy mr-2 text-yellow-400"></i>
+                        RISULTATO FINALE - ${ticker}
+                    </h5>
+                    
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div>
+                            <div class="text-sm text-gray-300">Capitale Allocato</div>
+                            <div class="text-xl font-bold text-white">$${summary.capitaleAllocato.toFixed(2)}</div>
+                        </div>
+                        <div>
+                            <div class="text-sm text-gray-300">Capitale Investito</div>
+                            <div class="text-xl font-bold text-white">$${summary.capitaleInvestito.toFixed(2)}</div>
+                        </div>
+                        <div>
+                            <div class="text-sm text-gray-300">Cash Residuo</div>
+                            <div class="text-xl font-bold text-blue-400">$${summary.cashResiduo.toFixed(2)}</div>
+                        </div>
+                        <div>
+                            <div class="text-sm text-gray-300">Azioni Finali</div>
+                            <div class="text-xl font-bold text-white">${summary.azioni.toFixed(4)} az</div>
+                        </div>
+                        <div>
+                            <div class="text-sm text-gray-300">Valore Posizione</div>
+                            <div class="text-xl font-bold text-green-400">$${summary.valorePosizioneFinale.toFixed(2)}</div>
+                        </div>
+                        <div>
+                            <div class="text-sm text-gray-300">Patrimonio Totale</div>
+                            <div class="text-xl font-bold text-purple-400">$${summary.patrimonioFinale.toFixed(2)}</div>
+                        </div>
+                        <div>
+                            <div class="text-sm text-gray-300">Gain/Loss</div>
+                            <div class="text-xl font-bold ${summary.gainLoss >= 0 ? 'text-green-400' : 'text-red-400'}">
+                                ${summary.gainLoss >= 0 ? '+' : ''}$${summary.gainLoss.toFixed(2)}
+                            </div>
+                        </div>
+                        <div>
+                            <div class="text-sm text-gray-300">ROI Portafoglio</div>
+                            <div class="text-xl font-bold ${summary.roiPortafoglio >= 0 ? 'text-green-400' : 'text-red-400'}">
+                                ${summary.roiPortafoglio >= 0 ? '+' : ''}${summary.roiPortafoglio.toFixed(2)}%
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
