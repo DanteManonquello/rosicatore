@@ -1,4 +1,4 @@
-// Rosicatore v3.11.0 - Portfolio Tracker Calculator
+// Rosicatore v3.12.0 - Portfolio Tracker Calculator
 // Main Application Logic
 
 // Global state
@@ -392,92 +392,202 @@ function calculatePortfolio() {
     const { capitaleTotale, dataInizio, dataFine } = state.config;
     const { titoli, valori, movimenti, dividendi } = state.csvData;
     
-    // LOGICA FINALE: movimenti.csv determina se c'è storia, altrimenti usa info_titoli.csv
     const allResults = [];
     const titoliSkipped = [];
     
     for (const titoloInfo of titoli) {
         const ticker = titoloInfo.ticker;
         
-        // Trova tutti i movimenti BUY per questo ticker
-        const movimentiBuy = movimenti
+        // STEP 1: Costruisco timeline completa di TUTTI i movimenti (anche precedenti al periodo)
+        const movimentiTicker = movimenti
             ? movimenti
-                .filter(m => m.ticker === ticker && m.azione === 'BUY')
+                .filter(m => m.ticker === ticker)
                 .sort((a, b) => new Date(a.data) - new Date(b.data))
             : [];
         
-        let dataIngressoEffettiva = dataInizio;
-        let frazioneAlDataInizio = titoloInfo.quota_numeratore / titoloInfo.quota_denominatore;  // Default da info_titoli.csv
+        // STEP 2: Calcolo quarti posseduti movimento per movimento
+        let quartiAttuali = 0;
+        let primoIngressoStorico = null;  // Primo INGRESSO nella storia completa
+        let dataUscitaPrePeriodo = null;  // Ultima USCITA prima del periodo
         
-        // Se ci sono movimenti BUY, usa il primo come riferimento
-        if (movimentiBuy.length > 0) {
-            const primoBuy = movimentiBuy[0];
-            const dataPrimoBuy = primoBuy.data;
+        const timelineQuarti = [];
+        
+        movimentiTicker.forEach(m => {
+            const frazione = m.frazione_numeratore / m.frazione_denominatore;
+            const quartiPrecedenti = quartiAttuali;
             
-            // SKIP se primo BUY è DOPO la dataFine (non ancora comprato)
-            if (dataPrimoBuy > dataFine) {
-                console.log(`SKIP ${ticker}: primo BUY ${dataPrimoBuy} dopo dataFine ${dataFine}`);
+            if (m.azione === 'BUY') {
+                quartiAttuali += frazione;
+                
+                // INGRESSO: se prima avevo 0 quarti, ora ho >0
+                if (quartiPrecedenti === 0 && quartiAttuali > 0) {
+                    if (!primoIngressoStorico) {
+                        primoIngressoStorico = m.data;
+                        console.log(`${ticker} - PRIMO INGRESSO STORICO: ${m.data}`);
+                    }
+                }
+            } else if (m.azione === 'SELL') {
+                quartiAttuali -= frazione;
+                
+                // USCITA: se prima avevo >0 quarti, ora ho 0
+                if (quartiPrecedenti > 0 && quartiAttuali <= 0) {
+                    quartiAttuali = 0;  // Forza a 0 per evitare negativi
+                    if (m.data < dataInizio) {
+                        dataUscitaPrePeriodo = m.data;
+                        console.log(`${ticker} - USCITA PRE-PERIODO: ${m.data}`);
+                    }
+                }
+            }
+            
+            timelineQuarti.push({
+                data: m.data,
+                azione: m.azione,
+                frazione,
+                quartiDopo: quartiAttuali,
+                tipo: quartiPrecedenti === 0 && quartiAttuali > 0 ? 'INGRESSO' :
+                      quartiPrecedenti > 0 && quartiAttuali <= 0 ? 'USCITA' :
+                      m.azione === 'BUY' ? 'APPESANTIMENTO' : 'ALLEGGERIMENTO'
+            });
+        });
+        
+        console.log(`${ticker} - Timeline quarti:`, timelineQuarti);
+        
+        // STEP 3: Determino se calcolare questo titolo nel periodo scelto
+        
+        // CASO 1: Nessun movimento = titolo già in portafoglio da info_titoli.csv
+        if (movimentiTicker.length === 0) {
+            const frazioneInfoTitoli = titoloInfo.quota_numeratore / titoloInfo.quota_denominatore;
+            
+            if (frazioneInfoTitoli > 0) {
+                // Titolo già in portafoglio, calcolo DA dataInizio
+                console.log(`${ticker}: già in portafoglio (nessun movimento), calcolo DA ${dataInizio}`);
+                
+                try {
+                    const result = calculateSingleTicker(ticker, titoloInfo, capitaleTotale, dataInizio, dataFine, valori, movimenti, dividendi, frazioneInfoTitoli);
+                    allResults.push(result);
+                } catch (error) {
+                    console.error(`Error calculating ${ticker}:`, error);
+                    addError(`Errore calcolo ${ticker}: ${error.message}`);
+                    titoliSkipped.push({
+                        ticker,
+                        nome: titoloInfo.nome,
+                        motivo: `Errore: ${error.message}`
+                    });
+                }
+            } else {
+                // Nessun movimento E 0 quarti in info_titoli.csv = mai comprato
+                console.log(`${ticker}: MAI comprato, SKIP`);
                 titoliSkipped.push({
                     ticker,
                     nome: titoloInfo.nome,
-                    dataPrimoBuy,
-                    motivo: `Non ancora acquistato (primo BUY: ${dataPrimoBuy})`
+                    motivo: 'Mai acquistato'
+                });
+            }
+            continue;
+        }
+        
+        // CASO 2: Primo INGRESSO storico DOPO dataFine → NON calcolare
+        if (primoIngressoStorico && primoIngressoStorico > dataFine) {
+            console.log(`${ticker}: primo INGRESSO ${primoIngressoStorico} DOPO dataFine ${dataFine}, SKIP`);
+            titoliSkipped.push({
+                ticker,
+                nome: titoloInfo.nome,
+                dataPrimoBuy: primoIngressoStorico,
+                motivo: `Non ancora acquistato nel periodo (ingresso: ${primoIngressoStorico})`
+            });
+            continue;
+        }
+        
+        // CASO 3: Calcolo quarti posseduti al dataInizio
+        let quartiAlDataInizio = 0;
+        
+        movimentiTicker
+            .filter(m => m.data < dataInizio)
+            .forEach(m => {
+                const frazione = m.frazione_numeratore / m.frazione_denominatore;
+                if (m.azione === 'BUY') {
+                    quartiAlDataInizio += frazione;
+                } else if (m.azione === 'SELL') {
+                    quartiAlDataInizio -= frazione;
+                }
+            });
+        
+        // Forza a 0 se negativo
+        if (quartiAlDataInizio < 0) quartiAlDataInizio = 0;
+        
+        console.log(`${ticker} - Quarti al ${dataInizio}: ${quartiAlDataInizio}`);
+        
+        // CASO 4: Se quarti al dataInizio = 0, cerca primo INGRESSO NEL periodo
+        if (quartiAlDataInizio <= 0) {
+            // Cerca primo INGRESSO (0→>0) nel periodo [dataInizio, dataFine]
+            const movimentiNelPeriodo = timelineQuarti.filter(t => 
+                t.data >= dataInizio && t.data <= dataFine
+            );
+            
+            let primoIngressoNelPeriodo = null;
+            let quartiTemp = 0;
+            
+            for (const movimento of movimentiNelPeriodo) {
+                const quartiPrima = quartiTemp;
+                
+                if (movimento.azione === 'BUY') {
+                    quartiTemp += movimento.frazione;
+                } else if (movimento.azione === 'SELL') {
+                    quartiTemp -= movimento.frazione;
+                }
+                
+                if (quartiTemp < 0) quartiTemp = 0;
+                
+                // INGRESSO: 0 → >0
+                if (quartiPrima === 0 && quartiTemp > 0) {
+                    primoIngressoNelPeriodo = movimento.data;
+                    console.log(`${ticker} - PRIMO INGRESSO NEL PERIODO: ${primoIngressoNelPeriodo}`);
+                    break;
+                }
+            }
+            
+            if (!primoIngressoNelPeriodo) {
+                // Nessun INGRESSO nel periodo = non presente in portafoglio
+                console.log(`${ticker}: 0 quarti al dataInizio E nessun INGRESSO nel periodo, SKIP`);
+                titoliSkipped.push({
+                    ticker,
+                    nome: titoloInfo.nome,
+                    motivo: 'Non presente in portafoglio nel periodo selezionato'
                 });
                 continue;
             }
             
-            // Se primo BUY < dataInizio, calcola frazione accumulata al dataInizio
-            if (dataPrimoBuy < dataInizio) {
-                frazioneAlDataInizio = 0;
-                const movimentiPrePeriodo = movimenti.filter(m => 
-                    m.ticker === ticker && m.data < dataInizio
-                );
-                
-                movimentiPrePeriodo.forEach(m => {
-                    const frazione = m.frazione_numeratore / m.frazione_denominatore;
-                    if (m.azione === 'BUY') {
-                        frazioneAlDataInizio += frazione;
-                    } else if (m.azione === 'SELL') {
-                        frazioneAlDataInizio -= frazione;
-                    }
+            // CALCOLA dal primo INGRESSO nel periodo
+            console.log(`${ticker}: CALCOLO DA ${primoIngressoNelPeriodo}, quarti iniziali: 0`);
+            
+            try {
+                const result = calculateSingleTicker(ticker, titoloInfo, capitaleTotale, primoIngressoNelPeriodo, dataFine, valori, movimenti, dividendi, 0);
+                allResults.push(result);
+            } catch (error) {
+                console.error(`Error calculating ${ticker}:`, error);
+                addError(`Errore calcolo ${ticker}: ${error.message}`);
+                titoliSkipped.push({
+                    ticker,
+                    nome: titoloInfo.nome,
+                    motivo: `Errore: ${error.message}`
                 });
-                
-                // SKIP se frazione = 0 (venduto totalmente prima del periodo)
-                if (frazioneAlDataInizio <= 0) {
-                    console.log(`SKIP ${ticker}: venduto totalmente prima di dataInizio`);
-                    titoliSkipped.push({
-                        ticker,
-                        nome: titoloInfo.nome,
-                        motivo: 'Venduto totalmente prima del periodo'
-                    });
-                    continue;
-                }
-                
-                dataIngressoEffettiva = dataInizio;
-            } else {
-                // Primo BUY nel periodo: usa come ingresso
-                dataIngressoEffettiva = dataPrimoBuy;
-                frazioneAlDataInizio = 0;  // Parte da zero al primo BUY
             }
         } else {
-            // Nessun movimento: usa frazione da info_titoli.csv e ingresso = dataInizio
-            console.log(`${ticker}: nessun movimento, uso frazione da info_titoli.csv = ${frazioneAlDataInizio}`);
-            dataIngressoEffettiva = dataInizio;
-        }
-        
-        console.log('Calculating for ticker:', ticker, 'Ingresso:', dataIngressoEffettiva, 'Frazione al dataInizio:', frazioneAlDataInizio);
-        
-        try {
-            const result = calculateSingleTicker(ticker, titoloInfo, capitaleTotale, dataIngressoEffettiva, dataFine, valori, movimenti, dividendi, frazioneAlDataInizio);
-            allResults.push(result);
-        } catch (error) {
-            console.error(`Error calculating ${ticker}:`, error);
-            addError(`Errore calcolo ${ticker}: ${error.message}`);
-            titoliSkipped.push({
-                ticker,
-                nome: titoloInfo.nome,
-                motivo: `Errore: ${error.message}`
-            });
+            // Quarti > 0 al dataInizio = già in portafoglio
+            console.log(`${ticker}: CALCOLO DA ${dataInizio}, quarti iniziali: ${quartiAlDataInizio}`);
+            
+            try {
+                const result = calculateSingleTicker(ticker, titoloInfo, capitaleTotale, dataInizio, dataFine, valori, movimenti, dividendi, quartiAlDataInizio);
+                allResults.push(result);
+            } catch (error) {
+                console.error(`Error calculating ${ticker}:`, error);
+                addError(`Errore calcolo ${ticker}: ${error.message}`);
+                titoliSkipped.push({
+                    ticker,
+                    nome: titoloInfo.nome,
+                    motivo: `Errore: ${error.message}`
+                });
+            }
         }
     }
     
@@ -485,7 +595,6 @@ function calculatePortfolio() {
         throw new Error('Nessun titolo calcolato con successo nel periodo selezionato');
     }
     
-    // Return all results + info sui titoli skippati
     return {
         stocks: allResults,
         titoliSkipped,
