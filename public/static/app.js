@@ -1,4 +1,4 @@
-// Rosicatore v3.4.0 - Portfolio Tracker Calculator
+// Rosicatore v3.5.0 - Portfolio Tracker Calculator
 // Main Application Logic
 
 // Global state
@@ -44,9 +44,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     await autoLoadCSVs(); // Auto-load on startup
 });
 
-// Set default dates (11 July 2025 - 1 January 2026)
+// Set default dates (1 January 2025 - 1 January 2026)
 function initializeDatePickers() {
-    document.getElementById('dataInizio').value = '2025-07-11';
+    document.getElementById('dataInizio').value = '2025-01-01';
     document.getElementById('dataFine').value = '2026-01-01';
 }
 
@@ -425,13 +425,9 @@ function calculatePortfolio() {
 // Calculate single ticker
 function calculateSingleTicker(ticker, titoloInfo, capitaleTotalePortafoglio, dataInizio, dataFine, valori, movimenti, dividendi) {
     
-    // CORREZIONE ALGORITMO:
-    // 1. Capitale Allocato per titolo = Capitale Totale / Numero Titoli (es. 12000 / 12 = 1000€)
-    // 2. Capitale Investito = Capitale Allocato × Frazione (es. 1000 × 2/4 = 500€)
-    // 3. Cash Residuo iniziale = Capitale Allocato - Capitale Investito (es. 1000 - 500 = 500€)
-    
-    const numTitoli = state.csvData.titoli.length;
-    const capitaleAllocato = capitaleTotalePortafoglio / numTitoli;  // Es: 12000 / 12 = 1000€
+    // NUOVA LOGICA: Ogni titolo inizia con 1000€ FISSO
+    // Non dividiamo più il capitale totale per numero titoli
+    const capitaleAllocato = 1000;  // ← 1000€ FISSO per ogni titolo!
     
     const frazioneIniziale = titoloInfo.quota_numeratore / titoloInfo.quota_denominatore;  // Es: 2/4 = 0.5
     let capitaleInvestito = capitaleAllocato * frazioneIniziale;  // Es: 1000 × 0.5 = 500€
