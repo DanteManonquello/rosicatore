@@ -1,4 +1,4 @@
-// Rosicatore v3.3.0 - Portfolio Tracker Calculator
+// Rosicatore v3.4.0 - Portfolio Tracker Calculator
 // Main Application Logic
 
 // Global state
@@ -522,9 +522,17 @@ function calculateSingleTicker(ticker, titoloInfo, capitaleTotalePortafoglio, da
         }
         
         if (evento.tipo === 'BUY') {
-            // APPESANTIMENTO - Prendi dal CASH e moltiplica per frazione
+            // APPESANTIMENTO - FORMULA UNIVERSALE
+            // Patrimonio attuale = Cash + Valore Azioni
+            // Valore 1/4 = Patrimonio / 4
+            // Capitale da investire = Valore 1/4 × Frazione
+            
             const frazione = evento.frazione_num / evento.frazione_den;
-            const capitaleDaInvestire = cashResiduo * frazione;  // ← CASH × frazione (DINAMICO!)
+            const valoreAzioni = azioni * prezzoEvento;
+            const patrimonioAttuale = cashResiduo + valoreAzioni;
+            const valore_1_quarto = patrimonioAttuale / 4;
+            const capitaleDaInvestire = valore_1_quarto * evento.frazione_num;  // ← FORMULA UNIVERSALE!
+            
             const azioniNuove = capitaleDaInvestire / prezzoEvento;
             
             azioni += azioniNuove;
@@ -542,20 +550,27 @@ function calculateSingleTicker(ticker, titoloInfo, capitaleTotalePortafoglio, da
                 patrimonioTotale: (azioni * prezzoEvento) + cashResiduo,
                 frazioneAttuale,
                 note: evento.note,
-                dettagli: `Cash disponibile: ${(cashResiduo + capitaleDaInvestire).toFixed(2)}€, Investito: ${capitaleDaInvestire.toFixed(2)}€ (${(frazione * 100).toFixed(0)}% del cash), Azioni nuove: ${azioniNuove.toFixed(4)}`
+                dettagli: `Patrimonio: ${patrimonioAttuale.toFixed(2)}€, Valore 1/4: ${valore_1_quarto.toFixed(2)}€, Investito: ${capitaleDaInvestire.toFixed(2)}€ (${evento.frazione_num}/4), Azioni nuove: ${azioniNuove.toFixed(4)}`
             });
             
         } else if (evento.tipo === 'SELL') {
-            // ALLEGGERIMENTO - Prendi dal VALORE INVESTITO e moltiplica per frazione
+            // ALLEGGERIMENTO - FORMULA UNIVERSALE
+            // Patrimonio attuale = Cash + Valore Azioni
+            // Valore 1/4 = Patrimonio / 4
+            // Capitale da vendere = Valore 1/4 × Frazione
+            
             const frazione = evento.frazione_num / evento.frazione_den;
-            const valoreInvestito = azioni * prezzoEvento;  // ← Valore ATTUALE azioni (rivalutato!)
-            const valoreDaVendere = valoreInvestito * frazione;  // ← Frazione del valore attuale
-            const azioniDaVendere = valoreDaVendere / prezzoEvento;
+            const valoreAzioni = azioni * prezzoEvento;
+            const patrimonioAttuale = cashResiduo + valoreAzioni;
+            const valore_1_quarto = patrimonioAttuale / 4;
+            const capitaleDaVendere = valore_1_quarto * evento.frazione_num;  // ← FORMULA UNIVERSALE!
+            
+            const azioniDaVendere = capitaleDaVendere / prezzoEvento;
             
             azioni -= azioniDaVendere;
-            cashResiduo += valoreDaVendere;
+            cashResiduo += capitaleDaVendere;
             frazioneAttuale -= frazione;
-            capitaleInvestito -= valoreDaVendere;
+            capitaleInvestito -= capitaleDaVendere;
             
             history.push({
                 data: dataEvento,
@@ -567,7 +582,7 @@ function calculateSingleTicker(ticker, titoloInfo, capitaleTotalePortafoglio, da
                 patrimonioTotale: (azioni * prezzoEvento) + cashResiduo,
                 frazioneAttuale,
                 note: evento.note,
-                dettagli: `Valore investito: ${valoreInvestito.toFixed(2)}€, Venduto: ${valoreDaVendere.toFixed(2)}€ (${(frazione * 100).toFixed(0)}% del valore), Azioni vendute: ${azioniDaVendere.toFixed(4)}, Cash ricevuto: +${valoreDaVendere.toFixed(2)}€`
+                dettagli: `Patrimonio: ${patrimonioAttuale.toFixed(2)}€, Valore 1/4: ${valore_1_quarto.toFixed(2)}€, Venduto: ${capitaleDaVendere.toFixed(2)}€ (${evento.frazione_num}/4), Azioni vendute: ${azioniDaVendere.toFixed(4)}, Cash ricevuto: +${capitaleDaVendere.toFixed(2)}€`
             });
             
         } else if (evento.tipo === 'DIVIDEND') {
