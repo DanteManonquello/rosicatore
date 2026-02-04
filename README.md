@@ -1,9 +1,13 @@
-# ROSICATORE v3.2.1
+# ROSICATORE v3.2.2 🎯
 
 ## 🎯 Project Overview
 **Rosicatore** è un Portfolio Tracker Algorithm avanzato per il monitoraggio e l'analisi del valore attualizzato di portafogli azionari nel tempo.
 
 ### Caratteristiche Principali
+- ✅ **CAPITALE FISSO**: 12.000 USD (non modificabile)
+- ✅ **ALGORITMO CORRETTO**: Capitale Allocato vs Capitale Investito
+- ✅ **MENU HAMBURGER**: Navigazione laterale con tutte le sezioni
+- ✅ **SEZIONE CALCOLI**: Cronologia completa di ogni titolo (vita-morte-miracoli)
 - ✅ **AUTO-CARICAMENTO CSV**: Caricamento automatico all'avvio (dati persistenti in /public/static/data/)
 - ✅ **Date Preimpostate**: 11 Luglio 2025 → 1 Gennaio 2026 (modificabili)
 - ✅ **Multi-Ticker Automatico**: 12 CSV prezzi pre-caricati per ogni ticker
@@ -16,9 +20,10 @@
 - ✅ 4 slot caricamento CSV (override manuale se necessario)
 
 ## 📊 URLs
-- **Local Dev**: http://localhost:3000
+- **Sandbox Dev**: https://3000-ili0eab6ol2wmxk3wr51n-2e1b9533.sandbox.novita.ai
 - **GitHub**: (da configurare)
 - **Cloudflare Pages**: (da deployare)
+- **Backup v3.2.2**: https://www.genspark.ai/api/files/s/vwirvKuZ
 
 ## 🏗️ Architettura Dati
 
@@ -53,45 +58,60 @@ GSM,GB00BYW6GV68,2025-12-29,0.014
 "12/29/2025","4.620","4.640","4.720","4.560","564.84K","-2.12%"
 ```
 
-## 🔢 Algoritmo di Calcolo
+## 🔢 Algoritmo di Calcolo (v3.2.2 - CORRETTO)
+
+### CONCETTI CHIAVE
+```
+Capitale Totale = 12.000 USD (FISSO)
+Numero Titoli = 12
+Capitale Allocato per Titolo = 12.000 / 12 = 1.000 USD (FISSO)
+Capitale Investito = Capitale Allocato × Frazione (VARIABILE con BUY/SELL)
+```
 
 ### FASE 1: INGRESSO
 ```
-Capitale_Investito = Capitale_Totale × Frazione_Iniziale
-Azioni = Capitale_Investito / Prezzo_Ingresso
-Cash_Residuo = Capitale_Totale - Capitale_Investito
+Capitale_Allocato = Capitale_Totale / Numero_Titoli  // Es: 12000 / 12 = 1000€
+Frazione_Iniziale = quota_numeratore / quota_denominatore  // Es: 2/4 = 0.5
+Capitale_Investito = Capitale_Allocato × Frazione_Iniziale  // Es: 1000 × 0.5 = 500€
+Azioni = Capitale_Investito / Prezzo_Ingresso  // Es: 500 / 3.92 = 127.55 azioni
+Cash_Residuo = Capitale_Allocato - Capitale_Investito  // Es: 1000 - 500 = 500€
 ```
 
-### FASE 2: APPESANTIMENTO (BUY)
+### FASE 2: APPESANTIMENTO (BUY +1/4)
 ```
-Capitale_Nuovo = Capitale_Totale × Frazione_Delta
-Azioni_Nuove = Capitale_Nuovo / Prezzo_Corrente
-Azioni_Totali += Azioni_Nuove
-Cash_Residuo -= Capitale_Nuovo
+Frazione_Delta = frazione_numeratore / frazione_denominatore  // Es: 1/4 = 0.25
+Capitale_Nuovo = Capitale_Allocato × Frazione_Delta  // Es: 1000 × 0.25 = 250€
+Azioni_Nuove = Capitale_Nuovo / Prezzo_Corrente  // Es: 250 / 4.63 = 53.99 azioni
+Azioni_Totali += Azioni_Nuove  // Es: 127.55 + 53.99 = 181.54 azioni
+Cash_Residuo -= Capitale_Nuovo  // Es: 500 - 250 = 250€
+Capitale_Investito += Capitale_Nuovo  // Es: 500 + 250 = 750€
+Frazione_Attuale += Frazione_Delta  // Es: 2/4 + 1/4 = 3/4
 ```
 
-### FASE 3: ALLEGGERIMENTO (SELL)
+### FASE 3: ALLEGGERIMENTO (SELL -1/4)
 ```
-Valore_Attuale = Azioni × Prezzo_Corrente
-Valore_Da_Vendere = Valore_Attuale × Frazione_Delta
-Azioni_Da_Vendere = Valore_Da_Vendere / Prezzo_Corrente
+Frazione_Delta = frazione_numeratore / frazione_denominatore  // Es: 1/4 = 0.25
+Capitale_Da_Vendere = Capitale_Allocato × Frazione_Delta  // Es: 1000 × 0.25 = 250€
+Azioni_Da_Vendere = Capitale_Da_Vendere / Prezzo_Corrente
 Azioni_Totali -= Azioni_Da_Vendere
-Cash_Residuo += Valore_Da_Vendere
+Cash_Residuo += Capitale_Da_Vendere
+Capitale_Investito -= Capitale_Da_Vendere
+Frazione_Attuale -= Frazione_Delta
 ```
 
 ### FASE 4: DIVIDENDO (REINVESTITO AUTOMATICAMENTE)
 ```
-Dividendo_Totale = Azioni × Dividendo_Per_Azione
-Azioni_Nuove = Dividendo_Totale / Prezzo_Giorno_Dividendo
-Azioni_Totali += Azioni_Nuove
+Dividendo_Totale = Azioni × Dividendo_Per_Azione  // Es: 181.54 × 0.014 = 2.54€
+Azioni_Nuove = Dividendo_Totale / Prezzo_Giorno_Dividendo  // Es: 2.54 / 4.62 = 0.55 azioni
+Azioni_Totali += Azioni_Nuove  // Es: 181.54 + 0.55 = 182.09 azioni
 ```
 
 ### FASE 5: VALUTAZIONE FINALE
 ```
-Valore_Posizione = Azioni × Prezzo_Finale
-Patrimonio_Totale = Valore_Posizione + Cash_Residuo
-Gain_Loss = Patrimonio_Totale - Capitale_Totale
-ROI = (Gain_Loss / Capitale_Totale) × 100
+Valore_Posizione = Azioni × Prezzo_Finale  // Es: 181.54 × 4.59 = 833.27€
+Patrimonio_Totale = Valore_Posizione + Cash_Residuo  // Es: 833.27 + 250 = 1083.27€
+Gain_Loss = Patrimonio_Totale - Capitale_Allocato  // Es: 1083.27 - 1000 = +83.27€
+ROI = (Gain_Loss / Capitale_Allocato) × 100  // Es: 83.27 / 1000 × 100 = +8.33%
 ```
 
 ## 📈 KPI Disponibili (22 Metriche)
@@ -111,10 +131,10 @@ ROI = (Gain_Loss / Capitale_Totale) × 100
 10. **Variazione Prezzo** (%) - % cambio prezzo
 
 ### KPI Capitali
-11. **Capitale Allocato** (USD) - Capitale iniziale
-12. **Capitale Investito** (USD) - Capitale effettivo in azioni
+11. **Capitale Allocato** (USD) - Capitale FISSO per titolo (es. 1000€)
+12. **Capitale Investito** (USD) - Capitale EFFETTIVO in azioni (varia con BUY/SELL)
 13. **Peso Portafoglio** (%) - % azioni su totale
-14. **Frazione Attuale** - Frazione corrente investita
+14. **Frazione Attuale** - Frazione corrente investita (varia con BUY/SELL)
 
 ### KPI Operazioni
 15. **Numero Movimenti** - Totale BUY/SELL
@@ -131,20 +151,33 @@ ROI = (Gain_Loss / Capitale_Totale) × 100
 ## 🎮 Guida Utente
 
 ### Step 1: Configurazione
-1. Inserisci **Capitale Totale** (default: 2000 USD)
-2. Seleziona **Data Inizio** (default: 6 mesi fa)
-3. Seleziona **Data Fine** (default: oggi)
+1. **Capitale Totale**: FISSO a 12.000 USD (non modificabile)
+2. Seleziona **Data Inizio** (default: 11 Luglio 2025)
+3. Seleziona **Data Fine** (default: 1 Gennaio 2026)
 
 ### Step 2: Caricamento CSV
-1. Clicca su **TITOLI** e carica `info_titoli.csv`
-2. Clicca su **VALORI** e carica `{TICKER}_Stock_Price_History.csv`
-3. Clicca su **MOVIMENTI** e carica `movimenti.csv` (opzionale)
-4. Clicca su **DIVIDENDI** e carica `dividendi.csv` (opzionale)
+**I dati sono già pre-caricati automaticamente all'avvio!**
+- ✅ **TITOLI**: 12 titoli pre-caricati
+- ✅ **VALORI**: 12 CSV prezzi pre-caricati
+- ✅ **MOVIMENTI**: Pre-caricati
+- ✅ **DIVIDENDI**: Pre-caricati
+
+Puoi comunque caricare CSV personalizzati tramite i 4 slot se necessario.
 
 ### Step 3: Calcolo
 1. Clicca **CALCOLA PORTAFOGLIO**
 2. Visualizza **22 KPI** in tempo reale
-3. Analizza **Tabella Storica** dettagliata
+3. Analizza **Tabella Riepilogo** con tutti i titoli
+4. Esplora **Storico Operazioni** del primo titolo
+5. Consulta **Calcoli Dettagliati** per vedere vita-morte-miracoli di ogni titolo
+
+### Step 4: Navigazione
+Usa il **Menu Hamburger** (in alto a destra) per navigare tra le sezioni:
+- 🔧 **Configurazione**: Setup iniziale
+- 📊 **KPI Performance**: KPI aggregati
+- 📋 **Riepilogo Titoli**: Tabella con tutti i titoli
+- 📜 **Storico Operazioni**: Cronologia primo titolo
+- 🧮 **Calcoli Dettagliati**: Cronologia completa titolo per titolo
 
 ### Gestione Errori
 - Gli errori vengono mostrati in sezione dedicata
@@ -156,6 +189,7 @@ ROI = (Gain_Loss / Capitale_Totale) × 100
 ### Local Development
 ```bash
 cd /home/user/webapp
+npm install
 npm run build
 pm2 start ecosystem.config.cjs
 pm2 logs rosicatore --nostream
@@ -176,14 +210,27 @@ wrangler pages deploy dist --project-name rosicatore
 - **Deployment**: Cloudflare Pages
 
 ## 📝 Status
-- **Version**: v3.1.1
+- **Version**: v3.2.2
 - **Status**: ✅ ATTIVO
-- **Deployment**: Local sandbox
-- **Last Updated**: 2026-02-03
+- **Deployment**: Sandbox (https://3000-ili0eab6ol2wmxk3wr51n-2e1b9533.sandbox.novita.ai)
+- **Last Updated**: 2026-02-04
 
 ## 🗺️ Roadmap
 
-### v3.1.1 (COMPLETATO) 🔧
+### v3.2.2 (COMPLETATO) ✨ **CURRENT**
+- ✅ **CAPITALE FISSO 12.000 USD** - Non più modificabile dall'utente
+- ✅ **ALGORITMO CORRETTO** - Capitale Allocato vs Capitale Investito
+  - Capitale Allocato = 12.000 / 12 = 1.000€ per titolo (FISSO)
+  - Capitale Investito = Allocato × Frazione (VARIABILE)
+  - Cash Residuo = Allocato - Investito
+- ✅ **MENU HAMBURGER** - Navigazione laterale con tutte le sezioni
+- ✅ **SEZIONE CALCOLI DETTAGLIATI** - Vita-morte-miracoli di ogni titolo
+  - Cronologia completa operazioni
+  - Dettagli movimenti (BUY, SELL, DIVIDEND)
+  - Riepilogo per ogni titolo
+  - Tabella completa con 9 colonne informative
+
+### v3.2.1 (COMPLETATO) 🔧
 - ✅ **FIX CAPITALE ALLOCATO** - Ogni titolo usa il SUO capitale proporzionale!
 - ✅ Corretto calcolo: `capitaleAllocato = capitaleTotale * frazione`
 - ✅ Fixato: Tutti i titoli mostravano $1200 invece di proporzionale
@@ -220,24 +267,62 @@ wrangler pages deploy dist --project-name rosicatore
 - ✅ Sistema errori/warning
 - ✅ Single-ticker calculation (GSM)
 
-### v3.1.0 (PROSSIMO)
-- ⏳ Multi-ticker simultaneo
-- ⏳ Selezione ticker da dropdown
-- ⏳ Aggregazione portafoglio completo
-
-### v3.2.0
+### v3.3.0 (PROSSIMO)
 - ⏳ Export PDF report
 - ⏳ Grafici evoluzione temporale
 - ⏳ Chart.js integration
+- ⏳ Selezione ticker da dropdown per storico operazioni
 
-### v3.3.0
+### v3.4.0
 - ⏳ Storage opzionale (D1 database)
 - ⏳ Salvare configurazioni
 - ⏳ History sessioni precedenti
+- ⏳ Confronto periodi temporali
 
 ## ⚠️ Note Importanti
+- **CAPITALE FISSO**: 12.000 USD non modificabile
 - **NO TASSE**: L'algoritmo NON calcola tassazione
 - **NO COMMISSIONI**: Nessuna commissione broker considerata
 - **USD ONLY**: Tutti i valori sono in dollari USA
 - **REINVESTIMENTO**: Dividendi reinvestiti automaticamente al prezzo del giorno di pagamento
 - **CLIENT-SIDE**: Tutti i dati rimangono nel browser, nessuna persistenza
+- **ALGORITMO CORRETTO**: Distinzione chiara tra Capitale Allocato (fisso) e Capitale Investito (variabile)
+
+## 🧮 Esempio Pratico (GSM)
+
+### Setup Iniziale
+- Capitale Totale: 12.000 USD
+- Numero Titoli: 12
+- Capitale Allocato GSM: 12.000 / 12 = **1.000 USD**
+- Frazione Iniziale: 2/4 = 0.5
+- Capitale Investito: 1.000 × 0.5 = **500 USD**
+- Cash Residuo: 1.000 - 500 = **500 USD**
+
+### Operazioni
+1. **01/08/2025 - INGRESSO 2/4**
+   - Prezzo: $3.920
+   - Azioni: 500 / 3.920 = 127.55 azioni
+   - Valore: 127.55 × 3.920 = $500
+   - Cash: $500
+
+2. **02/12/2025 - BUY +1/4 (da 2/4 a 3/4)**
+   - Prezzo: $4.630
+   - Capitale Nuovo: 1.000 × 0.25 = $250
+   - Azioni Nuove: 250 / 4.630 = 53.99 azioni
+   - Azioni Totali: 127.55 + 53.99 = 181.54 azioni
+   - Capitale Investito: 500 + 250 = $750
+   - Cash: 500 - 250 = $250
+
+3. **29/12/2025 - DIVIDEND $0.014**
+   - Dividendo: 181.54 × 0.014 = $2.54
+   - Azioni Nuove: 2.54 / 4.620 = 0.55 azioni
+   - Azioni Totali: 181.54 + 0.55 = 182.09 azioni
+   - Cash: $250 (invariato)
+
+4. **02/01/2026 - FINE PERIODO**
+   - Prezzo: $4.590
+   - Valore Azioni: 182.09 × 4.590 = $835.79
+   - Cash: $250
+   - Patrimonio: $835.79 + $250 = **$1.085.79**
+   - Gain/Loss: $1.085.79 - $1.000 = **+$85.79**
+   - ROI: 85.79 / 1.000 × 100 = **+8.58%**
