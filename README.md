@@ -1,4 +1,4 @@
-# ROSICATORE v3.6.0 🎯
+# ROSICATORE v3.7.0 🎯
 
 ## 🎯 Project Overview
 **Rosicatore** è un Portfolio Tracker Algorithm avanzato per il monitoraggio e l'analisi del valore attualizzato di portafogli azionari nel tempo.
@@ -7,8 +7,8 @@
 - ✅ **CAPITALE FISSO PER TITOLO**: 1.000 USD per ogni titolo (non diviso)
 - ✅ **FORMULA UNIVERSALE**: `(cash + valore azioni) / 4 × frazione` per BUY/SELL
 - ✅ **DIVIDENDI A CASH**: Dividendi aggiunti al cash (NON reinvestiti)
-- ✅ **FILTRO DATE INTELLIGENTE**: Mostra solo titoli con primo BUY ≤ Data Fine periodo
-- ✅ **SPIEGAZIONE DATE PICKER**: Box informativo che spiega la logica di filtro
+- ✅ **DATE PICKER CORRETTO**: TUTTI i titoli entrano/escono con dataInizio/dataFine (NESSUN filtro!)
+- ✅ **SPIEGAZIONE DATE PICKER**: Box informativo che spiega la logica (ingresso = dataInizio per TUTTI)
 - ✅ **MENU HAMBURGER**: Navigazione laterale con tutte le sezioni
 - ✅ **SEZIONE CALCOLI DETTAGLIATA**: Formato PDF step-by-step FASE per FASE
 - ✅ **AUTO-CARICAMENTO CSV**: Caricamento automatico all'avvio (dati persistenti in /public/static/data/)
@@ -293,16 +293,22 @@ wrangler pages deploy dist --project-name rosicatore
 
 ## 🗺️ Roadmap
 
-### v3.6.0 (COMPLETATO) 🎯 **CURRENT**
-- ✅ **FILTRO INTELLIGENTE DATE PICKER**
-  - Mostra solo titoli con primo BUY nel periodo
-  - Se titolo entra dopo dataFine → SKIP
-  - Box spiegazione logica di filtro
-  - Risoluzione del bug "12 titoli anche se periodo vuoto"
-- ✅ **SEZIONE SPIEGAZIONE**
-  - Box informativo periodo analisi
-  - Elenco titoli attivi/esclusi
-  - Data ingresso reale per ogni titolo
+### v3.7.0 (COMPLETATO) 🔥 **CURRENT - FIX CORRETTO!**
+- ✅ **DATE PICKER LOGICA CORRETTA**
+  - ❌ RIMOSSO: Filtro errato per primo BUY
+  - ✅ NUOVO: TUTTI i titoli entrano con `dataInizio` (frazione iniziale da info_titoli.csv)
+  - ✅ NUOVO: TUTTI i titoli escono con `dataFine` (valutazione finale)
+  - ✅ Movimenti BUY/SELL/DIVIDEND applicati solo se nel periodo
+  - ✅ Box spiegazione aggiornato: "Tutti entrano/escono nello stesso giorno"
+- ✅ **NESSUN FILTRO SUI TITOLI**
+  - Tutti i titoli in info_titoli.csv vengono calcolati
+  - Data ingresso = dataInizio del date picker (per TUTTI)
+  - Data uscita = dataFine del date picker (per TUTTI)
+
+### v3.6.0 (OBSOLETO - LOGICA ERRATA) ❌
+- ❌ Filtro sbagliato: cercava primo BUY e filtrava titoli
+- ❌ Bug: titoli senza BUY venivano esclusi
+- ❌ Logica errata: usava data primo BUY come ingresso
 
 ### v3.5.0 (COMPLETATO) 💰
 - ✅ **CAPITALE FISSO PER TITOLO: 1.000€**
