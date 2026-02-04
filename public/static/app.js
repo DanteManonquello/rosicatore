@@ -1,4 +1,4 @@
-// Rosicatore v3.12.1 - Portfolio Tracker Calculator
+// Rosicatore v3.14.0 - Portfolio Tracker Calculator
 // Main Application Logic
 
 // Global state
@@ -490,22 +490,12 @@ function calculatePortfolio() {
             continue;
         }
         
-        // CASO 2: Primo INGRESSO storico DOPO dataFine → NON calcolare
-        if (primoIngressoStorico && primoIngressoStorico > dataFine) {
-            console.log(`${ticker}: primo INGRESSO ${primoIngressoStorico} DOPO dataFine ${dataFine}, SKIP`);
-            console.log(`  Confronto: "${primoIngressoStorico}" > "${dataFine}" = ${primoIngressoStorico > dataFine}`);
-            titoliSkipped.push({
-                ticker,
-                nome: titoloInfo.nome,
-                dataPrimoBuy: primoIngressoStorico,
-                motivo: `Non ancora acquistato nel periodo (ingresso: ${primoIngressoStorico})`
-            });
-            continue;
-        }
+        // CASO 2: Calcolo quarti posseduti al dataInizio
+        // BASE: info_titoli.csv rappresenta i quarti al 01/01/2025
+        const quartiInfoTitoli = titoloInfo.quota_numeratore / titoloInfo.quota_denominatore;
+        let quartiAlDataInizio = quartiInfoTitoli; // Parte dalla base info_titoli.csv
         
-        // CASO 3: Calcolo quarti posseduti al dataInizio
-        let quartiAlDataInizio = 0;
-        
+        // Applica tutti i movimenti tra 01/01/2025 e dataInizio
         movimentiTicker
             .filter(m => m.data < dataInizio)
             .forEach(m => {
@@ -520,9 +510,9 @@ function calculatePortfolio() {
         // Forza a 0 se negativo
         if (quartiAlDataInizio < 0) quartiAlDataInizio = 0;
         
-        console.log(`${ticker} - Quarti al ${dataInizio}: ${quartiAlDataInizio}`);
+        console.log(`${ticker} - Quarti info_titoli (01/01): ${quartiInfoTitoli}, Quarti al ${dataInizio}: ${quartiAlDataInizio}`);
         
-        // CASO 4: Se quarti al dataInizio = 0, cerca primo INGRESSO NEL periodo
+        // CASO 3: Se quarti al dataInizio = 0, cerca primo INGRESSO NEL periodo
         if (quartiAlDataInizio <= 0) {
             // Cerca primo INGRESSO (0→>0) nel periodo [dataInizio, dataFine]
             const movimentiNelPeriodo = timelineQuarti.filter(t => 
