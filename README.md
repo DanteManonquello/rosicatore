@@ -1,19 +1,19 @@
-# ROSICATORE v3.2.2 🎯
+# ROSICATORE v3.3.0 🎯
 
 ## 🎯 Project Overview
 **Rosicatore** è un Portfolio Tracker Algorithm avanzato per il monitoraggio e l'analisi del valore attualizzato di portafogli azionari nel tempo.
 
 ### Caratteristiche Principali
 - ✅ **CAPITALE FISSO**: 12.000 USD (non modificabile)
-- ✅ **ALGORITMO CORRETTO**: Capitale Allocato vs Capitale Investito
+- ✅ **ALGORITMO DINAMICO**: BUY/SELL basati su cash e valore investito RIVALUTATO
+- ✅ **DIVIDENDI A CASH**: Dividendi aggiunti al cash (NON reinvestiti)
 - ✅ **MENU HAMBURGER**: Navigazione laterale con tutte le sezioni
-- ✅ **SEZIONE CALCOLI**: Cronologia completa di ogni titolo (vita-morte-miracoli)
+- ✅ **SEZIONE CALCOLI DETTAGLIATA**: Formato PDF step-by-step FASE per FASE
 - ✅ **AUTO-CARICAMENTO CSV**: Caricamento automatico all'avvio (dati persistenti in /public/static/data/)
 - ✅ **Date Preimpostate**: 11 Luglio 2025 → 1 Gennaio 2026 (modificabili)
 - ✅ **Multi-Ticker Automatico**: 12 CSV prezzi pre-caricati per ogni ticker
 - ✅ Calcolo attualizzazione temporale con date range selezionabili
 - ✅ Gestione movimenti: Appesantimento (BUY) e Alleggerimento (SELL)
-- ✅ Reinvestimento automatico dividendi
 - ✅ 22 KPI completi (USD + %)
 - ✅ Tracking completo storico operazioni
 - ✅ Sistema errori/warning integrato
@@ -58,15 +58,16 @@ GSM,GB00BYW6GV68,2025-12-29,0.014
 "12/29/2025","4.620","4.640","4.720","4.560","564.84K","-2.12%"
 ```
 
-## 🔢 Algoritmo di Calcolo (v3.2.2 - CORRETTO)
+## 🔢 Algoritmo di Calcolo (v3.3.0 - DINAMICO RIVALUTATO)
 
 ### CONCETTI CHIAVE
 ```
 Capitale Totale = 12.000 USD (FISSO)
 Numero Titoli = 12
 Capitale Allocato per Titolo = 12.000 / 12 = 1.000 USD (FISSO)
-Capitale Investito = Capitale Allocato × Frazione (VARIABILE con BUY/SELL)
 ```
+
+### ⚠️ ALGORITMO DINAMICO - NON PIÙ BASATO SU CAPITALE ALLOCATO FISSO!
 
 ### FASE 1: INGRESSO
 ```
@@ -77,26 +78,53 @@ Azioni = Capitale_Investito / Prezzo_Ingresso  // Es: 500 / 3.92 = 127.55 azioni
 Cash_Residuo = Capitale_Allocato - Capitale_Investito  // Es: 1000 - 500 = 500€
 ```
 
-### FASE 2: APPESANTIMENTO (BUY +1/4)
+### FASE 2: APPESANTIMENTO (BUY +1/4) - DINAMICO SU CASH
 ```
+// ⚠️ NON usa più Capitale_Allocato × Frazione!
+// ✅ USA il CASH DISPONIBILE attuale (rivalutato dopo movimenti precedenti)
+
 Frazione_Delta = frazione_numeratore / frazione_denominatore  // Es: 1/4 = 0.25
-Capitale_Nuovo = Capitale_Allocato × Frazione_Delta  // Es: 1000 × 0.25 = 250€
-Azioni_Nuove = Capitale_Nuovo / Prezzo_Corrente  // Es: 250 / 4.63 = 53.99 azioni
-Azioni_Totali += Azioni_Nuove  // Es: 127.55 + 53.99 = 181.54 azioni
-Cash_Residuo -= Capitale_Nuovo  // Es: 500 - 250 = 250€
-Capitale_Investito += Capitale_Nuovo  // Es: 500 + 250 = 750€
-Frazione_Attuale += Frazione_Delta  // Es: 2/4 + 1/4 = 3/4
+Capitale_Da_Investire = Cash_Residuo × Frazione_Delta  // Es: 500 × 0.25 = 125€ (se cash=500)
+                                                        // Es: 750 × 0.25 = 187.5€ (se cash=750)
+Azioni_Nuove = Capitale_Da_Investire / Prezzo_Corrente
+Azioni_Totali += Azioni_Nuove
+Cash_Residuo -= Capitale_Da_Investire
+Capitale_Investito += Capitale_Da_Investire
+Frazione_Attuale += Frazione_Delta
 ```
 
-### FASE 3: ALLEGGERIMENTO (SELL -1/4)
+**Esempio con rivalutazione:**
+- Dopo SELL, cash = 750€ (non più 500€)
+- BUY +1/4: 750 × 0.25 = **187.5€** (non 250€ fissi!)
+
+### FASE 3: ALLEGGERIMENTO (SELL -1/4) - DINAMICO SU VALORE INVESTITO
 ```
+// ⚠️ NON usa più Capitale_Allocato × Frazione!
+// ✅ USA il VALORE ATTUALE delle azioni (rivalutato col prezzo corrente)
+
 Frazione_Delta = frazione_numeratore / frazione_denominatore  // Es: 1/4 = 0.25
-Capitale_Da_Vendere = Capitale_Allocato × Frazione_Delta  // Es: 1000 × 0.25 = 250€
-Azioni_Da_Vendere = Capitale_Da_Vendere / Prezzo_Corrente
+Valore_Investito = Azioni × Prezzo_Corrente  // Es: 180 × 4.63 = 833.4€ (rivalutato!)
+Valore_Da_Vendere = Valore_Investito × Frazione_Delta  // Es: 833.4 × 0.25 = 208.35€
+Azioni_Da_Vendere = Valore_Da_Vendere / Prezzo_Corrente
 Azioni_Totali -= Azioni_Da_Vendere
-Cash_Residuo += Capitale_Da_Vendere
-Capitale_Investito -= Capitale_Da_Vendere
+Cash_Residuo += Valore_Da_Vendere
+Capitale_Investito -= Valore_Da_Vendere
 Frazione_Attuale -= Frazione_Delta
+```
+
+**Esempio con rivalutazione:**
+- Azioni: 180, Prezzo: 4.63€
+- Valore attuale: 180 × 4.63 = 833.4€ (cresciuto da 750€!)
+- SELL -1/4: 833.4 × 0.25 = **208.35€** (non 250€ fissi!)
+
+### FASE 4: DIVIDENDO - SOLO CASH (NON REINVESTITO)
+```
+// ⚠️ NON reinveste più in azioni!
+// ✅ AGGIUNGE solo al CASH
+
+Dividendo_Totale = Azioni × Importo_Per_Azione  // Es: 181.54 × 0.014 = 2.54€
+Cash_Residuo += Dividendo_Totale  // Es: 250 + 2.54 = 252.54€
+// Azioni rimangono INVARIATE (no nuove azioni)
 ```
 
 ### FASE 4: DIVIDENDO (REINVESTITO AUTOMATICAMENTE)
@@ -210,25 +238,24 @@ wrangler pages deploy dist --project-name rosicatore
 - **Deployment**: Cloudflare Pages
 
 ## 📝 Status
-- **Version**: v3.2.2
+- **Version**: v3.3.0
 - **Status**: ✅ ATTIVO
-- **Deployment**: Sandbox (https://3000-ili0eab6ol2wmxk3wr51n-2e1b9533.sandbox.novita.ai)
+- **Deployment**: Sandbox
 - **Last Updated**: 2026-02-04
 
 ## 🗺️ Roadmap
 
-### v3.2.2 (COMPLETATO) ✨ **CURRENT**
-- ✅ **CAPITALE FISSO 12.000 USD** - Non più modificabile dall'utente
-- ✅ **ALGORITMO CORRETTO** - Capitale Allocato vs Capitale Investito
-  - Capitale Allocato = 12.000 / 12 = 1.000€ per titolo (FISSO)
-  - Capitale Investito = Allocato × Frazione (VARIABILE)
-  - Cash Residuo = Allocato - Investito
-- ✅ **MENU HAMBURGER** - Navigazione laterale con tutte le sezioni
-- ✅ **SEZIONE CALCOLI DETTAGLIATI** - Vita-morte-miracoli di ogni titolo
-  - Cronologia completa operazioni
-  - Dettagli movimenti (BUY, SELL, DIVIDEND)
-  - Riepilogo per ogni titolo
-  - Tabella completa con 9 colonne informative
+### v3.3.0 (COMPLETATO) 🔥 **CURRENT**
+- ✅ **ALGORITMO DINAMICO RIVALUTATO**
+  - BUY: `cashResiduo × frazione` (non più fisso!)
+  - SELL: `valoreInvestito × frazione` (rivalutato!)
+  - DIVIDEND: aggiunge solo al cash (NON reinveste)
+- ✅ **SEZIONE CALCOLI FORMATO PDF**
+  - Layout identico al PDF di riferimento
+  - FASE 1, FASE 2, FASE 3, etc.
+  - Step by step con box colorati
+  - Icone distintive per ogni tipo operazione
+  - Dettagli completi di ogni movimento
 
 ### v3.2.1 (COMPLETATO) 🔧
 - ✅ **FIX CAPITALE ALLOCATO** - Ogni titolo usa il SUO capitale proporzionale!
@@ -281,12 +308,12 @@ wrangler pages deploy dist --project-name rosicatore
 
 ## ⚠️ Note Importanti
 - **CAPITALE FISSO**: 12.000 USD non modificabile
+- **ALGORITMO DINAMICO**: BUY/SELL basati su cash e valore rivalutato (NON più fissi)
+- **DIVIDENDI A CASH**: Dividendi NON reinvestiti, vanno nel cash
 - **NO TASSE**: L'algoritmo NON calcola tassazione
 - **NO COMMISSIONI**: Nessuna commissione broker considerata
 - **USD ONLY**: Tutti i valori sono in dollari USA
-- **REINVESTIMENTO**: Dividendi reinvestiti automaticamente al prezzo del giorno di pagamento
 - **CLIENT-SIDE**: Tutti i dati rimangono nel browser, nessuna persistenza
-- **ALGORITMO CORRETTO**: Distinzione chiara tra Capitale Allocato (fisso) e Capitale Investito (variabile)
 
 ## 🧮 Esempio Pratico (GSM)
 
