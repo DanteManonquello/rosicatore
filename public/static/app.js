@@ -620,26 +620,97 @@ function calculateSingleTicker(ticker, titoloInfo, capitaleTotalePortafoglio, da
     // Se frazioneAlDataInizio è passata, usa quella (titolo già in portafoglio)
     // Altrimenti usa frazione iniziale da info_titoli.csv
     const frazioneIniziale = frazioneAlDataInizio !== null ? frazioneAlDataInizio : (titoloInfo.quota_numeratore / titoloInfo.quota_denominatore);
-    let capitaleInvestito = capitaleAllocato * frazioneIniziale;
+    
+    // ========================================================================
+    // SIMULAZIONE PORTAFOGLIO PRE-PERIODO (01/01/2025 → dataInizio)
+    // ========================================================================
+    let azioni = 0;
+    let cashResiduo = capitaleAllocato;
+    let frazioneAttuale = 0;
+    let capitaleInvestito = 0;
+    
+    // Se il titolo era già in portafoglio al 01/01/2025, simula dal 01/01
+    if (frazioneIniziale > 0) {
+        const dataBase = '2025-01-01';
+        const prezzoBase = getPrezzoByDate(valori, dataBase, ticker);
+        if (!prezzoBase) {
+            throw new Error(`Prezzo base (01/01/2025) non trovato per ${ticker}`);
+        }
+        
+        // Setup iniziale al 01/01/2025
+        const frazioneInfoTitoli = titoloInfo.quota_numeratore / titoloInfo.quota_denominatore;
+        const capitaleInizialeInvestito = capitaleAllocato * frazioneInfoTitoli;
+        azioni = capitaleInizialeInvestito / prezzoBase;
+        cashResiduo = capitaleAllocato - capitaleInizialeInvestito;
+        frazioneAttuale = frazioneInfoTitoli;
+        capitaleInvestito = capitaleInizialeInvestito;
+        
+        console.log(`${ticker}: Setup 01/01/2025 - Frazione: ${frazioneInfoTitoli}, Prezzo: $${prezzoBase}, Azioni: ${azioni.toFixed(4)}, Cash: $${cashResiduo.toFixed(2)}`);
+        
+        // Applica tutti i movimenti tra 01/01 e dataInizio
+        const movimentiPrePeriodo = movimenti
+            .filter(m => m.ticker === ticker && m.data >= dataBase && m.data < dataInizio)
+            .sort((a, b) => new Date(a.data) - new Date(b.data));
+        
+        movimentiPrePeriodo.forEach(m => {
+            const prezzoMovimento = getPrezzoByDate(valori, m.data, ticker);
+            if (!prezzoMovimento) {
+                console.warn(`Prezzo non trovato per ${ticker} al ${m.data}, skip movimento`);
+                return;
+            }
+            
+            const frazione = m.frazione_numeratore / m.frazione_denominatore;
+            
+            if (m.azione === 'BUY') {
+                const valoreAzioni = azioni * prezzoMovimento;
+                const patrimonioAttuale = cashResiduo + valoreAzioni;
+                const valore_1_quarto = patrimonioAttuale / 4;
+                const capitaleDaInvestire = valore_1_quarto * m.frazione_numeratore;
+                const azioniNuove = capitaleDaInvestire / prezzoMovimento;
+                
+                azioni += azioniNuove;
+                cashResiduo -= capitaleDaInvestire;
+                frazioneAttuale += frazione;
+                capitaleInvestito += capitaleDaInvestire;
+                
+                console.log(`${ticker}: BUY ${m.data} - Frazione +${frazione}, Prezzo $${prezzoMovimento}, Nuove azioni: ${azioniNuove.toFixed(4)}, Totale azioni: ${azioni.toFixed(4)}, Cash: $${cashResiduo.toFixed(2)}`);
+            } else if (m.azione === 'SELL') {
+                const valoreAzioni = azioni * prezzoMovimento;
+                const patrimonioAttuale = cashResiduo + valoreAzioni;
+                const valore_1_quarto = patrimonioAttuale / 4;
+                const capitaleDaVendere = valore_1_quarto * m.frazione_numeratore;
+                const azioniDaVendere = capitaleDaVendere / prezzoMovimento;
+                
+                azioni -= azioniDaVendere;
+                cashResiduo += capitaleDaVendere;
+                frazioneAttuale -= frazione;
+                
+                console.log(`${ticker}: SELL ${m.data} - Frazione -${frazione}, Prezzo $${prezzoMovimento}, Azioni vendute: ${azioniDaVendere.toFixed(4)}, Totale azioni: ${azioni.toFixed(4)}, Cash: $${cashResiduo.toFixed(2)}`);
+            }
+        });
+        
+        console.log(`${ticker}: Stato al ${dataInizio} dopo simulazione - Azioni: ${azioni.toFixed(4)}, Cash: $${cashResiduo.toFixed(2)}, Frazione: ${frazioneAttuale}`);
+    } else {
+        // Titolo NON in portafoglio al 01/01 → parte da zero al dataInizio
+        console.log(`${ticker}: Titolo non in portafoglio al 01/01/2025, parte da zero al ${dataInizio}`);
+    }
+    
+    // Aggiorna frazione iniziale per il periodo analizzato
+    const frazioneInizialePeriodo = frazioneAttuale;
     
     const prezzoIngresso = getPrezzoByDate(valori, dataInizio, ticker);
     if (!prezzoIngresso) {
         throw new Error(`Prezzo ingresso non trovato per ${ticker} data ${dataInizio}`);
     }
     
-    let azioni = capitaleInvestito / prezzoIngresso;  // Es: 500 / 3.92 = 127.55 azioni
-    let cashResiduo = capitaleAllocato - capitaleInvestito;  // Es: 1000 - 500 = 500€
-    let frazioneAttuale = frazioneIniziale;
-    
-    console.log('Ingresso:', { 
-        ticker, 
+    console.log(`${ticker}: Ingresso periodo ${dataInizio}:`, { 
         capitaleAllocato, 
-        frazioneIniziale, 
+        frazioneInizialePeriodo, 
         capitaleInvestito, 
         prezzoIngresso, 
-        azioni, 
-        cashResiduo, 
-        frazioneAttuale 
+        azioni: azioni.toFixed(4), 
+        cashResiduo: cashResiduo.toFixed(2), 
+        frazioneAttuale: frazioneAttuale.toFixed(4)
     });
     
     // Get all events (movimenti + dividendi) sorted by date
@@ -688,7 +759,7 @@ function calculateSingleTicker(ticker, titoloInfo, capitaleTotalePortafoglio, da
         valoreAzioni: azioni * prezzoIngresso,
         cashResiduo,
         patrimonioTotale: (azioni * prezzoIngresso) + cashResiduo,
-        frazioneAttuale: frazioneIniziale
+        frazioneAttuale: frazioneInizialePeriodo
     }];
     
     // Process events
@@ -1546,7 +1617,7 @@ function renderCalculationsSection(stocks) {
                         </div>
                         <div>
                             <div class="text-gray-400">Frazione Iniziale</div>
-                            <div class="text-lg font-bold text-white">${titoloInfo ? titoloInfo.quota_numeratore : '?'}/${titoloInfo ? titoloInfo.quota_denominatore : '?'} (${((titoloInfo.quota_numeratore / titoloInfo.quota_denominatore) * 100).toFixed(0)}%)</div>
+                            <div class="text-lg font-bold text-white">${(history[0].frazioneAttuale * 4).toFixed(1)}/4 (${(history[0].frazioneAttuale * 100).toFixed(0)}%)</div>
                         </div>
                         <div>
                             <div class="text-gray-400">Prezzo Ingresso</div>
