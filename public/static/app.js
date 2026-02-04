@@ -423,8 +423,12 @@ function calculatePortfolio() {
         }
         
         // Calcolo timeline quarti per log/debug
-        let quartiAttuali = 0;
+        // IMPORTANTE: Parte dalla base info_titoli.csv (stato al 01/01/2025)
+        const quartiInfoTitoliBase = titoloInfo.quota_numeratore / titoloInfo.quota_denominatore;
+        let quartiAttuali = quartiInfoTitoliBase;
         const timelineQuarti = [];
+        
+        console.log(`${ticker} - Quarti BASE (01/01/2025 da info_titoli.csv): ${quartiInfoTitoliBase}`);
         
         movimentiTicker.forEach(m => {
             const frazione = m.frazione_numeratore / m.frazione_denominatore;
