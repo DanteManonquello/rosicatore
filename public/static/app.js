@@ -295,11 +295,12 @@ function calculatePortfolio() {
 }
 
 // Calculate single ticker
-function calculateSingleTicker(ticker, titoloInfo, capitaleTotale, dataInizio, dataFine, valori, movimenti, dividendi) {
+function calculateSingleTicker(ticker, titoloInfo, capitaleTotalePortafoglio, dataInizio, dataFine, valori, movimenti, dividendi) {
     
-    // Calculate initial entry
+    // Calculate capital allocated for THIS ticker based on fraction
     const frazioneIniziale = titoloInfo.quota_numeratore / titoloInfo.quota_denominatore;
-    const capitaleInvestito = capitaleTotale * frazioneIniziale;
+    const capitaleAllocato = capitaleTotalePortafoglio * frazioneIniziale;  // ← Capitale per QUESTO titolo
+    const capitaleInvestito = capitaleAllocato;  // Initially all allocated capital is invested
     
     const prezzoIngresso = getPrezzoByDate(valori, dataInizio, ticker);
     if (!prezzoIngresso) {
@@ -307,7 +308,7 @@ function calculateSingleTicker(ticker, titoloInfo, capitaleTotale, dataInizio, d
     }
     
     let azioni = capitaleInvestito / prezzoIngresso;
-    let cashResiduo = capitaleTotale - capitaleInvestito;
+    let cashResiduo = 0;  // Initially no cash for this ticker (all invested)
     let frazioneAttuale = frazioneIniziale;
     
     console.log('Ingresso:', { capitaleInvestito, prezzoIngresso, azioni, cashResiduo, frazioneAttuale });
@@ -379,7 +380,7 @@ function calculateSingleTicker(ticker, titoloInfo, capitaleTotale, dataInizio, d
         if (evento.tipo === 'BUY') {
             // APPESANTIMENTO
             const frazione = evento.frazione_num / evento.frazione_den;
-            const capitaleNuovo = capitaleTotale * frazione;
+            const capitaleNuovo = capitaleAllocato * frazione;  // ← USA capitaleAllocato del titolo
             const azioniNuove = capitaleNuovo / prezzoEvento;
             
             azioni += azioniNuove;
@@ -449,8 +450,8 @@ function calculateSingleTicker(ticker, titoloInfo, capitaleTotale, dataInizio, d
     
     const valorePosizioneFinale = azioni * prezzoFinale;
     const patrimonioFinale = valorePosizioneFinale + cashResiduo;
-    const gainLoss = patrimonioFinale - capitaleTotale;
-    const roiPortafoglio = (gainLoss / capitaleTotale) * 100;
+    const gainLoss = patrimonioFinale - capitaleAllocato;  // ← Gain vs capitale ALLOCATO
+    const roiPortafoglio = (gainLoss / capitaleAllocato) * 100;
     
     history.push({
         data: dataFine,
@@ -465,7 +466,7 @@ function calculateSingleTicker(ticker, titoloInfo, capitaleTotale, dataInizio, d
     // Calculate KPIs
     const kpis = calculateKPIs({
         ticker,
-        capitaleTotale,
+        capitaleAllocato,  // ← Passa capitale ALLOCATO
         valorePosizioneFinale,
         patrimonioFinale,
         cashResiduo,
@@ -483,7 +484,7 @@ function calculateSingleTicker(ticker, titoloInfo, capitaleTotale, dataInizio, d
         kpis,
         history,
         summary: {
-            capitaleTotale,
+            capitaleAllocato,  // ← Capitale ALLOCATO per questo titolo
             valorePosizioneFinale,
             patrimonioFinale,
             cashResiduo,
@@ -524,7 +525,7 @@ function getPrezzoByDate(valori, targetDate, ticker) {
 function calculateKPIs(data) {
     const {
         ticker,
-        capitaleTotale,
+        capitaleAllocato,  // ← Cambiato da capitaleTotale
         valorePosizioneFinale,
         patrimonioFinale,
         cashResiduo,
@@ -538,7 +539,7 @@ function calculateKPIs(data) {
     } = data;
     
     // Calculate various metrics
-    const capitaleInvestito = capitaleTotale * frazioneAttuale;
+    const capitaleInvestito = capitaleAllocato * frazioneAttuale;  // ← USA capitaleAllocato
     const pesoPortafoglio = (valorePosizioneFinale / patrimonioFinale) * 100;
     const roiPosizioni = ((valorePosizioneFinale - capitaleInvestito) / capitaleInvestito) * 100;
     const variazionePrezzo = ((prezzoFinale - prezzoIngresso) / prezzoIngresso) * 100;
@@ -571,7 +572,7 @@ function calculateKPIs(data) {
         { label: 'Prezzo Ingresso', value: prezzoIngresso.toFixed(3), unit: 'USD', type: 'neutral' },
         { label: 'Prezzo Finale', value: prezzoFinale.toFixed(3), unit: 'USD', type: 'neutral' },
         { label: 'Variazione Prezzo', value: variazionePrezzo.toFixed(2), unit: '%', type: variazionePrezzo >= 0 ? 'positive' : 'negative' },
-        { label: 'Capitale Allocato', value: capitaleTotale.toFixed(2), unit: 'USD', type: 'neutral' },
+        { label: 'Capitale Allocato', value: capitaleAllocato.toFixed(2), unit: 'USD', type: 'neutral' },  // ← Usa capitaleAllocato
         { label: 'Capitale Investito', value: capitaleInvestito.toFixed(2), unit: 'USD', type: 'neutral' },
         { label: 'Peso Portafoglio', value: pesoPortafoglio.toFixed(2), unit: '%', type: 'neutral' },
         { label: 'Frazione Attuale', value: frazioneAttuale.toFixed(2), unit: '', type: 'neutral' },
@@ -706,7 +707,7 @@ function renderStockSummaryMulti(stocks) {
         const tipoTitolo = titoloInfo ? titoloInfo.tipo : 'N/A';
         
         const {
-            capitaleTotale,
+            capitaleAllocato,  // ← Cambiato da capitaleTotale
             valorePosizioneFinale,
             patrimonioFinale,
             cashResiduo,
@@ -718,7 +719,7 @@ function renderStockSummaryMulti(stocks) {
         } = summary;
         
         // Calculate additional metrics
-        const capitaleInvestito = capitaleTotale - cashResiduo;
+        const capitaleInvestito = capitaleAllocato - cashResiduo;  // ← USA capitaleAllocato
         const frazioneInvestita = titoloInfo ? `${titoloInfo.quota_numeratore}/${titoloInfo.quota_denominatore}` : 'N/A';
         const pesoPortafoglio = (valorePosizioneFinale / patrimonioFinale) * 100;
         const variazionePrezzo = ((prezzoFinale - prezzoIngresso) / prezzoIngresso) * 100;
@@ -736,7 +737,7 @@ function renderStockSummaryMulti(stocks) {
                         ${tipoTitolo}
                     </span>
                 </td>
-                <td class="py-3 px-4 text-right font-medium">$${capitaleTotale.toFixed(2)}</td>
+                <td class="py-3 px-4 text-right font-medium">$${capitaleAllocato.toFixed(2)}</td>
                 <td class="py-3 px-4 text-right">$${capitaleInvestito.toFixed(2)}</td>
                 <td class="py-3 px-4 text-right text-gray-400">${frazioneInvestita}</td>
                 <td class="py-3 px-4 text-right">${azioni.toFixed(4)}</td>
