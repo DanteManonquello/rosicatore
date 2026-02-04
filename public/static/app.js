@@ -402,6 +402,10 @@ function calculatePortfolio() {
         const movimentiTicker = movimenti
             ? movimenti
                 .filter(m => m.ticker === ticker)
+                .map(m => ({
+                    ...m,
+                    data: typeof m.data === 'string' ? m.data : new Date(m.data).toISOString().split('T')[0]
+                }))
                 .sort((a, b) => new Date(a.data) - new Date(b.data))
             : [];
         
@@ -489,6 +493,7 @@ function calculatePortfolio() {
         // CASO 2: Primo INGRESSO storico DOPO dataFine → NON calcolare
         if (primoIngressoStorico && primoIngressoStorico > dataFine) {
             console.log(`${ticker}: primo INGRESSO ${primoIngressoStorico} DOPO dataFine ${dataFine}, SKIP`);
+            console.log(`  Confronto: "${primoIngressoStorico}" > "${dataFine}" = ${primoIngressoStorico > dataFine}`);
             titoliSkipped.push({
                 ticker,
                 nome: titoloInfo.nome,
