@@ -1,11 +1,11 @@
-# ROSICATORE v3.3.0 🎯
+# ROSICATORE v3.4.0 🎯
 
 ## 🎯 Project Overview
 **Rosicatore** è un Portfolio Tracker Algorithm avanzato per il monitoraggio e l'analisi del valore attualizzato di portafogli azionari nel tempo.
 
 ### Caratteristiche Principali
 - ✅ **CAPITALE FISSO**: 12.000 USD (non modificabile)
-- ✅ **ALGORITMO DINAMICO**: BUY/SELL basati su cash e valore investito RIVALUTATO
+- ✅ **FORMULA UNIVERSALE**: `(cash + valore azioni) / 4 × frazione` per BUY/SELL
 - ✅ **DIVIDENDI A CASH**: Dividendi aggiunti al cash (NON reinvestiti)
 - ✅ **MENU HAMBURGER**: Navigazione laterale con tutte le sezioni
 - ✅ **SEZIONE CALCOLI DETTAGLIATA**: Formato PDF step-by-step FASE per FASE
@@ -58,18 +58,22 @@ GSM,GB00BYW6GV68,2025-12-29,0.014
 "12/29/2025","4.620","4.640","4.720","4.560","564.84K","-2.12%"
 ```
 
-## 🔢 Algoritmo di Calcolo (v3.3.0 - DINAMICO RIVALUTATO)
+## 🔢 Algoritmo di Calcolo (v3.4.0 - FORMULA UNIVERSALE DEFINITIVA)
 
-### CONCETTI CHIAVE
+### 🎯 FORMULA UNIVERSALE
+
+```javascript
+// Per QUALSIASI movimento (BUY o SELL):
+patrimonioAttuale = cashResiduo + (azioni × prezzo)
+valore_1_quarto = patrimonioAttuale / 4
+capitale_movimento = valore_1_quarto × frazione_numeratore
 ```
-Capitale Totale = 12.000 USD (FISSO)
-Numero Titoli = 12
-Capitale Allocato per Titolo = 12.000 / 12 = 1.000 USD (FISSO)
-```
 
-### ⚠️ ALGORITMO DINAMICO - NON PIÙ BASATO SU CAPITALE ALLOCATO FISSO!
+**⚠️ ECCEZIONE: Solo all'INGRESSO usa capitale allocato fisso!**
 
-### FASE 1: INGRESSO
+---
+
+### FASE 1: INGRESSO (Solo prima volta)
 ```
 Capitale_Allocato = Capitale_Totale / Numero_Titoli  // Es: 12000 / 12 = 1000€
 Frazione_Iniziale = quota_numeratore / quota_denominatore  // Es: 2/4 = 0.5
@@ -78,54 +82,77 @@ Azioni = Capitale_Investito / Prezzo_Ingresso  // Es: 500 / 3.92 = 127.55 azioni
 Cash_Residuo = Capitale_Allocato - Capitale_Investito  // Es: 1000 - 500 = 500€
 ```
 
-### FASE 2: APPESANTIMENTO (BUY +1/4) - DINAMICO SU CASH
+---
+
+### FASE 2: APPESANTIMENTO (BUY +1/4) - FORMULA UNIVERSALE
 ```
-// ⚠️ NON usa più Capitale_Allocato × Frazione!
-// ✅ USA il CASH DISPONIBILE attuale (rivalutato dopo movimenti precedenti)
+// 1. Calcola patrimonio attuale
+Valore_Azioni = Azioni × Prezzo_Corrente  // Es: 127.55 × 4.63 = 590.56€
+Patrimonio_Attuale = Cash_Residuo + Valore_Azioni  // Es: 500 + 590.56 = 1090.56€
 
-Frazione_Delta = frazione_numeratore / frazione_denominatore  // Es: 1/4 = 0.25
-Capitale_Da_Investire = Cash_Residuo × Frazione_Delta  // Es: 500 × 0.25 = 125€ (se cash=500)
-                                                        // Es: 750 × 0.25 = 187.5€ (se cash=750)
-Azioni_Nuove = Capitale_Da_Investire / Prezzo_Corrente
-Azioni_Totali += Azioni_Nuove
-Cash_Residuo -= Capitale_Da_Investire
-Capitale_Investito += Capitale_Da_Investire
-Frazione_Attuale += Frazione_Delta
-```
+// 2. Calcola valore 1/4 attualizzato
+Valore_1_Quarto = Patrimonio_Attuale / 4  // Es: 1090.56 / 4 = 272.64€
 
-**Esempio con rivalutazione:**
-- Dopo SELL, cash = 750€ (non più 500€)
-- BUY +1/4: 750 × 0.25 = **187.5€** (non 250€ fissi!)
+// 3. Moltiplica per frazione richiesta
+Capitale_Da_Investire = Valore_1_Quarto × Frazione_Numeratore  // Es: 272.64 × 1 = 272.64€
 
-### FASE 3: ALLEGGERIMENTO (SELL -1/4) - DINAMICO SU VALORE INVESTITO
-```
-// ⚠️ NON usa più Capitale_Allocato × Frazione!
-// ✅ USA il VALORE ATTUALE delle azioni (rivalutato col prezzo corrente)
-
-Frazione_Delta = frazione_numeratore / frazione_denominatore  // Es: 1/4 = 0.25
-Valore_Investito = Azioni × Prezzo_Corrente  // Es: 180 × 4.63 = 833.4€ (rivalutato!)
-Valore_Da_Vendere = Valore_Investito × Frazione_Delta  // Es: 833.4 × 0.25 = 208.35€
-Azioni_Da_Vendere = Valore_Da_Vendere / Prezzo_Corrente
-Azioni_Totali -= Azioni_Da_Vendere
-Cash_Residuo += Valore_Da_Vendere
-Capitale_Investito -= Valore_Da_Vendere
-Frazione_Attuale -= Frazione_Delta
+// 4. Acquista azioni
+Azioni_Nuove = Capitale_Da_Investire / Prezzo_Corrente  // Es: 272.64 / 4.63 = 58.88 az
+Azioni_Totali += Azioni_Nuove  // Es: 127.55 + 58.88 = 186.43 az
+Cash_Residuo -= Capitale_Da_Investire  // Es: 500 - 272.64 = 227.36€
 ```
 
-**Esempio con rivalutazione:**
-- Azioni: 180, Prezzo: 4.63€
-- Valore attuale: 180 × 4.63 = 833.4€ (cresciuto da 750€!)
-- SELL -1/4: 833.4 × 0.25 = **208.35€** (non 250€ fissi!)
+**Esempio numerico:**
+- Prima: Cash 500€, Azioni 127.55 @ 4.63€ = 590.56€
+- Patrimonio: 500 + 590.56 = **1090.56€**
+- Valore 1/4: 1090.56 / 4 = **272.64€**
+- BUY +1/4: **272.64€** (non 250€ fissi!)
+
+---
+
+### FASE 3: ALLEGGERIMENTO (SELL -1/4) - FORMULA UNIVERSALE
+```
+// 1. Calcola patrimonio attuale
+Valore_Azioni = Azioni × Prezzo_Corrente  // Es: 186.43 × 5.20 = 969.44€
+Patrimonio_Attuale = Cash_Residuo + Valore_Azioni  // Es: 227.36 + 969.44 = 1196.80€
+
+// 2. Calcola valore 1/4 attualizzato
+Valore_1_Quarto = Patrimonio_Attuale / 4  // Es: 1196.80 / 4 = 299.20€
+
+// 3. Moltiplica per frazione richiesta
+Capitale_Da_Vendere = Valore_1_Quarto × Frazione_Numeratore  // Es: 299.20 × 1 = 299.20€
+
+// 4. Vendi azioni
+Azioni_Da_Vendere = Capitale_Da_Vendere / Prezzo_Corrente  // Es: 299.20 / 5.20 = 57.54 az
+Azioni_Totali -= Azioni_Da_Vendere  // Es: 186.43 - 57.54 = 128.89 az
+Cash_Residuo += Capitale_Da_Vendere  // Es: 227.36 + 299.20 = 526.56€
+```
+
+**Esempio numerico:**
+- Prima: Cash 227.36€, Azioni 186.43 @ 5.20€ = 969.44€
+- Patrimonio: 227.36 + 969.44 = **1196.80€**
+- Valore 1/4: 1196.80 / 4 = **299.20€**
+- SELL -1/4: **299.20€** (non 250€ fissi!)
+
+---
 
 ### FASE 4: DIVIDENDO - SOLO CASH (NON REINVESTITO)
 ```
-// ⚠️ NON reinveste più in azioni!
-// ✅ AGGIUNGE solo al CASH
-
 Dividendo_Totale = Azioni × Importo_Per_Azione  // Es: 181.54 × 0.014 = 2.54€
 Cash_Residuo += Dividendo_Totale  // Es: 250 + 2.54 = 252.54€
 // Azioni rimangono INVARIATE (no nuove azioni)
 ```
+
+---
+
+### 📊 TABELLA COMPARATIVA
+
+| Momento | Cash | Valore Azioni | Patrimonio | Valore 1/4 | Movimento | Importo |
+|---------|------|---------------|-----------|------------|-----------|---------|
+| Ingresso | 500€ | 500€ | 1.000€ | - | +2/4 (fisso) | **500€** |
+| Dopo BUY | 500€ | 590.56€ | 1.090.56€ | 272.64€ | +1/4 | **272.64€** |
+| Dopo crescita | 227.36€ | 969.44€ | 1.196.80€ | 299.20€ | -1/4 | **299.20€** |
+| Dopo SELL | 526.56€ | 670.24€ | 1.196.80€ | 299.20€ | +1/4 | **299.20€** |
 
 ### FASE 4: DIVIDENDO (REINVESTITO AUTOMATICAMENTE)
 ```
@@ -238,24 +265,21 @@ wrangler pages deploy dist --project-name rosicatore
 - **Deployment**: Cloudflare Pages
 
 ## 📝 Status
-- **Version**: v3.3.0
+- **Version**: v3.4.0
 - **Status**: ✅ ATTIVO
 - **Deployment**: Sandbox
 - **Last Updated**: 2026-02-04
 
 ## 🗺️ Roadmap
 
-### v3.3.0 (COMPLETATO) 🔥 **CURRENT**
-- ✅ **ALGORITMO DINAMICO RIVALUTATO**
-  - BUY: `cashResiduo × frazione` (non più fisso!)
-  - SELL: `valoreInvestito × frazione` (rivalutato!)
-  - DIVIDEND: aggiunge solo al cash (NON reinveste)
-- ✅ **SEZIONE CALCOLI FORMATO PDF**
-  - Layout identico al PDF di riferimento
-  - FASE 1, FASE 2, FASE 3, etc.
-  - Step by step con box colorati
-  - Icone distintive per ogni tipo operazione
-  - Dettagli completi di ogni movimento
+### v3.4.0 (COMPLETATO) 🔥 **CURRENT**
+- ✅ **FORMULA UNIVERSALE DEFINITIVA**
+  - `patrimonioAttuale = cash + valoreAzioni`
+  - `valore_1_quarto = patrimonioAttuale / 4`
+  - `capitale_movimento = valore_1_quarto × frazione`
+- ✅ **SEMPLICE E UNIVERSALE**: Stessa formula per BUY e SELL
+- ✅ **SEMPRE ATTUALIZZATO**: Rivalutazione automatica ad ogni movimento
+- ✅ **INGRESSO FISSO**: Solo all'ingresso usa capitale allocato × frazione
 
 ### v3.2.1 (COMPLETATO) 🔧
 - ✅ **FIX CAPITALE ALLOCATO** - Ogni titolo usa il SUO capitale proporzionale!
@@ -308,7 +332,7 @@ wrangler pages deploy dist --project-name rosicatore
 
 ## ⚠️ Note Importanti
 - **CAPITALE FISSO**: 12.000 USD non modificabile
-- **ALGORITMO DINAMICO**: BUY/SELL basati su cash e valore rivalutato (NON più fissi)
+- **FORMULA UNIVERSALE**: `(cash + valore azioni) / 4 × frazione` per BUY/SELL
 - **DIVIDENDI A CASH**: Dividendi NON reinvestiti, vanno nel cash
 - **NO TASSE**: L'algoritmo NON calcola tassazione
 - **NO COMMISSIONI**: Nessuna commissione broker considerata
