@@ -1,4 +1,4 @@
-// Rosicatore v3.5.0 - Portfolio Tracker Calculator
+// Rosicatore v3.6.0 - Portfolio Tracker Calculator
 // Main Application Logic
 
 // Global state
@@ -392,33 +392,83 @@ function calculatePortfolio() {
     const { capitaleTotale, dataInizio, dataFine } = state.config;
     const { titoli, valori, movimenti, dividendi } = state.csvData;
     
-    // MULTI-TICKER: Calculate for ALL tickers
+    // FILTRO TITOLI PER DATA INGRESSO
     const allResults = [];
+    const titoliSkipped = [];
     
     for (const titoloInfo of titoli) {
         const ticker = titoloInfo.ticker;
         
-        console.log('Calculating for ticker:', ticker);
-        console.log('Titolo info:', titoloInfo);
+        // Trova primo movimento BUY per questo ticker
+        const primoMovimento = movimenti
+            ? movimenti
+                .filter(m => m.ticker === ticker && m.azione === 'BUY')
+                .sort((a, b) => new Date(a.data) - new Date(b.data))[0]
+            : null;
+        
+        // SKIP se titolo NON ha alcun movimento BUY
+        if (!primoMovimento) {
+            console.log(`SKIP ${ticker}: nessun movimento BUY trovato`);
+            titoliSkipped.push({
+                ticker,
+                nome: titoloInfo.nome,
+                motivo: 'Nessun ingresso (BUY) trovato nei movimenti'
+            });
+            continue;
+        }
+        
+        // Usa data primo BUY come data ingresso reale
+        const dataIngressoReale = primoMovimento.data;
+        
+        // SKIP se titolo entra DOPO la data fine del periodo
+        if (dataIngressoReale > dataFine) {
+            console.log(`SKIP ${ticker}: entra il ${dataIngressoReale}, dopo dataFine ${dataFine}`);
+            titoliSkipped.push({
+                ticker,
+                nome: titoloInfo.nome,
+                dataIngresso: dataIngressoReale,
+                motivo: `Entra il ${dataIngressoReale}, dopo la fine del periodo (${dataFine})`
+            });
+            continue;
+        }
+        
+        // Se titolo entra PRIMA dell'inizio del periodo, usa comunque dataIngressoReale
+        // Il calcolo partirà dalla data ingresso reale, non da dataInizio
+        
+        console.log('Calculating for ticker:', ticker, 'Data ingresso reale:', dataIngressoReale);
         
         try {
-            const result = calculateSingleTicker(ticker, titoloInfo, capitaleTotale, dataInizio, dataFine, valori, movimenti, dividendi);
+            const result = calculateSingleTicker(ticker, titoloInfo, capitaleTotale, dataIngressoReale, dataFine, valori, movimenti, dividendi);
+            result.dataIngressoReale = dataIngressoReale;  // Salva data ingresso reale
             allResults.push(result);
         } catch (error) {
             console.error(`Error calculating ${ticker}:`, error);
             addError(`Errore calcolo ${ticker}: ${error.message}`);
+            titoliSkipped.push({
+                ticker,
+                nome: titoloInfo.nome,
+                dataIngresso: dataIngressoReale,
+                motivo: `Errore: ${error.message}`
+            });
         }
     }
     
     if (allResults.length === 0) {
-        throw new Error('Nessun titolo calcolato con successo');
+        throw new Error('Nessun titolo calcolato con successo nel periodo selezionato');
     }
     
-    // Return all results
+    // Return all results + info sui titoli skippati
     return {
         stocks: allResults,
+        titoliSkipped,
         totalPatrimonio: allResults.reduce((sum, r) => sum + r.summary.patrimonioFinale, 0),
-        totalGainLoss: allResults.reduce((sum, r) => sum + r.summary.gainLoss, 0)
+        totalGainLoss: allResults.reduce((sum, r) => sum + r.summary.gainLoss, 0),
+        periodoAnalisi: {
+            dataInizio,
+            dataFine,
+            titoliAttivi: allResults.length,
+            titoliSkippati: titoliSkipped.length
+        }
     };
 }
 
@@ -766,6 +816,9 @@ function displayResults(results) {
     const kpiSection = document.getElementById('kpiSection');
     kpiSection.classList.remove('hidden');
     kpiSection.classList.add('fade-in');
+    
+    // Render periodo analisi + info date picker
+    renderPeriodoAnalisi(results.periodoAnalisi, results.titoliSkipped);
     
     // Render KPI cards (aggregate from all stocks)
     const kpiGrid = document.getElementById('kpiGrid');
@@ -1168,6 +1221,129 @@ function updateSidebarInfo() {
     if (sidebarElement) {
         sidebarElement.textContent = titoliCount;
     }
+}
+
+// Render periodo analisi + spiegazione date picker
+function renderPeriodoAnalisi(periodoInfo, titoliSkipped) {
+    // Trova elemento kpiSection e inserisci prima del kpiGrid
+    const kpiSection = document.getElementById('kpiSection');
+    const kpiGrid = document.getElementById('kpiGrid');
+    
+    // Rimuovi box esistente se presente
+    const existingBox = document.getElementById('periodoAnalisiBox');
+    if (existingBox) existingBox.remove();
+    
+    // Crea nuovo box
+    const box = document.createElement('div');
+    box.id = 'periodoAnalisiBox';
+    box.className = 'bg-gradient-to-r from-blue-900 to-purple-900 rounded-lg p-6 mb-6 border-2 border-blue-500';
+    
+    let html = `
+        <div class="flex items-center gap-3 mb-4">
+            <i class="fas fa-calendar-check text-3xl text-blue-400"></i>
+            <div>
+                <h3 class="text-2xl font-bold text-white">Periodo di Analisi</h3>
+                <p class="text-sm text-gray-300">Come funziona il filtro Date Picker</p>
+            </div>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div class="bg-gray-900 bg-opacity-50 rounded-lg p-4">
+                <div class="text-xs text-gray-400 mb-1">
+                    <i class="fas fa-calendar-alt mr-1"></i>Data Inizio
+                </div>
+                <div class="text-xl font-bold text-white">${periodoInfo.dataInizio}</div>
+            </div>
+            
+            <div class="bg-gray-900 bg-opacity-50 rounded-lg p-4">
+                <div class="text-xs text-gray-400 mb-1">
+                    <i class="fas fa-calendar-check mr-1"></i>Data Fine
+                </div>
+                <div class="text-xl font-bold text-white">${periodoInfo.dataFine}</div>
+            </div>
+            
+            <div class="bg-gray-900 bg-opacity-50 rounded-lg p-4">
+                <div class="text-xs text-gray-400 mb-1">
+                    <i class="fas fa-chart-line mr-1"></i>Giorni Analisi
+                </div>
+                <div class="text-xl font-bold text-white">${Math.ceil((new Date(periodoInfo.dataFine) - new Date(periodoInfo.dataInizio)) / (1000 * 60 * 60 * 24))} giorni</div>
+            </div>
+        </div>
+        
+        <!-- SPIEGAZIONE LOGICA -->
+        <div class="bg-yellow-900 bg-opacity-30 border-l-4 border-yellow-500 rounded-lg p-4 mb-4">
+            <div class="flex items-start gap-3">
+                <i class="fas fa-lightbulb text-2xl text-yellow-400 mt-1"></i>
+                <div>
+                    <h4 class="text-lg font-bold text-yellow-300 mb-2">📋 Come Calcolo i Titoli nel Periodo</h4>
+                    <div class="text-sm text-gray-200 space-y-2">
+                        <p><strong>1. Data Ingresso Reale:</strong> Per ogni titolo, cerco il <strong>primo movimento BUY</strong> nei dati. Quello è il giorno in cui entriamo davvero nel titolo.</p>
+                        
+                        <p><strong>2. Filtro per Periodo:</strong></p>
+                        <ul class="list-disc list-inside ml-4 space-y-1">
+                            <li>✅ <strong>Includo</strong>: Titoli con ingresso ≤ Data Fine</li>
+                            <li>❌ <strong>Escludo</strong>: Titoli con ingresso > Data Fine (non ancora entrati)</li>
+                            <li>❌ <strong>Escludo</strong>: Titoli senza attività nel periodo</li>
+                        </ul>
+                        
+                        <p><strong>3. Calcolo:</strong> Per ogni titolo incluso, calcolo performance dal <strong>giorno di ingresso reale</strong> fino alla <strong>data fine</strong>.</p>
+                        
+                        <p><strong>Esempio:</strong> Se periodo è <code>01/01/2025 → 31/01/2025</code> e GSM entra il <code>10/02/2025</code>, GSM viene <strong>escluso</strong> perché entra dopo.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- TITOLI ATTIVI -->
+        <div class="bg-green-900 bg-opacity-30 border-l-4 border-green-500 rounded-lg p-4 mb-4">
+            <h4 class="text-lg font-bold text-green-300 mb-2">
+                <i class="fas fa-check-circle mr-2"></i>
+                Titoli Attivi nel Periodo: ${periodoInfo.titoliAttivi}
+            </h4>
+            <p class="text-sm text-gray-300">Questi titoli hanno ingresso ≤ ${periodoInfo.dataFine} e sono inclusi nei calcoli.</p>
+        </div>
+    `;
+    
+    // Titoli skippati (se presenti)
+    if (titoliSkipped && titoliSkipped.length > 0) {
+        html += `
+            <div class="bg-red-900 bg-opacity-30 border-l-4 border-red-500 rounded-lg p-4">
+                <h4 class="text-lg font-bold text-red-300 mb-3">
+                    <i class="fas fa-times-circle mr-2"></i>
+                    Titoli Esclusi dal Periodo: ${titoliSkipped.length}
+                </h4>
+                <div class="space-y-2">
+        `;
+        
+        titoliSkipped.forEach(t => {
+            html += `
+                <div class="bg-gray-900 bg-opacity-50 rounded p-3 text-sm">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <span class="font-bold text-red-400">${t.ticker}</span>
+                            <span class="text-gray-300"> - ${t.nome}</span>
+                        </div>
+                        <div class="text-xs text-gray-400">
+                            Ingresso: ${t.dataIngresso}
+                        </div>
+                    </div>
+                    <div class="text-xs text-gray-400 mt-1">
+                        <i class="fas fa-info-circle mr-1"></i>${t.motivo}
+                    </div>
+                </div>
+            `;
+        });
+        
+        html += `
+                </div>
+            </div>
+        `;
+    }
+    
+    box.innerHTML = html;
+    
+    // Inserisci prima del kpiGrid
+    kpiSection.insertBefore(box, kpiGrid);
 }
 
 // Render calculations section - VITA MORTE MIRACOLI di ogni titolo (FORMATO PDF DETTAGLIATO)
