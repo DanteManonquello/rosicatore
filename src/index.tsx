@@ -12,7 +12,7 @@ app.use('/static/*', serveStatic({ root: './public' }))
 
 // API Routes
 app.get('/api/health', (c) => {
-  return c.json({ status: 'ok', version: '3.15.2' })
+  return c.json({ status: 'ok', version: '3.16.0' })
 })
 
 // Main route - Rosicatore Portfolio Tracker
@@ -94,7 +94,7 @@ app.get('/', (c) => {
                         <i class="fas fa-chart-line text-green-400"></i>
                         ROSICATORE
                     </h1>
-                    <p class="text-gray-400 mt-1">Portfolio Tracker Algorithm - v3.15.2</p>
+                    <p class="text-gray-400 mt-1">Portfolio Tracker Algorithm - v3.16.0</p>
                 </div>
                 <div class="text-right">
                     <div class="text-sm text-gray-400">Sistema di Tracking</div>
