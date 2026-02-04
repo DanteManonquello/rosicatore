@@ -1,425 +1,176 @@
-# ROSICATORE v3.12.0 🎯
+# Rosicatore v3.15.0
 
-## 🎯 Project Overview
-**Rosicatore** è un Portfolio Tracker Algorithm che calcola il valore nel tempo di TUTTI i titoli del portafoglio.
+## 🎯 Portfolio Tracker Algorithm
 
-### Caratteristiche Principali
-- ✅ **LOGICA INGRESSO/USCITA CORRETTA (v3.12.0)**: Identifica dinamicamente INGRESSO (0→>0 quarti) e USCITA (>0→0 quarti) nel periodo selezionato
-- ✅ **SKIP TITOLI FUORI PERIODO**: Titoli con primo INGRESSO dopo `dataFine` vengono esclusi dal calcolo
-- ✅ **CALCOLO QUARTI DINAMICO**: Timeline completa di tutti i movimenti per tracciare quarti posseduti giorno per giorno
-- ✅ **TUTTI I TITOLI CALCOLATI**: Ogni titolo in `info_titoli.csv` viene analizzato se presente nel periodo
-- ✅ **DATE PICKER = PERIODO ANALISI**: Definisce inizio/fine calcolo performance
-- ✅ **FRAZIONE INIZIALE**: Ogni titolo parte con la quota indicata in CSV (es. PBR 3/4)
-- ✅ **MOVIMENTI = MODIFICHE**: `movimenti.csv` contiene SOLO BUY/SELL aggiuntivi
-- ✅ **CAPITALE FISSO PER TITOLO**: 1.000 USD per ogni titolo
-- ✅ **FORMULA UNIVERSALE**: `(cash + valore azioni) / 4 × frazione` per BUY/SELL
-- ✅ **DIVIDENDI A CASH**: Dividendi aggiunti al cash (NON reinvestiti)
-- ✅ **MENU HAMBURGER**: Navigazione laterale con tutte le sezioni
-- ✅ **SEZIONE CALCOLI DETTAGLIATA**: Formato PDF step-by-step FASE per FASE
-- ✅ **AUTO-CARICAMENTO CSV**: Caricamento automatico all'avvio (dati persistenti in /public/static/data/)
+Rosicatore è un Portfolio Tracker che calcola il valore nel tempo di TUTTI i titoli del portafoglio.
+
+---
+
+## 🆕 NOVITÀ v3.15.0 - CSV CON CAMPO `primo_ingresso`
+
+### ✨ Nuovo formato CSV movimenti
+
+Il CSV `movimenti.csv` ora include **3 nuovi campi**:
+
+1. **`primo_ingresso`** (true/false): Indica se il movimento è il PRIMO INGRESSO storico (0 → >0 quarti)
+2. **`esposizione_finale`** (numero): Quarti posseduti DOPO il movimento (es. 0.25 = 1/4)
+3. **`uscita_totale`** (true/false): Indica se il movimento porta a USCITA totale (>0 → 0 quarti)
+
+### 📊 Esempio CSV:
+
+```csv
+data,ora,ticker,azione,frazione_numeratore,frazione_denominatore,prezzo_usd,note,primo_ingresso,esposizione_finale,uscita_totale
+2025-01-13,15:37,MARA,BUY,1,4,16.88,entriamo in Marathon Digital - esposizione ammonta a 1.5/4,false,0.38,false
+2025-02-10,15:43,GSM,BUY,1,4,4.17,entriamo in Ferroglobe PLC con una prima posizione parziale,true,0.25,false
+```
+
+### 🔍 Distinzione INGRESSO vs APPESANTIMENTO
+
+Il campo `primo_ingresso` risolve la **confusione matematica** tra:
+
+- **PRIMO INGRESSO** (`primo_ingresso = true`): Passaggio da 0 a >0 quarti
+  - Esempio: GSM 10/02/2025 → da 0/4 a 1/4
+  
+- **APPESANTIMENTO** (`primo_ingresso = false`): BUY quando già possiedo >0 quarti
+  - Esempio: MARA 13/01/2025 → da 0.5/4 a 1.5/4 (avevo già 0.5/4)
+
+### 📁 Base dati: `info_titoli.csv`
+
+Il file `info_titoli.csv` rappresenta lo **stato al 01/01/2025**:
+
+```
+MARA: 0.5/4 (già in portafoglio)
+GSM: NON presente (0/4)
+EQT: 3/4 (già in portafoglio)
+...
+```
+
+Quindi:
+- MARA 13/01: BUY 1/4 → da 0.5/4 a 1.5/4 → `primo_ingresso = false` ✅
+- GSM 10/02: BUY 1/4 → da 0/4 a 1/4 → `primo_ingresso = true` ✅
+
+---
+
+## 📋 Caratteristiche principali
+
+- ✅ **TUTTI I TITOLI CALCOLATI**: Analisi di ogni titolo presente in `info_titoli.csv`
+- ✅ **DATE PICKER**: Definisce l'intervallo di analisi
+- ✅ **FRAZIONE INIZIALE**: Ogni titolo parte con la frazione indicata in CSV (es. PBR 3/4)
+- ✅ **MOVIMENTI.csv**: Contiene SOLO BUY/SELL aggiuntivi con campi `primo_ingresso`, `esposizione_finale`, `uscita_totale`
+- ✅ **CAPITALE FISSO PER TITOLO**: 1.000 USD per titolo
+- ✅ **FORMULA UNIVERSALE**: (cash + valore azioni) / 4 × frazione per BUY/SELL
+- ✅ **DIVIDENDI A CASH**: Dividendi aggiunti al cash (non reinvestiti)
+- ✅ **MENU HAMBURGER**: Navigazione laterale completa
+- ✅ **SEZIONE CALCOLI DETTAGLIATA**: PDF step-by-step FASE per FASE
+- ✅ **AUTO-CARICAMENTO CSV**: Caricamento automatico all'avvio; dati persistenti in `/public/static/data/`
 - ✅ **Date Preimpostate**: 01 Gennaio 2025 → 01 Gennaio 2026 (modificabili)
 - ✅ **Multi-Ticker Automatico**: 12 CSV prezzi pre-caricati per ogni ticker
-- ✅ Calcolo attualizzazione temporale con date range selezionabili
-- ✅ Gestione movimenti: Appesantimento (BUY) e Alleggerimento (SELL)
-- ✅ 22 KPI completi (USD + %)
-- ✅ Tracking completo storico operazioni
-- ✅ Sistema errori/warning integrato
-- ✅ 4 slot caricamento CSV (override manuale se necessario)
+- ✅ **Calcolo attualizzazione temporale**: Date range selezionabili
+- ✅ **Gestione movimenti**: Appesantimento (BUY) e Alleggerimento (SELL)
+- ✅ **22 KPI completi**: USD + %
+- ✅ **Tracking completo storico operazioni**
+- ✅ **Sistema errori/warning integrato**
+- ✅ **4 slot caricamento CSV**: Override manuale se necessario
 
-## 📊 URLs
+---
+
+## 🌐 URLs
+
 - **Sandbox Dev**: https://3000-i2ubmb13xm7pk5sakzkyq-5634da27.sandbox.novita.ai
 - **GitHub**: https://github.com/DanteManonquello/rosicatore
 - **Cloudflare Pages**: (da deployare)
-- **Backup v3.12.0**: https://www.genspark.ai/api/files/s/OIx5DVEd
+- **Backup v3.15.0**: https://www.genspark.ai/api/files/s/aQ92gOvu
 
-## 🏗️ Architettura Dati
+---
+
+## 📊 Architettura Dati
 
 ### Storage
-- **Dati Persistenti**: CSV pre-caricati in `/public/static/data/`
-- **Auto-Load**: Caricamento automatico all'avvio dell'app
-- **Override Manuale**: Possibilità di caricare CSV personalizzati tramite UI
+- **Dati Persistenti**: `/public/static/data/`
+- **Auto-Load**: Caricamento automatico all'avvio
+- **Override Manuale**: Caricamenti CSV personalizzati via UI
 
 ### Modelli Dati
 
-#### 1. info_titoli.csv
+#### `info_titoli.csv` (stato al 01/01/2025)
 ```csv
 nome,ticker,exchange,isin,quota_numeratore,quota_denominatore,tipo
-Ferroglobe PLC,GSM,NASDAQ,GB00BYW6GV68,2,4,GROWTH-DIVIDEND
+Ferroglobe PLC,GSM,NASDAQ,GB00BYW6GV68,0,4,GROWTH-DIVIDEND
+Marathon Digital,MARA,NASDAQ,US5657881067,0.5,4,GROWTH-SPECULATIVE
 ```
 
-#### 2. movimenti.csv
+#### `movimenti.csv` (movimenti 2025 con campo `primo_ingresso`)
 ```csv
-data,ora,ticker,azione,frazione_numeratore,frazione_denominatore,note
-2025-12-02,16:09,GSM,BUY,1,4,aumentiamo di 1/4
-```
-
-#### 3. dividendi.csv
-```csv
-ticker,isin,data_pagamento,importo_usd
-GSM,GB00BYW6GV68,2025-12-29,0.014
-```
-
-#### 4. {TICKER} Stock Price History.csv
-```csv
-"Date","Price","Open","High","Low","Vol.","Change %"
-"12/29/2025","4.620","4.640","4.720","4.560","564.84K","-2.12%"
-```
-
-## 🔢 Algoritmo di Calcolo (v3.5.0 - CAPITALE FISSO PER TITOLO)
-
-### 💰 NUOVA LOGICA CAPITALE
-
-**PRIMA (v3.4.0):**
-```
-Capitale Totale = 12.000€
-Numero Titoli = 12
-Capitale per Titolo = 12.000 / 12 = 1.000€
-```
-
-**ADESSO (v3.5.0):**
-```
-Ogni titolo inizia con 1.000€ FISSO
-Indipendentemente da quanti titoli ci sono nel portafoglio
-```
-
-**Motivo:** Nel tempo posso aggiungere/togliere titoli, quindi ogni titolo parte con 1.000€ fisso all'ingresso.
-
----
-
-### 🎯 FORMULA UNIVERSALE (invariata)
-
-```javascript
-// Per QUALSIASI movimento (BUY o SELL):
-patrimonioAttuale = cashResiduo + (azioni × prezzo)
-valore_1_quarto = patrimonioAttuale / 4
-capitale_movimento = valore_1_quarto × frazione_numeratore
-```
-
-**⚠️ ECCEZIONE: Solo all'INGRESSO usa capitale allocato fisso 1.000€!**
-
----
-
-### FASE 1: INGRESSO (Solo prima volta)
-```
-Capitale_Allocato = 1.000€  // ← FISSO per ogni titolo!
-Frazione_Iniziale = quota_numeratore / quota_denominatore  // Es: 2/4 = 0.5
-Capitale_Investito = Capitale_Allocato × Frazione_Iniziale  // Es: 1000 × 0.5 = 500€
-Azioni = Capitale_Investito / Prezzo_Ingresso  // Es: 500 / 3.92 = 127.55 azioni
-Cash_Residuo = Capitale_Allocato - Capitale_Investito  // Es: 1000 - 500 = 500€
+data,ora,ticker,azione,frazione_numeratore,frazione_denominatore,prezzo_usd,note,primo_ingresso,esposizione_finale,uscita_totale
+2025-01-13,15:37,MARA,BUY,1,4,16.88,appesantimento da 0.5/4 a 1.5/4,false,0.38,false
+2025-02-10,15:43,GSM,BUY,1,4,4.17,primo ingresso in portafoglio,true,0.25,false
 ```
 
 ---
 
-### FASE 2: APPESANTIMENTO (BUY +1/4) - FORMULA UNIVERSALE
-```
-// 1. Calcola patrimonio attuale
-Valore_Azioni = Azioni × Prezzo_Corrente  // Es: 127.55 × 4.63 = 590.56€
-Patrimonio_Attuale = Cash_Residuo + Valore_Azioni  // Es: 500 + 590.56 = 1090.56€
+## 🧪 Test Scenarios
 
-// 2. Calcola valore 1/4 attualizzato
-Valore_1_Quarto = Patrimonio_Attuale / 4  // Es: 1090.56 / 4 = 272.64€
+### TEST 1: 01/01/2025 → 12/01/2025
+**Atteso**: 11 titoli calcolati
+- Tutti i titoli in `info_titoli.csv` (già in portafoglio al 01/01)
+- GSM escluso (primo ingresso 10/02 > dataFine)
 
-// 3. Moltiplica per frazione richiesta
-Capitale_Da_Investire = Valore_1_Quarto × Frazione_Numeratore  // Es: 272.64 × 1 = 272.64€
+### TEST 2: 03/03/2025 → 10/09/2025
+**Atteso**: 12 titoli calcolati
+- 11 titoli da `info_titoli.csv`
+- 1 titolo nuovo: GSM (primo ingresso 10/02 < dataInizio)
 
-// 4. Acquista azioni
-Azioni_Nuove = Capitale_Da_Investire / Prezzo_Corrente  // Es: 272.64 / 4.63 = 58.88 az
-Azioni_Totali += Azioni_Nuove  // Es: 127.55 + 58.88 = 186.43 az
-Cash_Residuo -= Capitale_Da_Investire  // Es: 500 - 272.64 = 227.36€
-```
-
-**Esempio numerico:**
-- Prima: Cash 500€, Azioni 127.55 @ 4.63€ = 590.56€
-- Patrimonio: 500 + 590.56 = **1090.56€**
-- Valore 1/4: 1090.56 / 4 = **272.64€**
-- BUY +1/4: **272.64€** (non 250€ fissi!)
+### TEST 3: 01/01/2025 → 31/12/2025
+**Atteso**: 12 titoli calcolati
+- Tutti i titoli presenti nel 2025
 
 ---
 
-### FASE 3: ALLEGGERIMENTO (SELL -1/4) - FORMULA UNIVERSALE
-```
-// 1. Calcola patrimonio attuale
-Valore_Azioni = Azioni × Prezzo_Corrente  // Es: 186.43 × 5.20 = 969.44€
-Patrimonio_Attuale = Cash_Residuo + Valore_Azioni  // Es: 227.36 + 969.44 = 1196.80€
+## 📦 Deployment
 
-// 2. Calcola valore 1/4 attualizzato
-Valore_1_Quarto = Patrimonio_Attuale / 4  // Es: 1196.80 / 4 = 299.20€
+### Platform
+Cloudflare Pages
 
-// 3. Moltiplica per frazione richiesta
-Capitale_Da_Vendere = Valore_1_Quarto × Frazione_Numeratore  // Es: 299.20 × 1 = 299.20€
+### Status
+✅ Active
 
-// 4. Vendi azioni
-Azioni_Da_Vendere = Capitale_Da_Vendere / Prezzo_Corrente  // Es: 299.20 / 5.20 = 57.54 az
-Azioni_Totali -= Azioni_Da_Vendere  // Es: 186.43 - 57.54 = 128.89 az
-Cash_Residuo += Capitale_Da_Vendere  // Es: 227.36 + 299.20 = 526.56€
-```
+### Tech Stack
+Hono + TypeScript + TailwindCSS + Papa Parse + Day.js
 
-**Esempio numerico:**
-- Prima: Cash 227.36€, Azioni 186.43 @ 5.20€ = 969.44€
-- Patrimonio: 227.36 + 969.44 = **1196.80€**
-- Valore 1/4: 1196.80 / 4 = **299.20€**
-- SELL -1/4: **299.20€** (non 250€ fissi!)
+### Last Updated
+04 Febbraio 2026 - v3.15.0
 
 ---
 
-### FASE 4: DIVIDENDO - SOLO CASH (NON REINVESTITO)
-```
-Dividendo_Totale = Azioni × Importo_Per_Azione  // Es: 181.54 × 0.014 = 2.54€
-Cash_Residuo += Dividendo_Totale  // Es: 250 + 2.54 = 252.54€
-// Azioni rimangono INVARIATE (no nuove azioni)
-```
+## 🔄 Changelog
+
+### v3.15.0 (04/02/2026)
+- ✅ Aggiunto campo `primo_ingresso` al CSV movimenti
+- ✅ Aggiunto campo `esposizione_finale` al CSV movimenti
+- ✅ Aggiunto campo `uscita_totale` al CSV movimenti
+- ✅ Codice usa campo CSV invece di calcolo dinamico
+- ✅ Distinzione matematica tra PRIMO INGRESSO e APPESANTIMENTO
+- ✅ GSM è l'unico titolo con `primo_ingresso = true` (10/02/2025)
+- ✅ Backup CSV vecchio creato: `movimenti_backup_20260204_212655.csv`
+
+### v3.14.0 (04/02/2026)
+- ✅ Rimosso check errato `primoIngressoStorico > dataFine`
+- ✅ Titoli in `info_titoli.csv` sempre calcolati se quarti > 0 al dataInizio
+- ✅ Fix EQT, AA, MARA, VZLA che erano skippati erroneamente
+
+### v3.13.0 (04/02/2026)
+- ✅ Usa `info_titoli.csv` come BASE per calcolo quarti al dataInizio
+- ✅ Rappresenta stato al 01/01/2025
+
+### v3.12.1 (04/02/2026)
+- ✅ Fix normalizzazione date movimenti (Papa Parse dynamicTyping)
+
+### v3.12.0 (04/02/2026)
+- ✅ Fix logica ingresso/uscita titoli
+- ✅ Corretto calcolo quarti per periodo
 
 ---
 
-### 📊 TABELLA COMPARATIVA
+## 📄 License
 
-| Momento | Cash | Valore Azioni | Patrimonio | Valore 1/4 | Movimento | Importo |
-|---------|------|---------------|-----------|------------|-----------|---------|
-| Ingresso | 500€ | 500€ | 1.000€ | - | +2/4 (fisso) | **500€** |
-| Dopo BUY | 500€ | 590.56€ | 1.090.56€ | 272.64€ | +1/4 | **272.64€** |
-| Dopo crescita | 227.36€ | 969.44€ | 1.196.80€ | 299.20€ | -1/4 | **299.20€** |
-| Dopo SELL | 526.56€ | 670.24€ | 1.196.80€ | 299.20€ | +1/4 | **299.20€** |
-
-### FASE 4: DIVIDENDO (REINVESTITO AUTOMATICAMENTE)
-```
-Dividendo_Totale = Azioni × Dividendo_Per_Azione  // Es: 181.54 × 0.014 = 2.54€
-Azioni_Nuove = Dividendo_Totale / Prezzo_Giorno_Dividendo  // Es: 2.54 / 4.62 = 0.55 azioni
-Azioni_Totali += Azioni_Nuove  // Es: 181.54 + 0.55 = 182.09 azioni
-```
-
-### FASE 5: VALUTAZIONE FINALE
-```
-Valore_Posizione = Azioni × Prezzo_Finale  // Es: 181.54 × 4.59 = 833.27€
-Patrimonio_Totale = Valore_Posizione + Cash_Residuo  // Es: 833.27 + 250 = 1083.27€
-Gain_Loss = Patrimonio_Totale - Capitale_Allocato  // Es: 1083.27 - 1000 = +83.27€
-ROI = (Gain_Loss / Capitale_Allocato) × 100  // Es: 83.27 / 1000 × 100 = +8.33%
-```
-
-## 📈 KPI Disponibili (22 Metriche)
-
-### KPI Principali
-1. **Patrimonio Totale** (USD) - Valore complessivo portafoglio
-2. **Gain/Loss** (USD) - Profitto/Perdita assoluta
-3. **ROI Portafoglio** (%) - Return on Investment totale
-4. **ROI Posizioni** (%) - ROI solo su capitale investito
-
-### KPI Valori
-5. **Valore Posizione** (USD) - Valore azioni possedute
-6. **Cash Residuo** (USD) - Liquidità disponibile
-7. **Azioni Possedute** (az) - Numero azioni
-8. **Prezzo Ingresso** (USD) - Prezzo acquisto iniziale
-9. **Prezzo Finale** (USD) - Prezzo corrente
-10. **Variazione Prezzo** (%) - % cambio prezzo
-
-### KPI Capitali
-11. **Capitale Allocato** (USD) - Capitale FISSO per titolo (es. 1000€)
-12. **Capitale Investito** (USD) - Capitale EFFETTIVO in azioni (varia con BUY/SELL)
-13. **Peso Portafoglio** (%) - % azioni su totale
-14. **Frazione Attuale** - Frazione corrente investita (varia con BUY/SELL)
-
-### KPI Operazioni
-15. **Numero Movimenti** - Totale BUY/SELL
-16. **Numero Dividendi** - Totale pagamenti dividendi
-17. **Dividendi Totali** (USD) - Somma dividendi incassati
-
-### KPI Performance
-18. **Max Patrimonio** (USD) - Picco massimo
-19. **Min Patrimonio** (USD) - Minimo raggiunto
-20. **Drawdown** (%) - % distanza da max
-21. **Gain vs Max** (USD) - Differenza da picco
-22. **Gain vs Min** (USD) - Guadagno da minimo
-
-## 🎮 Guida Utente
-
-### Step 1: Configurazione
-1. **Capitale Totale**: FISSO a 12.000 USD (non modificabile)
-2. Seleziona **Data Inizio** (default: 11 Luglio 2025)
-3. Seleziona **Data Fine** (default: 1 Gennaio 2026)
-
-### Step 2: Caricamento CSV
-**I dati sono già pre-caricati automaticamente all'avvio!**
-- ✅ **TITOLI**: 12 titoli pre-caricati
-- ✅ **VALORI**: 12 CSV prezzi pre-caricati
-- ✅ **MOVIMENTI**: Pre-caricati
-- ✅ **DIVIDENDI**: Pre-caricati
-
-Puoi comunque caricare CSV personalizzati tramite i 4 slot se necessario.
-
-### Step 3: Calcolo
-1. Clicca **CALCOLA PORTAFOGLIO**
-2. Visualizza **22 KPI** in tempo reale
-3. Analizza **Tabella Riepilogo** con tutti i titoli
-4. Esplora **Storico Operazioni** del primo titolo
-5. Consulta **Calcoli Dettagliati** per vedere vita-morte-miracoli di ogni titolo
-
-### Step 4: Navigazione
-Usa il **Menu Hamburger** (in alto a destra) per navigare tra le sezioni:
-- 🔧 **Configurazione**: Setup iniziale
-- 📊 **KPI Performance**: KPI aggregati
-- 📋 **Riepilogo Titoli**: Tabella con tutti i titoli
-- 📜 **Storico Operazioni**: Cronologia primo titolo
-- 🧮 **Calcoli Dettagliati**: Cronologia completa titolo per titolo
-
-### Gestione Errori
-- Gli errori vengono mostrati in sezione dedicata
-- Dividendi/movimenti fuori periodo vengono segnalati
-- Date mancanti nei prezzi usano match più vicino
-
-## 🚀 Deployment
-
-### Local Development
-```bash
-cd /home/user/webapp
-npm install
-npm run build
-pm2 start ecosystem.config.cjs
-pm2 logs rosicatore --nostream
-```
-
-### Production (Cloudflare Pages)
-```bash
-npm run build
-wrangler pages deploy dist --project-name rosicatore
-```
-
-## 🛠️ Tech Stack
-- **Backend**: Hono (Cloudflare Workers)
-- **Frontend**: Vanilla JS + TailwindCSS
-- **CSV Parser**: PapaParse
-- **Date Handling**: DayJS
-- **Icons**: FontAwesome
-- **Deployment**: Cloudflare Pages
-
-## 📝 Status
-- **Version**: v3.5.0
-- **Status**: ✅ ATTIVO
-- **Deployment**: Sandbox
-- **Last Updated**: 2026-02-04
-
-## 🗺️ Roadmap
-
-### v3.9.0 (COMPLETATO) ✅ **CURRENT - LOGICA FINALMENTE CORRETTA!**
-- ✅ **TUTTI I TITOLI CALCOLATI**
-  - Ogni titolo in `info_titoli.csv` viene analizzato
-  - NESSUN filtro basato su movimenti.csv
-  - Frazione iniziale da info_titoli.csv (es. PBR 3/4, HL 4/4)
-- ✅ **DATE PICKER = PERIODO ANALISI**
-  - dataInizio: Tutti i titoli entrano con frazione iniziale
-  - dataFine: Valutazione finale performance
-  - Movimenti BUY/SELL applicati solo se nel periodo
-- ✅ **MOVIMENTI.CSV = SOLO MODIFICHE**
-  - BUY: Appesantimento (aumento frazione)
-  - SELL: Alleggerimento (riduzione frazione)
-  - Se nessun movimento → titolo resta con frazione iniziale
-- ✅ **SPIEGAZIONE CORRETTA**
-  - Box spiega: "Tutti i titoli sono già in portafoglio"
-  - movimenti.csv contiene solo le modifiche
-
-### v3.8.0 (OBSOLETO - ERRORE GRAVE) ❌
-- ❌ Filtrava per primo BUY nei movimenti
-- ❌ Escludeva titoli senza BUY in movimenti.csv
-- ❌ Non capiva che info_titoli.csv = portafoglio iniziale
-
-### v3.7.0 (OBSOLETO) ❌
-- ❌ Nessun filtro ma logica confusa
-
-### v3.5.0 (COMPLETATO) 💰
-- ✅ Capitale fisso 1.000€ per titolo
-- ✅ Date: 01/01/2025 → 01/01/2026
-
-### v3.2.1 (COMPLETATO) 🔧
-- ✅ **FIX CAPITALE ALLOCATO** - Ogni titolo usa il SUO capitale proporzionale!
-- ✅ Corretto calcolo: `capitaleAllocato = capitaleTotale * frazione`
-- ✅ Fixato: Tutti i titoli mostravano $1200 invece di proporzionale
-- ✅ Fixato: Gain/Loss calcolato su capitale allocato corretto
-- ✅ Fixato: ROI calcolato su capitale allocato corretto
-- ✅ Fixato: Cash residuo per titolo (inizialmente 0, poi da movimenti)
-
-### v3.1.0 (COMPLETATO) 🚀
-- ✅ **MULTI-TICKER SUPPORT** - Calcola TUTTI i titoli caricati!
-- ✅ Itera su tutti i ticker del CSV info_titoli
-- ✅ Calcolo simultaneo di N titoli
-- ✅ Tabella con UNA RIGA per OGNI titolo
-- ✅ KPI aggregati patrimonio totale
-- ✅ Gestione errori per ticker singolo (continua anche se uno fallisce)
-
-### v3.0.2 (COMPLETATO)
-- ✅ Tabella riepilogo titoli
-- ✅ Dati chiave per ogni ticker (nome, capitale, crescita, ROI)
-- ✅ 15 colonne informative per titolo
-- ✅ Color coding per tipo titolo (DIVIDEND/GROWTH/SPECULATIVE)
-- ✅ Visual feedback con hover effects
-
-### v3.0.1 (COMPLETATO)
-- ✅ Drag & Drop support per CSV upload
-- ✅ Visual feedback durante drag
-- ✅ Validazione formato file (.csv only)
-- ✅ Nome file mostrato dopo upload
-
-### v3.0.0 (COMPLETATO)
-- ✅ Calcolo attualizzazione temporale
-- ✅ Appesantimento/Alleggerimento
-- ✅ Dividendi reinvestiti automaticamente
-- ✅ 22 KPI funzionanti
-- ✅ Sistema errori/warning
-- ✅ Single-ticker calculation (GSM)
-
-### v3.3.0 (PROSSIMO)
-- ⏳ Export PDF report
-- ⏳ Grafici evoluzione temporale
-- ⏳ Chart.js integration
-- ⏳ Selezione ticker da dropdown per storico operazioni
-
-### v3.4.0
-- ⏳ Storage opzionale (D1 database)
-- ⏳ Salvare configurazioni
-- ⏳ History sessioni precedenti
-- ⏳ Confronto periodi temporali
-
-## ⚠️ Note Importanti
-- **CAPITALE FISSO PER TITOLO**: 1.000 USD per ogni titolo (non diviso)
-- **FORMULA UNIVERSALE**: `(cash + valore azioni) / 4 × frazione` per BUY/SELL
-- **DIVIDENDI A CASH**: Dividendi NON reinvestiti, vanno nel cash
-- **NO TASSE**: L'algoritmo NON calcola tassazione
-- **NO COMMISSIONI**: Nessuna commissione broker considerata
-- **USD ONLY**: Tutti i valori sono in dollari USA
-- **CLIENT-SIDE**: Tutti i dati rimangono nel browser, nessuna persistenza
-
-## 🧮 Esempio Pratico (GSM)
-
-### Setup Iniziale
-- Capitale Totale: 12.000 USD
-- Numero Titoli: 12
-- Capitale Allocato GSM: 12.000 / 12 = **1.000 USD**
-- Frazione Iniziale: 2/4 = 0.5
-- Capitale Investito: 1.000 × 0.5 = **500 USD**
-- Cash Residuo: 1.000 - 500 = **500 USD**
-
-### Operazioni
-1. **01/08/2025 - INGRESSO 2/4**
-   - Prezzo: $3.920
-   - Azioni: 500 / 3.920 = 127.55 azioni
-   - Valore: 127.55 × 3.920 = $500
-   - Cash: $500
-
-2. **02/12/2025 - BUY +1/4 (da 2/4 a 3/4)**
-   - Prezzo: $4.630
-   - Capitale Nuovo: 1.000 × 0.25 = $250
-   - Azioni Nuove: 250 / 4.630 = 53.99 azioni
-   - Azioni Totali: 127.55 + 53.99 = 181.54 azioni
-   - Capitale Investito: 500 + 250 = $750
-   - Cash: 500 - 250 = $250
-
-3. **29/12/2025 - DIVIDEND $0.014**
-   - Dividendo: 181.54 × 0.014 = $2.54
-   - Azioni Nuove: 2.54 / 4.620 = 0.55 azioni
-   - Azioni Totali: 181.54 + 0.55 = 182.09 azioni
-   - Cash: $250 (invariato)
-
-4. **02/01/2026 - FINE PERIODO**
-   - Prezzo: $4.590
-   - Valore Azioni: 182.09 × 4.590 = $835.79
-   - Cash: $250
-   - Patrimonio: $835.79 + $250 = **$1.085.79**
-   - Gain/Loss: $1.085.79 - $1.000 = **+$85.79**
-   - ROI: 85.79 / 1.000 × 100 = **+8.58%**
+MIT
