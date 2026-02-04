@@ -1,4 +1,4 @@
-# ROSICATORE v3.7.0 🎯
+# ROSICATORE v3.8.0 🎯
 
 ## 🎯 Project Overview
 **Rosicatore** è un Portfolio Tracker Algorithm avanzato per il monitoraggio e l'analisi del valore attualizzato di portafogli azionari nel tempo.
@@ -7,8 +7,9 @@
 - ✅ **CAPITALE FISSO PER TITOLO**: 1.000 USD per ogni titolo (non diviso)
 - ✅ **FORMULA UNIVERSALE**: `(cash + valore azioni) / 4 × frazione` per BUY/SELL
 - ✅ **DIVIDENDI A CASH**: Dividendi aggiunti al cash (NON reinvestiti)
-- ✅ **DATE PICKER CORRETTO**: TUTTI i titoli entrano/escono con dataInizio/dataFine (NESSUN filtro!)
-- ✅ **SPIEGAZIONE DATE PICKER**: Box informativo che spiega la logica (ingresso = dataInizio per TUTTI)
+- ✅ **FILTRO PRIMO BUY**: Mostra solo titoli con primo BUY ≤ dataFine (già comprati)
+- ✅ **DATA INGRESSO EFFETTIVA**: Se primo BUY < dataInizio → usa dataInizio; altrimenti primo BUY
+- ✅ **SPIEGAZIONE DATE PICKER**: Box informativo con logica filtro (primo BUY)
 - ✅ **MENU HAMBURGER**: Navigazione laterale con tutte le sezioni
 - ✅ **SEZIONE CALCOLI DETTAGLIATA**: Formato PDF step-by-step FASE per FASE
 - ✅ **AUTO-CARICAMENTO CSV**: Caricamento automatico all'avvio (dati persistenti in /public/static/data/)
@@ -293,34 +294,33 @@ wrangler pages deploy dist --project-name rosicatore
 
 ## 🗺️ Roadmap
 
-### v3.7.0 (COMPLETATO) 🔥 **CURRENT - FIX CORRETTO!**
-- ✅ **DATE PICKER LOGICA CORRETTA**
-  - ❌ RIMOSSO: Filtro errato per primo BUY
-  - ✅ NUOVO: TUTTI i titoli entrano con `dataInizio` (frazione iniziale da info_titoli.csv)
-  - ✅ NUOVO: TUTTI i titoli escono con `dataFine` (valutazione finale)
-  - ✅ Movimenti BUY/SELL/DIVIDEND applicati solo se nel periodo
-  - ✅ Box spiegazione aggiornato: "Tutti entrano/escono nello stesso giorno"
-- ✅ **NESSUN FILTRO SUI TITOLI**
-  - Tutti i titoli in info_titoli.csv vengono calcolati
-  - Data ingresso = dataInizio del date picker (per TUTTI)
-  - Data uscita = dataFine del date picker (per TUTTI)
+### v3.8.0 (COMPLETATO) 🔥 **CURRENT - LOGICA DEFINITIVA!**
+- ✅ **FILTRO PER PRIMO BUY** (Finalmente corretto!)
+  - Trova primo movimento BUY per ogni titolo
+  - ❌ SKIP se primo BUY > dataFine (non ancora comprato)
+  - ✅ Includi se primo BUY ≤ dataFine
+  - Se primo BUY < dataInizio → usa dataInizio come ingresso (già in portafoglio)
+  - Se primo BUY ≥ dataInizio → usa primo BUY come ingresso (entra nel periodo)
+- ✅ **SPIEGAZIONE CORRETTA**
+  - Box spiega: "Titolo appare SOLO SE comprato prima o durante il periodo"
+  - Esempio: Periodo 01/01→09/01, GSM primo BUY 13/01 → ESCLUSO
+- ✅ **ELENCO TITOLI ESCLUSI**
+  - Mostra titoli non ancora comprati con data primo BUY
+  - Motivo chiaro: "Non ancora acquistato (primo BUY: ...)"
+
+### v3.7.0 (OBSOLETO - ERRORE OPPOSTO) ❌
+- ❌ Nessun filtro: mostrava TUTTI i titoli sempre
+- ❌ Bug: titoli futuri apparivano in periodi passati
+- ❌ Logica errata: ignorava completamente primo BUY
 
 ### v3.6.0 (OBSOLETO - LOGICA ERRATA) ❌
-- ❌ Filtro sbagliato: cercava primo BUY e filtrava titoli
-- ❌ Bug: titoli senza BUY venivano esclusi
-- ❌ Logica errata: usava data primo BUY come ingresso
+- ❌ Filtro sbagliato: escludeva titoli senza BUY
+- ❌ Bug: filtrava troppo aggressivamente
 
 ### v3.5.0 (COMPLETATO) 💰
 - ✅ **CAPITALE FISSO PER TITOLO: 1.000€**
-  - Non più diviso per numero titoli
-  - Ogni titolo inizia con 1.000€ fisso
-  - Permette aggiunta/rimozione titoli nel tempo
 - ✅ **NUOVI CSV MOVIMENTI E TITOLI**
-  - Movimenti completi 2025
-  - Info titoli aggiornati al 01/01/2025
-  - GSM aggiunto alla lista
-- ✅ **DATE AGGIORNATE**
-  - Periodo: 01/01/2025 → 01/01/2026
+- ✅ **DATE AGGIORNATE**: 01/01/2025 → 01/01/2026
 
 ### v3.2.1 (COMPLETATO) 🔧
 - ✅ **FIX CAPITALE ALLOCATO** - Ogni titolo usa il SUO capitale proporzionale!
