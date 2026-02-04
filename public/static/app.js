@@ -581,6 +581,9 @@ function displayResults(results) {
         kpiGrid.appendChild(card);
     });
     
+    // Render stock summary table
+    renderStockSummary(results);
+    
     // Render detailed history
     renderDetailedHistory(results.history);
     
@@ -613,6 +616,101 @@ function createKPICard(kpi) {
     `;
     
     return div;
+}
+
+// Render stock summary table
+function renderStockSummary(results) {
+    const content = document.getElementById('stockSummaryContent');
+    const { ticker, summary } = results;
+    
+    // Get titolo info
+    const titoloInfo = state.csvData.titoli.find(t => t.ticker === ticker);
+    const titoloNome = titoloInfo ? titoloInfo.nome : ticker;
+    const tipoTitolo = titoloInfo ? titoloInfo.tipo : 'N/A';
+    
+    const {
+        capitaleTotale,
+        valorePosizioneFinale,
+        patrimonioFinale,
+        cashResiduo,
+        azioni,
+        prezzoIngresso,
+        prezzoFinale,
+        gainLoss,
+        roiPortafoglio
+    } = summary;
+    
+    // Calculate additional metrics
+    const capitaleInvestito = valorePosizioneFinale - gainLoss + (capitaleTotale - patrimonioFinale);
+    const frazioneInvestita = titoloInfo ? `${titoloInfo.quota_numeratore}/${titoloInfo.quota_denominatore}` : 'N/A';
+    const pesoPortafoglio = (valorePosizioneFinale / patrimonioFinale) * 100;
+    const variazionePrezzo = ((prezzoFinale - prezzoIngresso) / prezzoIngresso) * 100;
+    
+    let html = `
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="border-b-2 border-gray-600">
+                        <th class="text-left py-3 px-4 font-semibold">Ticker</th>
+                        <th class="text-left py-3 px-4 font-semibold">Nome</th>
+                        <th class="text-center py-3 px-4 font-semibold">Tipo</th>
+                        <th class="text-right py-3 px-4 font-semibold">Capitale Allocato</th>
+                        <th class="text-right py-3 px-4 font-semibold">Capitale Investito</th>
+                        <th class="text-right py-3 px-4 font-semibold">Frazione</th>
+                        <th class="text-right py-3 px-4 font-semibold">Azioni</th>
+                        <th class="text-right py-3 px-4 font-semibold">Prezzo Ingresso</th>
+                        <th class="text-right py-3 px-4 font-semibold">Prezzo Attuale</th>
+                        <th class="text-right py-3 px-4 font-semibold">Var. Prezzo</th>
+                        <th class="text-right py-3 px-4 font-semibold">Valore Posizione</th>
+                        <th class="text-right py-3 px-4 font-semibold">Cash Residuo</th>
+                        <th class="text-right py-3 px-4 font-semibold">Peso %</th>
+                        <th class="text-right py-3 px-4 font-semibold">Gain/Loss</th>
+                        <th class="text-right py-3 px-4 font-semibold">ROI %</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr class="border-b border-gray-700 hover:bg-gray-750">
+                        <td class="py-3 px-4 font-bold text-blue-400">${ticker}</td>
+                        <td class="py-3 px-4">${titoloNome}</td>
+                        <td class="py-3 px-4 text-center">
+                            <span class="px-2 py-1 rounded text-xs ${
+                                tipoTitolo.includes('DIVIDEND') ? 'bg-green-900 text-green-300' :
+                                tipoTitolo.includes('GROWTH') ? 'bg-blue-900 text-blue-300' :
+                                'bg-purple-900 text-purple-300'
+                            }">
+                                ${tipoTitolo}
+                            </span>
+                        </td>
+                        <td class="py-3 px-4 text-right font-medium">$${capitaleTotale.toFixed(2)}</td>
+                        <td class="py-3 px-4 text-right">$${capitaleInvestito.toFixed(2)}</td>
+                        <td class="py-3 px-4 text-right text-gray-400">${frazioneInvestita}</td>
+                        <td class="py-3 px-4 text-right">${azioni.toFixed(4)}</td>
+                        <td class="py-3 px-4 text-right">$${prezzoIngresso.toFixed(3)}</td>
+                        <td class="py-3 px-4 text-right font-medium">$${prezzoFinale.toFixed(3)}</td>
+                        <td class="py-3 px-4 text-right ${variazionePrezzo >= 0 ? 'text-green-400' : 'text-red-400'}">
+                            ${variazionePrezzo >= 0 ? '+' : ''}${variazionePrezzo.toFixed(2)}%
+                        </td>
+                        <td class="py-3 px-4 text-right font-bold">$${valorePosizioneFinale.toFixed(2)}</td>
+                        <td class="py-3 px-4 text-right text-gray-400">$${cashResiduo.toFixed(2)}</td>
+                        <td class="py-3 px-4 text-right">${pesoPortafoglio.toFixed(2)}%</td>
+                        <td class="py-3 px-4 text-right font-bold ${gainLoss >= 0 ? 'text-green-400' : 'text-red-400'}">
+                            ${gainLoss >= 0 ? '+' : ''}$${gainLoss.toFixed(2)}
+                        </td>
+                        <td class="py-3 px-4 text-right font-bold ${roiPortafoglio >= 0 ? 'text-green-400' : 'text-red-400'}">
+                            ${roiPortafoglio >= 0 ? '+' : ''}${roiPortafoglio.toFixed(2)}%
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="mt-4 text-xs text-gray-500 text-center">
+            <i class="fas fa-info-circle mr-1"></i>
+            Questa tabella mostra il riepilogo di ciascun titolo nel portafoglio
+        </div>
+    `;
+    
+    content.innerHTML = html;
 }
 
 // Render detailed history table

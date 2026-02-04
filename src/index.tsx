@@ -186,9 +186,18 @@ app.get('/', (c) => {
                     <!-- KPIs will be dynamically inserted here -->
                 </div>
 
+                <!-- Stock Summary Table -->
+                <div id="stockSummary" class="bg-gray-800 rounded-lg p-6 border border-gray-700 mb-6">
+                    <h3 class="text-xl font-bold mb-4 flex items-center gap-2">
+                        <i class="fas fa-table text-blue-400"></i>
+                        Riepilogo Titoli
+                    </h3>
+                    <div id="stockSummaryContent"></div>
+                </div>
+
                 <!-- Detailed Results -->
                 <div id="detailedResults" class="bg-gray-800 rounded-lg p-6 border border-gray-700">
-                    <h3 class="text-xl font-bold mb-4">Risultati Dettagliati</h3>
+                    <h3 class="text-xl font-bold mb-4">Storico Operazioni</h3>
                     <div id="detailedContent"></div>
                 </div>
             </div>
