@@ -1,12 +1,12 @@
 data,ora,ticker,azione,frazione_numeratore,frazione_denominatore,prezzo_usd,note,primo_ingresso,esposizione_finale,uscita_totale
-2025-01-13,15:37,MARA,BUY,1,4,16.88,entriamo in Marathon Digital - esposizione ammonta a 1.5/4,false,0.38,false
-2025-02-10,15:43,GSM,BUY,1,4,4.17,entriamo in Ferroglobe PLC con una prima posizione parziale,true,0.25,false
-2025-02-25,16:38,VZLA,BUY,1,4,1.92,entriamo in Vizsla Silver - esposizione ammonta a 3/4,false,0.75,false
-2025-02-25,16:39,GSM,BUY,1,4,3.54,incrementiamo di 1/4 in Ferroglobe PLC - portando esposizione a 2/4,false,0.5,false
-2025-04-03,15:35,AA,BUY,1,4,28.75,incrementiamo di 1/4 in Alcoa - esposizione ammonta a 3/4,false,0.75,false
-2025-04-03,15:36,MARA,BUY,1.5,4,11.44,incrementiamo di 1.5/4 in Marathon Digital - esposizione ammonta a 3/4,false,0.75,false
-2025-06-23,15:38,VZLA,BUY,1,4,3.011,incrementiamo di 1/4 in Vizsla Silver - esposizione ammonta a 4/4,false,1,false
-2025-08-18,15:39,HL,SELL,1,4,,diminuiamo di 1/4,false,0.75,false
-2025-10-29,14:40,EQT,BUY,1,4,,aumentiamo di 1/4,false,1,false
-2025-12-02,16:09,GSM,BUY,1,4,,aumentiamo di 1/4,false,0.75,false
-2025-12-22,15:33,VZLA,SELL,1,4,5.48,alleggerisce di 1/4 la posizione - portandola a 3/4 - profitto +197%,false,0.75,false
+2025-01-13,15:37,MARA,BUY,1,4,16.88,"entriamo in Marathon Digital - esposizione ammonta a 1.5/4",false,0.38,false
+2025-02-10,15:43,GSM,BUY,1,4,4.17,"entriamo in Ferroglobe PLC con una prima posizione parziale",true,0.25,false
+2025-02-25,16:38,VZLA,BUY,1,4,1.92,"entriamo in Vizsla Silver - esposizione ammonta a 3/4",false,0.75,false
+2025-02-25,16:39,GSM,BUY,1,4,3.54,"incrementiamo di 1/4 in Ferroglobe PLC - portando esposizione a 2/4",false,0.5,false
+2025-04-03,15:35,AA,BUY,1,4,28.75,"incrementiamo di 1/4 in Alcoa - esposizione ammonta a 3/4",false,0.75,false
+2025-04-03,15:36,MARA,BUY,1.5,4,11.44,"incrementiamo di 1.5/4 in Marathon Digital - esposizione ammonta a 3/4",false,0.75,false
+2025-06-23,15:38,VZLA,BUY,1,4,3.011,"incrementiamo di 1/4 in Vizsla Silver - esposizione ammonta a 4/4",false,1,false
+2025-08-18,15:39,HL,SELL,1,4,,"diminuiamo di 1/4",false,0.75,false
+2025-10-29,14:40,EQT,BUY,1,4,,"aumentiamo di 1/4",false,1,false
+2025-12-02,16:09,GSM,BUY,1,4,,"aumentiamo di 1/4",false,0.75,false
+2025-12-22,15:33,VZLA,SELL,1,4,5.48,"alleggerisce di 1/4 la posizione - portandola a 3/4 - profitto +197%",false,0.75,false
