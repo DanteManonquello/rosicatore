@@ -1,4 +1,4 @@
-// Rosicatore v3.9.0 - Portfolio Tracker Calculator
+// Rosicatore v3.10.0 - Portfolio Tracker Calculator
 // Main Application Logic
 
 // Global state
@@ -392,19 +392,85 @@ function calculatePortfolio() {
     const { capitaleTotale, dataInizio, dataFine } = state.config;
     const { titoli, valori, movimenti, dividendi } = state.csvData;
     
-    // CALCOLA TUTTI I TITOLI IN info_titoli.csv
-    // Tutti i titoli ENTRANO con dataInizio (frazione iniziale da info_titoli.csv)
-    // Movimenti.csv contiene SOLO le modifiche (BUY/SELL extra)
+    // FILTRO INTELLIGENTE: Usa movimenti.csv per determinare ingresso/uscita reale
     const allResults = [];
     const titoliSkipped = [];
     
     for (const titoloInfo of titoli) {
         const ticker = titoloInfo.ticker;
         
-        console.log('Calculating for ticker:', ticker, 'Ingresso:', dataInizio, 'Uscita:', dataFine);
+        // Trova tutti i movimenti BUY per questo ticker
+        const movimentiBuy = movimenti
+            ? movimenti
+                .filter(m => m.ticker === ticker && m.azione === 'BUY')
+                .sort((a, b) => new Date(a.data) - new Date(b.data))
+            : [];
+        
+        // Se NON ci sono BUY, SKIP (titolo mai comprato)
+        if (movimentiBuy.length === 0) {
+            console.log(`SKIP ${ticker}: nessun movimento BUY trovato`);
+            titoliSkipped.push({
+                ticker,
+                nome: titoloInfo.nome,
+                motivo: 'Mai acquistato (nessun BUY nei movimenti)'
+            });
+            continue;
+        }
+        
+        // Primo BUY = data ingresso reale nel portafoglio
+        const primoBuy = movimentiBuy[0];
+        const dataPrimoBuy = primoBuy.data;
+        
+        // SKIP se primo BUY è DOPO la dataFine (non ancora comprato)
+        if (dataPrimoBuy > dataFine) {
+            console.log(`SKIP ${ticker}: primo BUY ${dataPrimoBuy} dopo dataFine ${dataFine}`);
+            titoliSkipped.push({
+                ticker,
+                nome: titoloInfo.nome,
+                dataPrimoBuy,
+                motivo: `Non ancora acquistato (primo BUY: ${dataPrimoBuy})`
+            });
+            continue;
+        }
+        
+        // Calcola frazione attuale al dataInizio (sommando tutti i movimenti prima)
+        let frazioneAlDataInizio = 0;
+        if (dataPrimoBuy < dataInizio) {
+            // Titolo comprato prima del periodo: calcola frazione accumulata
+            const movimentiPrePeriodo = movimenti.filter(m => 
+                m.ticker === ticker && m.data < dataInizio
+            );
+            
+            movimentiPrePeriodo.forEach(m => {
+                const frazione = m.frazione_numeratore / m.frazione_denominatore;
+                if (m.azione === 'BUY') {
+                    frazioneAlDataInizio += frazione;
+                } else if (m.azione === 'SELL') {
+                    frazioneAlDataInizio -= frazione;
+                }
+            });
+            
+            // SKIP se frazione = 0 (venduto totalmente prima del periodo)
+            if (frazioneAlDataInizio <= 0) {
+                console.log(`SKIP ${ticker}: venduto totalmente prima di dataInizio`);
+                titoliSkipped.push({
+                    ticker,
+                    nome: titoloInfo.nome,
+                    motivo: 'Venduto totalmente prima del periodo'
+                });
+                continue;
+            }
+        }
+        
+        // Determina data ingresso effettiva
+        const dataIngressoEffettiva = dataPrimoBuy < dataInizio ? dataInizio : dataPrimoBuy;
+        
+        console.log('Calculating for ticker:', ticker, 'Primo BUY:', dataPrimoBuy, 'Ingresso effettivo:', dataIngressoEffettiva, 'Frazione al dataInizio:', frazioneAlDataInizio);
         
         try {
-            const result = calculateSingleTicker(ticker, titoloInfo, capitaleTotale, dataInizio, dataFine, valori, movimenti, dividendi);
+            const result = calculateSingleTicker(ticker, titoloInfo, capitaleTotale, dataIngressoEffettiva, dataFine, valori, movimenti, dividendi, frazioneAlDataInizio);
+            result.dataPrimoBuy = dataPrimoBuy;
+            result.dataIngressoEffettiva = dataIngressoEffettiva;
             allResults.push(result);
         } catch (error) {
             console.error(`Error calculating ${ticker}:`, error);
@@ -412,6 +478,7 @@ function calculatePortfolio() {
             titoliSkipped.push({
                 ticker,
                 nome: titoloInfo.nome,
+                dataPrimoBuy,
                 motivo: `Errore: ${error.message}`
             });
         }
@@ -437,14 +504,15 @@ function calculatePortfolio() {
 }
 
 // Calculate single ticker
-function calculateSingleTicker(ticker, titoloInfo, capitaleTotalePortafoglio, dataInizio, dataFine, valori, movimenti, dividendi) {
+function calculateSingleTicker(ticker, titoloInfo, capitaleTotalePortafoglio, dataInizio, dataFine, valori, movimenti, dividendi, frazioneAlDataInizio = null) {
     
     // NUOVA LOGICA: Ogni titolo inizia con 1000€ FISSO
-    // Non dividiamo più il capitale totale per numero titoli
     const capitaleAllocato = 1000;  // ← 1000€ FISSO per ogni titolo!
     
-    const frazioneIniziale = titoloInfo.quota_numeratore / titoloInfo.quota_denominatore;  // Es: 2/4 = 0.5
-    let capitaleInvestito = capitaleAllocato * frazioneIniziale;  // Es: 1000 × 0.5 = 500€
+    // Se frazioneAlDataInizio è passata, usa quella (titolo già in portafoglio)
+    // Altrimenti usa frazione iniziale da info_titoli.csv
+    const frazioneIniziale = frazioneAlDataInizio !== null ? frazioneAlDataInizio : (titoloInfo.quota_numeratore / titoloInfo.quota_denominatore);
+    let capitaleInvestito = capitaleAllocato * frazioneIniziale;
     
     const prezzoIngresso = getPrezzoByDate(valori, dataInizio, ticker);
     if (!prezzoIngresso) {
