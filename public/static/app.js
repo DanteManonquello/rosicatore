@@ -409,11 +409,21 @@ function calculatePortfolio() {
                 .sort((a, b) => new Date(a.data) - new Date(b.data))
             : [];
         
-        // STEP 2: Calcolo quarti posseduti movimento per movimento
-        let quartiAttuali = 0;
-        let primoIngressoStorico = null;  // Primo INGRESSO nella storia completa
-        let dataUscitaPrePeriodo = null;  // Ultima USCITA prima del periodo
+        // STEP 2: Identifico primo INGRESSO storico usando il campo CSV
+        let primoIngressoStorico = null;
+        let dataUscitaPrePeriodo = null;
         
+        // Cerca il primo movimento con primo_ingresso = 'true' (campo CSV)
+        const movimentoIngresso = movimentiTicker.find(m => m.primo_ingresso === 'true');
+        if (movimentoIngresso) {
+            primoIngressoStorico = movimentoIngresso.data;
+            console.log(`${ticker} - PRIMO INGRESSO STORICO (da CSV): ${primoIngressoStorico}`);
+        } else {
+            console.log(`${ticker} - Nessun primo ingresso nel CSV (titolo già in portafoglio prima del 01/01/2025)`);
+        }
+        
+        // Calcolo timeline quarti per log/debug
+        let quartiAttuali = 0;
         const timelineQuarti = [];
         
         movimentiTicker.forEach(m => {
@@ -422,14 +432,6 @@ function calculatePortfolio() {
             
             if (m.azione === 'BUY') {
                 quartiAttuali += frazione;
-                
-                // INGRESSO: se prima avevo 0 quarti, ora ho >0
-                if (quartiPrecedenti === 0 && quartiAttuali > 0) {
-                    if (!primoIngressoStorico) {
-                        primoIngressoStorico = m.data;
-                        console.log(`${ticker} - PRIMO INGRESSO STORICO: ${m.data}`);
-                    }
-                }
             } else if (m.azione === 'SELL') {
                 quartiAttuali -= frazione;
                 
@@ -443,13 +445,14 @@ function calculatePortfolio() {
                 }
             }
             
+            // Usa i campi CSV per determinare il tipo
             timelineQuarti.push({
                 data: m.data,
                 azione: m.azione,
                 frazione,
-                quartiDopo: quartiAttuali,
-                tipo: quartiPrecedenti === 0 && quartiAttuali > 0 ? 'INGRESSO' :
-                      quartiPrecedenti > 0 && quartiAttuali <= 0 ? 'USCITA' :
+                quartiDopo: parseFloat(m.esposizione_finale) || quartiAttuali,  // Usa campo CSV se presente
+                tipo: m.primo_ingresso === 'true' ? 'INGRESSO' :
+                      m.uscita_totale === 'true' ? 'USCITA' :
                       m.azione === 'BUY' ? 'APPESANTIMENTO' : 'ALLEGGERIMENTO'
             });
         });
