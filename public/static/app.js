@@ -264,25 +264,46 @@ function calculatePortfolio() {
     const { capitaleTotale, dataInizio, dataFine } = state.config;
     const { titoli, valori, movimenti, dividendi } = state.csvData;
     
-    // For now, calculate for first ticker only (GSM example)
-    // TODO v3.1.0: Multi-ticker support
-    const ticker = 'GSM';
-    const titoloInfo = titoli.find(t => t.ticker === ticker);
+    // MULTI-TICKER: Calculate for ALL tickers
+    const allResults = [];
     
-    if (!titoloInfo) {
-        throw new Error(`Ticker ${ticker} non trovato in info_titoli.csv`);
+    for (const titoloInfo of titoli) {
+        const ticker = titoloInfo.ticker;
+        
+        console.log('Calculating for ticker:', ticker);
+        console.log('Titolo info:', titoloInfo);
+        
+        try {
+            const result = calculateSingleTicker(ticker, titoloInfo, capitaleTotale, dataInizio, dataFine, valori, movimenti, dividendi);
+            allResults.push(result);
+        } catch (error) {
+            console.error(`Error calculating ${ticker}:`, error);
+            addError(`Errore calcolo ${ticker}: ${error.message}`);
+        }
     }
     
-    console.log('Calculating for ticker:', ticker);
-    console.log('Titolo info:', titoloInfo);
+    if (allResults.length === 0) {
+        throw new Error('Nessun titolo calcolato con successo');
+    }
+    
+    // Return all results
+    return {
+        stocks: allResults,
+        totalPatrimonio: allResults.reduce((sum, r) => sum + r.summary.patrimonioFinale, 0),
+        totalGainLoss: allResults.reduce((sum, r) => sum + r.summary.gainLoss, 0)
+    };
+}
+
+// Calculate single ticker
+function calculateSingleTicker(ticker, titoloInfo, capitaleTotale, dataInizio, dataFine, valori, movimenti, dividendi) {
     
     // Calculate initial entry
     const frazioneIniziale = titoloInfo.quota_numeratore / titoloInfo.quota_denominatore;
     const capitaleInvestito = capitaleTotale * frazioneIniziale;
     
-    const prezzoIngresso = getPrezzoByDate(valori, dataInizio);
+    const prezzoIngresso = getPrezzoByDate(valori, dataInizio, ticker);
     if (!prezzoIngresso) {
-        throw new Error(`Prezzo non trovato per data ${dataInizio}`);
+        throw new Error(`Prezzo ingresso non trovato per ${ticker} data ${dataInizio}`);
     }
     
     let azioni = capitaleInvestito / prezzoIngresso;
@@ -349,7 +370,7 @@ function calculatePortfolio() {
             return;
         }
         
-        const prezzoEvento = getPrezzoByDate(valori, dataEvento);
+        const prezzoEvento = getPrezzoByDate(valori, dataEvento, ticker);
         if (!prezzoEvento) {
             addError(`Prezzo non trovato per data evento: ${dataEvento}`);
             return;
@@ -421,7 +442,7 @@ function calculatePortfolio() {
     });
     
     // Final valuation
-    const prezzoFinale = getPrezzoByDate(valori, dataFine);
+    const prezzoFinale = getPrezzoByDate(valori, dataFine, ticker);
     if (!prezzoFinale) {
         throw new Error(`Prezzo finale non trovato per data ${dataFine}`);
     }
@@ -476,7 +497,9 @@ function calculatePortfolio() {
 }
 
 // Get price by date from valori CSV
-function getPrezzoByDate(valori, targetDate) {
+// NOTE: For now, assumes single CSV with all prices
+// TODO: Support multiple CSV files (one per ticker)
+function getPrezzoByDate(valori, targetDate, ticker) {
     // Convert date formats
     const target = dayjs(targetDate);
     
@@ -572,23 +595,50 @@ function displayResults(results) {
     kpiSection.classList.remove('hidden');
     kpiSection.classList.add('fade-in');
     
-    // Render KPI cards
+    // Render KPI cards (aggregate from all stocks)
     const kpiGrid = document.getElementById('kpiGrid');
     kpiGrid.innerHTML = '';
     
-    results.kpis.forEach(kpi => {
+    // Calculate aggregate KPIs
+    const aggregateKPIs = calculateAggregateKPIs(results);
+    aggregateKPIs.forEach(kpi => {
         const card = createKPICard(kpi);
         kpiGrid.appendChild(card);
     });
     
-    // Render stock summary table
-    renderStockSummary(results);
+    // Render stock summary table (all stocks)
+    renderStockSummaryMulti(results.stocks);
     
-    // Render detailed history
-    renderDetailedHistory(results.history);
+    // Render detailed history (first stock for now, TODO: selectable)
+    if (results.stocks.length > 0) {
+        renderDetailedHistory(results.stocks[0].history, results.stocks[0].ticker);
+    }
     
     // Scroll to results
     kpiSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// Calculate aggregate KPIs from all stocks
+function calculateAggregateKPIs(results) {
+    const { totalPatrimonio, totalGainLoss } = results;
+    const capitaleTotale = state.config.capitaleTotale;
+    const roiTotale = (totalGainLoss / capitaleTotale) * 100;
+    
+    // Aggregate metrics
+    const totalAzioni = results.stocks.reduce((sum, s) => sum + s.summary.azioni, 0);
+    const totalCash = results.stocks.reduce((sum, s) => sum + s.summary.cashResiduo, 0);
+    const totalValorePosizioni = results.stocks.reduce((sum, s) => sum + s.summary.valorePosizioneFinale, 0);
+    const numTitoli = results.stocks.length;
+    
+    return [
+        { label: 'Patrimonio Totale', value: totalPatrimonio.toFixed(2), unit: 'USD', type: 'main' },
+        { label: 'Gain/Loss Totale', value: totalGainLoss.toFixed(2), unit: 'USD', type: totalGainLoss >= 0 ? 'positive' : 'negative' },
+        { label: 'ROI Portfolio', value: roiTotale.toFixed(2), unit: '%', type: roiTotale >= 0 ? 'positive' : 'negative' },
+        { label: 'Valore Posizioni', value: totalValorePosizioni.toFixed(2), unit: 'USD', type: 'neutral' },
+        { label: 'Cash Totale', value: totalCash.toFixed(2), unit: 'USD', type: 'neutral' },
+        { label: 'Numero Titoli', value: numTitoli, unit: '', type: 'neutral' },
+        { label: 'Capitale Allocato', value: capitaleTotale.toFixed(2), unit: 'USD', type: 'neutral' }
+    ];
 }
 
 // Create KPI card element
@@ -616,6 +666,110 @@ function createKPICard(kpi) {
     `;
     
     return div;
+}
+
+// Render stock summary table (MULTI-TICKER)
+function renderStockSummaryMulti(stocks) {
+    const content = document.getElementById('stockSummaryContent');
+    
+    let html = `
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="border-b-2 border-gray-600">
+                        <th class="text-left py-3 px-4 font-semibold">Ticker</th>
+                        <th class="text-left py-3 px-4 font-semibold">Nome</th>
+                        <th class="text-center py-3 px-4 font-semibold">Tipo</th>
+                        <th class="text-right py-3 px-4 font-semibold">Capitale Allocato</th>
+                        <th class="text-right py-3 px-4 font-semibold">Capitale Investito</th>
+                        <th class="text-right py-3 px-4 font-semibold">Frazione</th>
+                        <th class="text-right py-3 px-4 font-semibold">Azioni</th>
+                        <th class="text-right py-3 px-4 font-semibold">Prezzo Ingresso</th>
+                        <th class="text-right py-3 px-4 font-semibold">Prezzo Attuale</th>
+                        <th class="text-right py-3 px-4 font-semibold">Var. Prezzo</th>
+                        <th class="text-right py-3 px-4 font-semibold">Valore Posizione</th>
+                        <th class="text-right py-3 px-4 font-semibold">Cash Residuo</th>
+                        <th class="text-right py-3 px-4 font-semibold">Peso %</th>
+                        <th class="text-right py-3 px-4 font-semibold">Gain/Loss</th>
+                        <th class="text-right py-3 px-4 font-semibold">ROI %</th>
+                    </tr>
+                </thead>
+                <tbody>
+    `;
+    
+    stocks.forEach(stock => {
+        const { ticker, summary } = stock;
+        
+        // Get titolo info
+        const titoloInfo = state.csvData.titoli.find(t => t.ticker === ticker);
+        const titoloNome = titoloInfo ? titoloInfo.nome : ticker;
+        const tipoTitolo = titoloInfo ? titoloInfo.tipo : 'N/A';
+        
+        const {
+            capitaleTotale,
+            valorePosizioneFinale,
+            patrimonioFinale,
+            cashResiduo,
+            azioni,
+            prezzoIngresso,
+            prezzoFinale,
+            gainLoss,
+            roiPortafoglio
+        } = summary;
+        
+        // Calculate additional metrics
+        const capitaleInvestito = capitaleTotale - cashResiduo;
+        const frazioneInvestita = titoloInfo ? `${titoloInfo.quota_numeratore}/${titoloInfo.quota_denominatore}` : 'N/A';
+        const pesoPortafoglio = (valorePosizioneFinale / patrimonioFinale) * 100;
+        const variazionePrezzo = ((prezzoFinale - prezzoIngresso) / prezzoIngresso) * 100;
+        
+        html += `
+            <tr class="border-b border-gray-700 hover:bg-gray-750">
+                <td class="py-3 px-4 font-bold text-blue-400">${ticker}</td>
+                <td class="py-3 px-4">${titoloNome}</td>
+                <td class="py-3 px-4 text-center">
+                    <span class="px-2 py-1 rounded text-xs ${
+                        tipoTitolo.includes('DIVIDEND') ? 'bg-green-900 text-green-300' :
+                        tipoTitolo.includes('GROWTH') ? 'bg-blue-900 text-blue-300' :
+                        'bg-purple-900 text-purple-300'
+                    }">
+                        ${tipoTitolo}
+                    </span>
+                </td>
+                <td class="py-3 px-4 text-right font-medium">$${capitaleTotale.toFixed(2)}</td>
+                <td class="py-3 px-4 text-right">$${capitaleInvestito.toFixed(2)}</td>
+                <td class="py-3 px-4 text-right text-gray-400">${frazioneInvestita}</td>
+                <td class="py-3 px-4 text-right">${azioni.toFixed(4)}</td>
+                <td class="py-3 px-4 text-right">$${prezzoIngresso.toFixed(3)}</td>
+                <td class="py-3 px-4 text-right font-medium">$${prezzoFinale.toFixed(3)}</td>
+                <td class="py-3 px-4 text-right ${variazionePrezzo >= 0 ? 'text-green-400' : 'text-red-400'}">
+                    ${variazionePrezzo >= 0 ? '+' : ''}${variazionePrezzo.toFixed(2)}%
+                </td>
+                <td class="py-3 px-4 text-right font-bold">$${valorePosizioneFinale.toFixed(2)}</td>
+                <td class="py-3 px-4 text-right text-gray-400">$${cashResiduo.toFixed(2)}</td>
+                <td class="py-3 px-4 text-right">${pesoPortafoglio.toFixed(2)}%</td>
+                <td class="py-3 px-4 text-right font-bold ${gainLoss >= 0 ? 'text-green-400' : 'text-red-400'}">
+                    ${gainLoss >= 0 ? '+' : ''}$${gainLoss.toFixed(2)}
+                </td>
+                <td class="py-3 px-4 text-right font-bold ${roiPortafoglio >= 0 ? 'text-green-400' : 'text-red-400'}">
+                    ${roiPortafoglio >= 0 ? '+' : ''}${roiPortafoglio.toFixed(2)}%
+                </td>
+            </tr>
+        `;
+    });
+    
+    html += `
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="mt-4 text-xs text-gray-500 text-center">
+            <i class="fas fa-info-circle mr-1"></i>
+            Questa tabella mostra il riepilogo di tutti i ${stocks.length} titoli nel portafoglio
+        </div>
+    `;
+    
+    content.innerHTML = html;
 }
 
 // Render stock summary table
@@ -714,10 +868,14 @@ function renderStockSummary(results) {
 }
 
 // Render detailed history table
-function renderDetailedHistory(history) {
+function renderDetailedHistory(history, ticker) {
     const content = document.getElementById('detailedContent');
     
     let html = `
+        <div class="mb-4">
+            <span class="text-sm text-gray-400">Storico operazioni per: </span>
+            <span class="text-lg font-bold text-blue-400">${ticker}</span>
+        </div>
         <div class="overflow-x-auto">
             <table class="w-full text-sm">
                 <thead>
