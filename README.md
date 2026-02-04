@@ -1,16 +1,16 @@
-# ROSICATORE v3.4.0 🎯
+# ROSICATORE v3.5.0 🎯
 
 ## 🎯 Project Overview
 **Rosicatore** è un Portfolio Tracker Algorithm avanzato per il monitoraggio e l'analisi del valore attualizzato di portafogli azionari nel tempo.
 
 ### Caratteristiche Principali
-- ✅ **CAPITALE FISSO**: 12.000 USD (non modificabile)
+- ✅ **CAPITALE FISSO PER TITOLO**: 1.000 USD per ogni titolo (non diviso)
 - ✅ **FORMULA UNIVERSALE**: `(cash + valore azioni) / 4 × frazione` per BUY/SELL
 - ✅ **DIVIDENDI A CASH**: Dividendi aggiunti al cash (NON reinvestiti)
 - ✅ **MENU HAMBURGER**: Navigazione laterale con tutte le sezioni
 - ✅ **SEZIONE CALCOLI DETTAGLIATA**: Formato PDF step-by-step FASE per FASE
 - ✅ **AUTO-CARICAMENTO CSV**: Caricamento automatico all'avvio (dati persistenti in /public/static/data/)
-- ✅ **Date Preimpostate**: 11 Luglio 2025 → 1 Gennaio 2026 (modificabili)
+- ✅ **Date Preimpostate**: 01 Gennaio 2025 → 01 Gennaio 2026 (modificabili)
 - ✅ **Multi-Ticker Automatico**: 12 CSV prezzi pre-caricati per ogni ticker
 - ✅ Calcolo attualizzazione temporale con date range selezionabili
 - ✅ Gestione movimenti: Appesantimento (BUY) e Alleggerimento (SELL)
@@ -58,9 +58,28 @@ GSM,GB00BYW6GV68,2025-12-29,0.014
 "12/29/2025","4.620","4.640","4.720","4.560","564.84K","-2.12%"
 ```
 
-## 🔢 Algoritmo di Calcolo (v3.4.0 - FORMULA UNIVERSALE DEFINITIVA)
+## 🔢 Algoritmo di Calcolo (v3.5.0 - CAPITALE FISSO PER TITOLO)
 
-### 🎯 FORMULA UNIVERSALE
+### 💰 NUOVA LOGICA CAPITALE
+
+**PRIMA (v3.4.0):**
+```
+Capitale Totale = 12.000€
+Numero Titoli = 12
+Capitale per Titolo = 12.000 / 12 = 1.000€
+```
+
+**ADESSO (v3.5.0):**
+```
+Ogni titolo inizia con 1.000€ FISSO
+Indipendentemente da quanti titoli ci sono nel portafoglio
+```
+
+**Motivo:** Nel tempo posso aggiungere/togliere titoli, quindi ogni titolo parte con 1.000€ fisso all'ingresso.
+
+---
+
+### 🎯 FORMULA UNIVERSALE (invariata)
 
 ```javascript
 // Per QUALSIASI movimento (BUY o SELL):
@@ -69,13 +88,13 @@ valore_1_quarto = patrimonioAttuale / 4
 capitale_movimento = valore_1_quarto × frazione_numeratore
 ```
 
-**⚠️ ECCEZIONE: Solo all'INGRESSO usa capitale allocato fisso!**
+**⚠️ ECCEZIONE: Solo all'INGRESSO usa capitale allocato fisso 1.000€!**
 
 ---
 
 ### FASE 1: INGRESSO (Solo prima volta)
 ```
-Capitale_Allocato = Capitale_Totale / Numero_Titoli  // Es: 12000 / 12 = 1000€
+Capitale_Allocato = 1.000€  // ← FISSO per ogni titolo!
 Frazione_Iniziale = quota_numeratore / quota_denominatore  // Es: 2/4 = 0.5
 Capitale_Investito = Capitale_Allocato × Frazione_Iniziale  // Es: 1000 × 0.5 = 500€
 Azioni = Capitale_Investito / Prezzo_Ingresso  // Es: 500 / 3.92 = 127.55 azioni
@@ -265,21 +284,24 @@ wrangler pages deploy dist --project-name rosicatore
 - **Deployment**: Cloudflare Pages
 
 ## 📝 Status
-- **Version**: v3.4.0
+- **Version**: v3.5.0
 - **Status**: ✅ ATTIVO
 - **Deployment**: Sandbox
 - **Last Updated**: 2026-02-04
 
 ## 🗺️ Roadmap
 
-### v3.4.0 (COMPLETATO) 🔥 **CURRENT**
-- ✅ **FORMULA UNIVERSALE DEFINITIVA**
-  - `patrimonioAttuale = cash + valoreAzioni`
-  - `valore_1_quarto = patrimonioAttuale / 4`
-  - `capitale_movimento = valore_1_quarto × frazione`
-- ✅ **SEMPLICE E UNIVERSALE**: Stessa formula per BUY e SELL
-- ✅ **SEMPRE ATTUALIZZATO**: Rivalutazione automatica ad ogni movimento
-- ✅ **INGRESSO FISSO**: Solo all'ingresso usa capitale allocato × frazione
+### v3.5.0 (COMPLETATO) 💰 **CURRENT**
+- ✅ **CAPITALE FISSO PER TITOLO: 1.000€**
+  - Non più diviso per numero titoli
+  - Ogni titolo inizia con 1.000€ fisso
+  - Permette aggiunta/rimozione titoli nel tempo
+- ✅ **NUOVI CSV MOVIMENTI E TITOLI**
+  - Movimenti completi 2025
+  - Info titoli aggiornati al 01/01/2025
+  - GSM aggiunto alla lista
+- ✅ **DATE AGGIORNATE**
+  - Periodo: 01/01/2025 → 01/01/2026
 
 ### v3.2.1 (COMPLETATO) 🔧
 - ✅ **FIX CAPITALE ALLOCATO** - Ogni titolo usa il SUO capitale proporzionale!
@@ -331,7 +353,7 @@ wrangler pages deploy dist --project-name rosicatore
 - ⏳ Confronto periodi temporali
 
 ## ⚠️ Note Importanti
-- **CAPITALE FISSO**: 12.000 USD non modificabile
+- **CAPITALE FISSO PER TITOLO**: 1.000 USD per ogni titolo (non diviso)
 - **FORMULA UNIVERSALE**: `(cash + valore azioni) / 4 × frazione` per BUY/SELL
 - **DIVIDENDI A CASH**: Dividendi NON reinvestiti, vanno nel cash
 - **NO TASSE**: L'algoritmo NON calcola tassazione
