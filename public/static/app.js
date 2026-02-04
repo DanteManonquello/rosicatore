@@ -1,4 +1,4 @@
-// Rosicatore v3.6.0 - Portfolio Tracker Calculator
+// Rosicatore v3.7.0 - Portfolio Tracker Calculator
 // Main Application Logic
 
 // Global state
@@ -392,54 +392,19 @@ function calculatePortfolio() {
     const { capitaleTotale, dataInizio, dataFine } = state.config;
     const { titoli, valori, movimenti, dividendi } = state.csvData;
     
-    // FILTRO TITOLI PER DATA INGRESSO
+    // CALCOLA TUTTI I TITOLI - TUTTI ENTRANO ED ESCONO NELLO STESSO GIORNO
+    // Data ingresso = dataInizio del date picker (SEMPRE!)
+    // Data uscita = dataFine del date picker (SEMPRE!)
     const allResults = [];
     const titoliSkipped = [];
     
     for (const titoloInfo of titoli) {
         const ticker = titoloInfo.ticker;
         
-        // Trova primo movimento BUY per questo ticker
-        const primoMovimento = movimenti
-            ? movimenti
-                .filter(m => m.ticker === ticker && m.azione === 'BUY')
-                .sort((a, b) => new Date(a.data) - new Date(b.data))[0]
-            : null;
-        
-        // SKIP se titolo NON ha alcun movimento BUY
-        if (!primoMovimento) {
-            console.log(`SKIP ${ticker}: nessun movimento BUY trovato`);
-            titoliSkipped.push({
-                ticker,
-                nome: titoloInfo.nome,
-                motivo: 'Nessun ingresso (BUY) trovato nei movimenti'
-            });
-            continue;
-        }
-        
-        // Usa data primo BUY come data ingresso reale
-        const dataIngressoReale = primoMovimento.data;
-        
-        // SKIP se titolo entra DOPO la data fine del periodo
-        if (dataIngressoReale > dataFine) {
-            console.log(`SKIP ${ticker}: entra il ${dataIngressoReale}, dopo dataFine ${dataFine}`);
-            titoliSkipped.push({
-                ticker,
-                nome: titoloInfo.nome,
-                dataIngresso: dataIngressoReale,
-                motivo: `Entra il ${dataIngressoReale}, dopo la fine del periodo (${dataFine})`
-            });
-            continue;
-        }
-        
-        // Se titolo entra PRIMA dell'inizio del periodo, usa comunque dataIngressoReale
-        // Il calcolo partirà dalla data ingresso reale, non da dataInizio
-        
-        console.log('Calculating for ticker:', ticker, 'Data ingresso reale:', dataIngressoReale);
+        console.log('Calculating for ticker:', ticker, 'Data ingresso:', dataInizio, 'Data uscita:', dataFine);
         
         try {
-            const result = calculateSingleTicker(ticker, titoloInfo, capitaleTotale, dataIngressoReale, dataFine, valori, movimenti, dividendi);
-            result.dataIngressoReale = dataIngressoReale;  // Salva data ingresso reale
+            const result = calculateSingleTicker(ticker, titoloInfo, capitaleTotale, dataInizio, dataFine, valori, movimenti, dividendi);
             allResults.push(result);
         } catch (error) {
             console.error(`Error calculating ${ticker}:`, error);
@@ -447,7 +412,6 @@ function calculatePortfolio() {
             titoliSkipped.push({
                 ticker,
                 nome: titoloInfo.nome,
-                dataIngresso: dataIngressoReale,
                 motivo: `Errore: ${error.message}`
             });
         }
@@ -1275,20 +1239,24 @@ function renderPeriodoAnalisi(periodoInfo, titoliSkipped) {
             <div class="flex items-start gap-3">
                 <i class="fas fa-lightbulb text-2xl text-yellow-400 mt-1"></i>
                 <div>
-                    <h4 class="text-lg font-bold text-yellow-300 mb-2">📋 Come Calcolo i Titoli nel Periodo</h4>
+                    <h4 class="text-lg font-bold text-yellow-300 mb-2">📋 Come Funziona il Date Picker</h4>
                     <div class="text-sm text-gray-200 space-y-2">
-                        <p><strong>1. Data Ingresso Reale:</strong> Per ogni titolo, cerco il <strong>primo movimento BUY</strong> nei dati. Quello è il giorno in cui entriamo davvero nel titolo.</p>
+                        <p><strong>REGOLA BASE:</strong> <strong>TUTTI i titoli ENTRANO ED ESCONO NELLO STESSO GIORNO!</strong></p>
                         
-                        <p><strong>2. Filtro per Periodo:</strong></p>
+                        <p><strong>1. Data Ingresso:</strong> Tutti i titoli in <code>info_titoli.csv</code> entrano il giorno <strong>${periodoInfo.dataInizio}</strong> con la loro frazione iniziale (es. GSM entra con 2/4 = 500€ investiti + 500€ cash).</p>
+                        
+                        <p><strong>2. Data Uscita:</strong> Tutti i titoli escono il giorno <strong>${periodoInfo.dataFine}</strong> (valutazione finale del portafoglio).</p>
+                        
+                        <p><strong>3. Movimenti nel Periodo:</strong></p>
                         <ul class="list-disc list-inside ml-4 space-y-1">
-                            <li>✅ <strong>Includo</strong>: Titoli con ingresso ≤ Data Fine</li>
-                            <li>❌ <strong>Escludo</strong>: Titoli con ingresso > Data Fine (non ancora entrati)</li>
-                            <li>❌ <strong>Escludo</strong>: Titoli senza attività nel periodo</li>
+                            <li>✅ <strong>BUY/SELL</strong>: Appesantimenti/Alleggerimenti tra ${periodoInfo.dataInizio} e ${periodoInfo.dataFine}</li>
+                            <li>✅ <strong>DIVIDEND</strong>: Dividendi pagati nel periodo</li>
+                            <li>❌ <strong>Movimenti fuori periodo</strong>: Ignorati nel calcolo</li>
                         </ul>
                         
-                        <p><strong>3. Calcolo:</strong> Per ogni titolo incluso, calcolo performance dal <strong>giorno di ingresso reale</strong> fino alla <strong>data fine</strong>.</p>
+                        <p><strong>4. Calcolo Performance:</strong> Per ogni titolo, calcolo gain/loss dal giorno <strong>${periodoInfo.dataInizio}</strong> (ingresso con frazione iniziale) al giorno <strong>${periodoInfo.dataFine}</strong> (valutazione finale).</p>
                         
-                        <p><strong>Esempio:</strong> Se periodo è <code>01/01/2025 → 31/01/2025</code> e GSM entra il <code>10/02/2025</code>, GSM viene <strong>escluso</strong> perché entra dopo.</p>
+                        <p><strong>Esempio:</strong> Se periodo è <code>01/01/2025 → 31/12/2025</code>, GSM entra il <code>01/01/2025</code> con 2/4 (500€), eventuali BUY/SELL nel 2025 modificano la posizione, e al <code>31/12/2025</code> valuto il patrimonio finale.</p>
                     </div>
                 </div>
             </div>
@@ -1298,9 +1266,9 @@ function renderPeriodoAnalisi(periodoInfo, titoliSkipped) {
         <div class="bg-green-900 bg-opacity-30 border-l-4 border-green-500 rounded-lg p-4 mb-4">
             <h4 class="text-lg font-bold text-green-300 mb-2">
                 <i class="fas fa-check-circle mr-2"></i>
-                Titoli Attivi nel Periodo: ${periodoInfo.titoliAttivi}
+                Titoli Calcolati: ${periodoInfo.titoliAttivi}
             </h4>
-            <p class="text-sm text-gray-300">Questi titoli hanno ingresso ≤ ${periodoInfo.dataFine} e sono inclusi nei calcoli.</p>
+            <p class="text-sm text-gray-300">Tutti i titoli in <code>info_titoli.csv</code> vengono calcolati per il periodo selezionato.</p>
         </div>
     `;
     
