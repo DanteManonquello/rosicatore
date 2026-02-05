@@ -1,4 +1,4 @@
-# Rosicatore v3.15.0
+# Rosicatore v3.18.0
 
 ## 🎯 Portfolio Tracker Algorithm
 
@@ -138,11 +138,19 @@ Cloudflare Pages
 Hono + TypeScript + TailwindCSS + Papa Parse + Day.js
 
 ### Last Updated
-04 Febbraio 2026 - v3.15.0
+05 Febbraio 2026 - v3.18.0
 
 ---
 
 ## 🔄 Changelog
+
+### v3.18.0 (05/02/2026)
+- ✅ **AGGIORNAMENTO DIVIDENDI**: Dataset completo con 517 dividendi storici
+- ✅ **5 ticker con dividendi**: PBR (65), EQT (149), AA (206), GSM (30), HL (67)
+- ✅ **Dati reali 2025**: 19 dividendi verificati per l'anno corrente
+- ✅ **ISIN corretti**: Mappatura verificata con info_titoli.csv
+- ✅ **Backup vecchio file**: dividendi.csv.backup_old
+- ✅ **Formato payment_date**: Ex-dividend calcolata come payment-15 giorni
 
 ### v3.15.0 (04/02/2026)
 - ✅ Aggiunto campo `primo_ingresso` al CSV movimenti
