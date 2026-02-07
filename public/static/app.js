@@ -16,7 +16,9 @@ const state = {
     },
     results: null,
     errors: [],
-    loading: false
+    loading: false,
+    historicDataLoaded: false,  // Track se dati storici sono caricati
+    recentDataCutoff: '2020-01-01'  // Split date per dati recenti
 };
 
 // Ticker to CSV filename mapping
@@ -130,35 +132,117 @@ async function autoLoadCSVs() {
         state.csvData.dividendi = await parseCSVText(dividendiText);
         updateSlotStatus('dividendi', 'dividendi.csv ✓ (auto-caricato)');
         
-        // Load all price history CSVs
-        const pricePromises = Object.entries(TICKER_CSV_MAP).map(async ([ticker, filename]) => {
+        // Get tickers from info_titoli.csv (only load what we need)
+        const activeTickers = state.csvData.titoli.map(t => t.ticker);
+        console.log('Active tickers from info_titoli.csv:', activeTickers);
+        
+        // Load only price history for active tickers
+        const pricePromises = activeTickers.map(async (ticker) => {
+            const filename = TICKER_CSV_MAP[ticker];
+            if (!filename) {
+                console.warn(`[${ticker}] No CSV mapping found, skipping`);
+                return { ticker, success: false, error: 'No CSV mapping' };
+            }
+            
             try {
                 const encodedFilename = encodeURIComponent(filename);
-                const response = await fetch(`/static/data/${encodedFilename}`);
+                const url = `/static/data/${encodedFilename}`;
+                console.log(`[${ticker}] Fetching: ${url}`);
+                
+                const response = await fetch(url);
+                console.log(`[${ticker}] Response status: ${response.status} ${response.statusText}`);
+                
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
+                
                 const text = await response.text();
+                console.log(`[${ticker}] CSV size: ${text.length} chars`);
+                
                 const data = await parseCSVText(text);
-                state.csvData.valori[ticker] = data;
+                console.log(`[${ticker}] Parsed: ${data.length} rows (full)`);
+                
+                // Filter for recent data only (2020+)
+                const recentData = data.filter(row => row.Date >= state.recentDataCutoff);
+                console.log(`[${ticker}] Filtered: ${recentData.length} rows (2020+)`);
+                
+                state.csvData.valori[ticker] = recentData;
                 return { ticker, success: true };
             } catch (error) {
-                console.warn(`Failed to load ${filename}:`, error);
-                return { ticker, success: false };
+                console.error(`[${ticker}] FAILED:`, error.message || error);
+                console.error(`[${ticker}] Stack:`, error.stack);
+                return { ticker, success: false, error: error.message };
             }
         });
         
         const priceResults = await Promise.all(pricePromises);
         const loaded = priceResults.filter(r => r.success).length;
-        updateSlotStatus('valori', `${loaded}/${Object.keys(TICKER_CSV_MAP).length} ticker caricati ✓`);
+        updateSlotStatus('valori', `${loaded}/${activeTickers.length} ticker caricati ✓ (2020+)`);
         
-        updateLoadingStatus('Dati caricati! Pronto per calcolare.', false);
+        updateLoadingStatus('Dati recenti caricati! Pronto per calcolare.', false);
         state.loading = false;
         
     } catch (error) {
         console.error('Auto-load error:', error);
         updateLoadingStatus('⚠️ Errore caricamento automatico. Usa upload manuale.', false);
         state.loading = false;
+    }
+}
+
+// Load historic data (pre-2020) for all tickers
+async function loadHistoricData() {
+    if (state.historicDataLoaded) {
+        console.log('Historic data already loaded');
+        return true;
+    }
+    
+    console.log('Loading historic data (full CSV)...');
+    updateLoadingStatus('⏳ Caricamento dati storici (pre-2020)...', true);
+    
+    try {
+        const activeTickers = state.csvData.titoli.map(t => t.ticker);
+        
+        const pricePromises = activeTickers.map(async (ticker) => {
+            const filename = TICKER_CSV_MAP[ticker];
+            if (!filename) {
+                return { ticker, success: false };
+            }
+            
+            try {
+                const encodedFilename = encodeURIComponent(filename);
+                const url = `/static/data/${encodedFilename}`;
+                console.log(`[${ticker}] Loading full CSV...`);
+                
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
+                const text = await response.text();
+                const data = await parseCSVText(text);
+                
+                console.log(`[${ticker}] Full data: ${data.length} rows`);
+                
+                // Replace filtered data with full data
+                state.csvData.valori[ticker] = data;
+                return { ticker, success: true };
+            } catch (error) {
+                console.error(`[${ticker}] Historic load failed:`, error.message);
+                return { ticker, success: false };
+            }
+        });
+        
+        const results = await Promise.all(pricePromises);
+        const loaded = results.filter(r => r.success).length;
+        
+        state.historicDataLoaded = true;
+        updateLoadingStatus(`Dati storici caricati! (${loaded}/${activeTickers.length} ticker)`, false);
+        
+        return true;
+    } catch (error) {
+        console.error('Historic data load error:', error);
+        updateLoadingStatus('⚠️ Errore caricamento dati storici', false);
+        return false;
     }
 }
 
@@ -317,8 +401,8 @@ function setupCalculateButton() {
         btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-3"></i>CALCOLO IN CORSO...';
         
         try {
-            // Run calculation
-            const results = calculatePortfolio();
+            // Run calculation (async)
+            const results = await calculatePortfolio();
             
             // Display results
             displayResults(results);
@@ -390,11 +474,21 @@ function validateInputs() {
 }
 
 // Main calculation function
-function calculatePortfolio() {
+async function calculatePortfolio() {
     console.log('Starting portfolio calculation...');
     
     const { capitaleTotale, dataInizio, dataFine } = state.config;
     const { titoli, valori, movimenti, dividendi } = state.csvData;
+    
+    // Check if historic data needed
+    if (dataInizio < state.recentDataCutoff && !state.historicDataLoaded) {
+        console.log(`Date range includes pre-2020 data, loading historic...`);
+        const loaded = await loadHistoricData();
+        if (!loaded) {
+            addError('Impossibile caricare dati storici. Riprova o usa date >= 2020.');
+            return;
+        }
+    }
     
     const allResults = [];
     const titoliSkipped = [];

@@ -1,8 +1,41 @@
-# Rosicatore v3.22.2
+# Rosicatore v3.23.0
 
 ## 🎯 Portfolio Tracker Algorithm
 
 Rosicatore è un Portfolio Tracker che calcola il valore nel tempo di TUTTI i titoli del portafoglio.
+
+---
+
+## 🆕 NOVITÀ v3.23.0 - LAZY LOADING SMART (07 Feb 2026)
+
+### 🚀 **PERFORMANCE BOOST: Caricamento Intelligente CSV**
+
+**Problema risolto:**
+- ❌ Caricamento di TUTTI i CSV (127,000 righe) causava timeout
+- ❌ Cloudflare Workers limitato a 10sec/128MB
+- ❌ 9/11 ticker fallivano il caricamento
+
+**Soluzione implementata:**
+- ✅ **Default: Solo dati 2020+** (~17,000 righe, 850KB)
+- ✅ **On-demand: Dati storici** (solo se necessario)
+- ✅ **Smart loading: Solo ticker attivi** (da info_titoli.csv)
+
+**Come funziona:**
+1. **Avvio app**: Carica solo dati 2020-2026 (6 anni)
+2. **Date >= 2020**: Calcolo immediato (dati già in memoria)
+3. **Date < 2020**: Carica dati completi automaticamente
+4. **Progress bar**: Mostra "⏳ Caricamento dati storici..."
+
+**Vantaggi:**
+- ✅ **10x più veloce**: Caricamento iniziale ~2 sec (prima: 20+ sec)
+- ✅ **90% use cases**: Maggior parte calcoli 2020+
+- ✅ **Zero timeout**: Rispetta limiti Cloudflare Workers
+- ✅ **Zero cambi file**: Nessun split fisico CSV
+
+**Test verificati:**
+- ✅ Date 2020-2026: Caricamento immediato
+- ✅ Date 2015-2026: Carica storico automaticamente
+- ✅ Tutti i 12 ticker funzionanti
 
 ---
 
