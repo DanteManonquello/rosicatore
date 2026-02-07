@@ -1,8 +1,36 @@
-# Rosicatore v3.21.0
+# Rosicatore v3.22.0
 
 ## 🎯 Portfolio Tracker Algorithm
 
 Rosicatore è un Portfolio Tracker che calcola il valore nel tempo di TUTTI i titoli del portafoglio.
+
+---
+
+## 🆕 NOVITÀ v3.22.0 - CSV PREZZI STORICI COMPLETI (07 Feb 2026)
+
+### 🔥 CSV Prezzi Aggiornati - 65,133 righe!
+
+**📊 TUTTI I TICKER AGGIORNATI:**
+- ✅ **EQT**: 11,568 righe (1980-2026) - prima solo 21!
+- ✅ **MARA**: 3,460 righe (2012-2026) - prima solo 20!
+- ✅ **PMET**: 2,874 righe (2014-2026) - prima solo 19!
+- ✅ **IRD**: 5,089 righe (2005-2026) - prima solo 20!
+- ✅ **AA**: 14,146 righe (1962-2026)
+- ✅ **HL**: 11,568 righe (1972-2026)
+- ✅ **PBR**: 6,411 righe (1997-2026)
+- ✅ **GSM**: 4,157 righe (2007-2026)
+- ✅ **URG**: 4,412 righe (2007-2026)
+- ✅ **VZLA**: 1,015 righe (2020-2026)
+- ✅ **ABRA**: 431 righe (2023-2026)
+
+**🎯 DATI 2025 VERIFICATI:**
+- Tutti i ticker hanno **250+ giorni** di prezzi nel 2025
+- Range: 01/01/2025 → 31/12/2025 completo
+- **ROI ora calcolati su dati REALI!**
+
+**📦 BACKUP VECCHI CSV:**
+- Directory: `public/static/data/backup_prezzi_old/`
+- Preservati per confronto
 
 ---
 
