@@ -133,7 +133,11 @@ async function autoLoadCSVs() {
         // Load all price history CSVs
         const pricePromises = Object.entries(TICKER_CSV_MAP).map(async ([ticker, filename]) => {
             try {
-                const response = await fetch(`/static/data/${filename}`);
+                const encodedFilename = encodeURIComponent(filename);
+                const response = await fetch(`/static/data/${encodedFilename}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
                 const text = await response.text();
                 const data = await parseCSVText(text);
                 state.csvData.valori[ticker] = data;

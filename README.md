@@ -1,8 +1,37 @@
-# Rosicatore v3.22.1
+# Rosicatore v3.22.2
 
 ## 🎯 Portfolio Tracker Algorithm
 
 Rosicatore è un Portfolio Tracker che calcola il valore nel tempo di TUTTI i titoli del portafoglio.
+
+---
+
+## 🆕 NOVITÀ v3.22.2 - FIX URL ENCODING CSV (07 Feb 2026)
+
+### 🐛 **BUG FIX CRITICO: URL Encoding Nome File**
+
+**Problema risolto:**
+- ❌ CSV con spazi nel nome non venivano caricati
+- ❌ Fetch falliva per: `"EQT Stock Price History.csv"` (spazi)
+- ❌ HTTP status 000 (connessione rifiutata)
+
+**Soluzione implementata:**
+- ✅ URL encoding automatico: `encodeURIComponent(filename)`
+- ✅ Check HTTP status: `if (!response.ok) throw Error`
+- ✅ Tutti gli 11 ticker ora caricano correttamente
+
+**Test verificati:**
+- ✅ EQT: 11,568 righe (spazi nel path)
+- ✅ AA: 14,146 righe (spazi nel path)
+- ✅ PBR: 6,411 righe (spazi nel path)
+- ✅ MARA: 3,460 righe (spazi nel path)
+- ✅ PMET: 2,874 righe (spazi nel path)
+- ✅ IRD: 5,089 righe (spazi nel path)
+- ✅ HL: 11,568 righe (spazi nel path)
+- ✅ GSM: 4,157 righe (spazi nel path)
+- ✅ URG: 4,412 righe (spazi nel path)
+- ✅ VZLA: 1,015 righe (caricava già prima)
+- ✅ ABRA: 431 righe (caricava già prima)
 
 ---
 
