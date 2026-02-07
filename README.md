@@ -1,8 +1,65 @@
-# Rosicatore v3.20.0
+# Rosicatore v3.21.0
 
 ## 🎯 Portfolio Tracker Algorithm
 
 Rosicatore è un Portfolio Tracker che calcola il valore nel tempo di TUTTI i titoli del portafoglio.
+
+---
+
+## 🆕 NOVITÀ v3.21.0 - VERIFICA CALCOLI + CSV DOWNLOAD
+
+### ✨ Verifica Calcoli Completa
+
+**📊 ANALISI ESEGUITA:**
+- ✅ **Codice matematicamente CORRETTO!**
+- ✅ Formula Universale BUY/SELL: verificata
+- ✅ Calcolo ROI: verificato  
+- ✅ Dividendi: verificati
+- ✅ Movimenti pre-periodo: verificati
+
+**🚨 PROBLEMA IDENTIFICATO:**
+- ❌ **CSV prezzi EQT, MARA, PMET, IRD INCOMPLETI!**
+- EQT: solo 21 righe (da 12/15/2025 in poi)
+- MARA: solo 20 righe (dicembre 2025)
+- **Questo causa performance gonfiate!**
+
+**📋 File Creato:**
+- `VERIFICA_CALCOLI_COMPLETA.md` - Report dettagliato con:
+  - Test su 10 date random per ogni ticker
+  - Confronto CSV vs dati attesi
+  - Analisi root cause performance alte
+  - Soluzioni proposte
+
+### ✨ Download CSV (Singolo + Aggregato)
+
+**📥 NUOVE FUNZIONALITÀ:**
+- **Pulsante CSV per ogni titolo**: Scarica storico eventi ticker
+- **Pulsante CSV globale**: Scarica tutti i titoli in un unico CSV
+- **Colonne CSV**: data, ticker, evento, prezzo, azioni, valore, cash, patrimonio, frazione, gainLoss, ROI
+- **Perfetto per grafici**: Importa in Excel/Python per analisi avanzate
+
+**📊 Formato CSV:**
+```csv
+data,ticker,evento,prezzo,azioni,valoreAzioni,cashResiduo,patrimonioTotale,frazione,gainLoss,roiPortafoglio
+2025-01-01,PBR,INGRESSO,14.500,51.7241,750.00,250.00,1000.00,0.7500,0.00,0.00
+2025-04-22,PBR,DIVIDEND,15.000,51.7241,775.86,263.50,1039.36,0.7500,39.36,3.94
+...
+```
+
+### ✨ Sezione "🧮 COME SI CALCOLANO LE KPI"
+
+**Nuova sezione espandibile** con spiegazioni dettagliate per:
+- 📊 Gain/Loss (guadagno assoluto)
+- 📈 ROI Portafoglio (su capitale allocato)
+- 💹 ROI Posizioni (su capitale investito)
+- 📉 Variazione Prezzo (performance grezza)
+- ⚖️ Peso Portafoglio (azioni vs cash)
+- 💰 Dividendi Totali (componente reddito)
+
+**Ogni KPI include:**
+- Formula matematica esplicita
+- Spiegazione cosa rappresenta
+- Differenza tra metriche simili
 
 ---
 
@@ -207,11 +264,22 @@ Cloudflare Pages
 Hono + TypeScript + TailwindCSS + Papa Parse + Day.js
 
 ### Last Updated
-05 Febbraio 2026 - v3.20.0
+05 Febbraio 2026 - v3.21.0
 
 ---
 
 ## 🔄 Changelog
+
+### v3.21.0 (05/02/2026)
+- ✅ **VERIFICA CALCOLI COMPLETA**: Analisi matematica di tutte le formule
+- ✅ **Report dettagliato**: File VERIFICA_CALCOLI_COMPLETA.md con risultati
+- ✅ **Problema identificato**: CSV prezzi EQT, MARA, PMET, IRD incompleti (causa performance alte)
+- ✅ **CSV DOWNLOAD SINGOLO**: Pulsante per scaricare CSV ogni titolo
+- ✅ **CSV DOWNLOAD AGGREGATO**: Pulsante per scaricare CSV tutti i titoli
+- ✅ **Formato CSV ottimizzato**: 11 colonne per grafici e analisi (data, ticker, evento, prezzo, azioni, valore, cash, patrimonio, frazione, gainLoss, ROI)
+- ✅ **Sezione "COME SI CALCOLANO LE KPI"**: Spiegazione dettagliata formule con esempi
+- ✅ **Accordion espandibile**: Click per mostrare/nascondere spiegazioni KPI
+- ⚠️ **NOTA**: Serve scaricare CSV completi da Yahoo Finance per EQT, MARA, PMET, IRD
 
 ### v3.20.0 (05/02/2026)
 - ✅ **NUOVA SEZIONE PERFORMANCE**: Riepilogo completo performance per ogni titolo

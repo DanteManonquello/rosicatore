@@ -1042,6 +1042,17 @@ function displayResults(results) {
         kpiGrid.appendChild(card);
     });
     
+    // Add CSV Download button after KPI cards
+    const csvButton = document.createElement('div');
+    csvButton.className = 'col-span-full mt-4';
+    csvButton.innerHTML = `
+        <button onclick="downloadAggregateCSV()" class="w-full bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white font-bold py-4 px-6 rounded-lg shadow-lg transition-all duration-200 transform hover:scale-105">
+            <i class="fas fa-file-csv mr-2"></i>
+            📥 SCARICA CSV TUTTI I TITOLI (${results.stocks.length} ticker)
+        </button>
+    `;
+    kpiGrid.appendChild(csvButton);
+    
     // Render stock summary table (all stocks)
     renderStockSummaryMulti(results.stocks);
     
@@ -2169,6 +2180,106 @@ function renderCalculationsSection(stocks) {
                         </div>
                     </div>
                 </div>
+                
+                <!-- PULSANTE DOWNLOAD CSV -->
+                <div class="mt-6">
+                    <button onclick="downloadCSV('${ticker}')" class="w-full bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white font-bold py-3 px-6 rounded-lg shadow-lg transition-all duration-200 transform hover:scale-105">
+                        <i class="fas fa-file-csv mr-2"></i>
+                        📥 SCARICA CSV ${ticker}
+                    </button>
+                    <div class="text-xs text-gray-400 text-center mt-2">
+                        <i class="fas fa-info-circle mr-1"></i>
+                        Scarica tutti gli eventi (${history.length} righe) per analisi esterna o grafici
+                    </div>
+                </div>
+                
+                <!-- SEZIONE CALCOLO KPI -->
+                <div class="mt-6 bg-gray-900 bg-opacity-60 rounded-lg p-6 border-2 border-gray-700">
+                    <h6 class="text-lg font-bold text-white mb-4 flex items-center cursor-pointer" onclick="this.parentElement.querySelector('.kpi-formulas').classList.toggle('hidden')">
+                        <i class="fas fa-calculator mr-2 text-cyan-400"></i>
+                        🧮 COME SI CALCOLANO LE KPI
+                        <i class="fas fa-chevron-down ml-auto text-gray-400"></i>
+                    </h6>
+                    
+                    <div class="kpi-formulas space-y-4 text-sm font-mono">
+                        <!-- Gain/Loss -->
+                        <div class="bg-gray-800 bg-opacity-50 rounded p-4">
+                            <div class="font-bold text-cyan-400 mb-2">📊 Gain/Loss (Guadagno/Perdita Assoluto)</div>
+                            <div class="text-gray-300 mb-2">
+                                <span class="text-yellow-400">Formula:</span> Gain/Loss = Patrimonio Finale - Capitale Allocato
+                            </div>
+                            <div class="text-gray-400 text-xs">
+                                Rappresenta il guadagno/perdita in USD rispetto al capitale iniziale allocato (1000 USD).<br>
+                                Include tutto: valore azioni + cash residuo + dividendi ricevuti.
+                            </div>
+                        </div>
+                        
+                        <!-- ROI Portafoglio -->
+                        <div class="bg-gray-800 bg-opacity-50 rounded p-4">
+                            <div class="font-bold text-green-400 mb-2">📈 ROI Portafoglio (su Capitale Allocato)</div>
+                            <div class="text-gray-300 mb-2">
+                                <span class="text-yellow-400">Formula:</span> ROI = (Gain/Loss / Capitale Allocato) × 100
+                            </div>
+                            <div class="text-gray-400 text-xs">
+                                Percentuale di guadagno/perdita rispetto al CAPITALE ALLOCATO (1000 USD fisso).<br>
+                                È il ROI "reale" del titolo: quanto ho guadagnato sul capitale totale disponibile.<br>
+                                Include: azioni + cash + dividendi.
+                            </div>
+                        </div>
+                        
+                        <!-- ROI Posizioni -->
+                        <div class="bg-gray-800 bg-opacity-50 rounded p-4">
+                            <div class="font-bold text-blue-400 mb-2">💹 ROI Posizioni (su Capitale Investito)</div>
+                            <div class="text-gray-300 mb-2">
+                                <span class="text-yellow-400">Formula:</span> ROI = (Valore Posizione - Capitale Investito) / Capitale Investito × 100
+                            </div>
+                            <div class="text-gray-400 text-xs">
+                                Percentuale di guadagno/perdita rispetto al CAPITALE INVESTITO (variabile con BUY/SELL).<br>
+                                Mostra la performance "pura" delle AZIONI, escludendo cash residuo.<br>
+                                Utile per capire quanto hanno reso le azioni acquistate.
+                            </div>
+                        </div>
+                        
+                        <!-- Variazione Prezzo -->
+                        <div class="bg-gray-800 bg-opacity-50 rounded p-4">
+                            <div class="font-bold text-purple-400 mb-2">📉 Variazione Prezzo</div>
+                            <div class="text-gray-300 mb-2">
+                                <span class="text-yellow-400">Formula:</span> Var% = (Prezzo Finale - Prezzo Ingresso) / Prezzo Ingresso × 100
+                            </div>
+                            <div class="text-gray-400 text-xs">
+                                Variazione percentuale del prezzo dell'azione dal primo acquisto.<br>
+                                NON considera dividendi, BUY/SELL successivi.<br>
+                                È la performance "grezza" del prezzo.
+                            </div>
+                        </div>
+                        
+                        <!-- Peso Portafoglio -->
+                        <div class="bg-gray-800 bg-opacity-50 rounded p-4">
+                            <div class="font-bold text-orange-400 mb-2">⚖️ Peso Portafoglio</div>
+                            <div class="text-gray-300 mb-2">
+                                <span class="text-yellow-400">Formula:</span> Peso% = (Valore Posizione / Patrimonio Finale) × 100
+                            </div>
+                            <div class="text-gray-400 text-xs">
+                                Percentuale del patrimonio investita in azioni vs cash.<br>
+                                100% = tutto in azioni, 0 cash | 50% = metà azioni, metà cash.<br>
+                                Indica l'esposizione al rischio.
+                            </div>
+                        </div>
+                        
+                        <!-- Dividendi Totali -->
+                        <div class="bg-gray-800 bg-opacity-50 rounded p-4">
+                            <div class="font-bold text-yellow-400 mb-2">💰 Dividendi Totali</div>
+                            <div class="text-gray-300 mb-2">
+                                <span class="text-yellow-400">Formula:</span> Dividendi = Σ(Azioni × Dividendo per Azione)
+                            </div>
+                            <div class="text-gray-400 text-xs">
+                                Somma di tutti i dividendi ricevuti nel periodo.<br>
+                                Già inclusi nel Gain/Loss totale (aggiunti al cash).<br>
+                                Mostra la componente "reddito" vs "capitale".
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         `;
         
@@ -2179,4 +2290,109 @@ function renderCalculationsSection(stocks) {
     });
     
     content.innerHTML = html;
+}
+
+// ========================================
+// CSV DOWNLOAD FUNCTIONS
+// ========================================
+
+function generateCSV(ticker, history, summary) {
+    // Header
+    let csv = 'data,ticker,evento,prezzo,azioni,valoreAzioni,cashResiduo,patrimonioTotale,frazione,gainLoss,roiPortafoglio\n';
+    
+    // Rows from history
+    history.forEach(h => {
+        const gainLoss = h.patrimonioTotale - summary.capitaleAllocato;
+        const roiPortafoglio = (gainLoss / summary.capitaleAllocato) * 100;
+        
+        csv += `${h.data},${ticker},"${h.evento}",${h.prezzo.toFixed(3)},${h.azioni.toFixed(4)},${h.valoreAzioni.toFixed(2)},${h.cashResiduo.toFixed(2)},${h.patrimonioTotale.toFixed(2)},${h.frazioneAttuale.toFixed(4)},${gainLoss.toFixed(2)},${roiPortafoglio.toFixed(2)}\n`;
+    });
+    
+    return csv;
+}
+
+function generateAggregateCSV(allStocks) {
+    // Header
+    let csv = 'data,ticker,evento,prezzo,azioni,valoreAzioni,cashResiduo,patrimonioTotale,frazione,gainLoss,roiPortafoglio\n';
+    
+    // Collect all events from all stocks
+    const allEvents = [];
+    allStocks.forEach(stock => {
+        stock.history.forEach(h => {
+            const gainLoss = h.patrimonioTotale - stock.summary.capitaleAllocato;
+            const roiPortafoglio = (gainLoss / stock.summary.capitaleAllocato) * 100;
+            
+            allEvents.push({
+                data: h.data,
+                ticker: stock.ticker,
+                evento: h.evento,
+                prezzo: h.prezzo,
+                azioni: h.azioni,
+                valoreAzioni: h.valoreAzioni,
+                cashResiduo: h.cashResiduo,
+                patrimonioTotale: h.patrimonioTotale,
+                frazione: h.frazioneAttuale,
+                gainLoss,
+                roiPortafoglio
+            });
+        });
+    });
+    
+    // Sort by date, then ticker
+    allEvents.sort((a, b) => {
+        const dateCompare = new Date(a.data) - new Date(b.data);
+        if (dateCompare !== 0) return dateCompare;
+        return a.ticker.localeCompare(b.ticker);
+    });
+    
+    // Generate rows
+    allEvents.forEach(e => {
+        csv += `${e.data},${e.ticker},"${e.evento}",${e.prezzo.toFixed(3)},${e.azioni.toFixed(4)},${e.valoreAzioni.toFixed(2)},${e.cashResiduo.toFixed(2)},${e.patrimonioTotale.toFixed(2)},${e.frazione.toFixed(4)},${e.gainLoss.toFixed(2)},${e.roiPortafoglio.toFixed(2)}\n`;
+    });
+    
+    return csv;
+}
+
+function downloadCSV(ticker) {
+    // Find stock data
+    const stock = state.results.stocks.find(s => s.ticker === ticker);
+    if (!stock) {
+        alert(`Dati non trovati per ${ticker}`);
+        return;
+    }
+    
+    const csv = generateCSV(ticker, stock.history, stock.summary);
+    
+    // Create blob and download
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    
+    link.setAttribute('href', url);
+    link.setAttribute('download', `rosicatore_${ticker}_${state.config.dataInizio}_${state.config.dataFine}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+function downloadAggregateCSV() {
+    if (!state.results || !state.results.stocks) {
+        alert('Nessun dato disponibile. Esegui prima il calcolo.');
+        return;
+    }
+    
+    const csv = generateAggregateCSV(state.results.stocks);
+    
+    // Create blob and download
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    
+    link.setAttribute('href', url);
+    link.setAttribute('download', `rosicatore_tutti_titoli_${state.config.dataInizio}_${state.config.dataFine}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
 }
