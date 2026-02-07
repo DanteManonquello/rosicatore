@@ -941,12 +941,12 @@ function getPrezzoByDate(valori, targetDate, ticker) {
     let minDiff = Infinity;
     
     tickerData.forEach(row => {
-        const rowDate = dayjs(row.Date, 'MM/DD/YYYY');
+        const rowDate = dayjs(row.Date, 'YYYY-MM-DD');
         const diff = Math.abs(target.diff(rowDate, 'day'));
         
         if (diff < minDiff) {
             minDiff = diff;
-            closestPrice = parseFloat(row.Price);
+            closestPrice = parseFloat(row.Close);
         }
     });
     

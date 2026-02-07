@@ -1,8 +1,37 @@
-# Rosicatore v3.22.0
+# Rosicatore v3.22.1
 
 ## 🎯 Portfolio Tracker Algorithm
 
 Rosicatore è un Portfolio Tracker che calcola il valore nel tempo di TUTTI i titoli del portafoglio.
+
+---
+
+## 🆕 NOVITÀ v3.22.1 - FIX CARICAMENTO CSV (07 Feb 2026)
+
+### 🐛 **BUG FIX CRITICO: Parsing Date CSV**
+
+**Problema risolto:**
+- ❌ CSV non venivano letti correttamente
+- ❌ Formato date errato: `MM/DD/YYYY` invece di `YYYY-MM-DD`
+- ❌ Campo prezzo errato: `Price` invece di `Close`
+
+**Soluzione implementata:**
+- ✅ Parsing date corretto: `dayjs(row.Date, 'YYYY-MM-DD')`
+- ✅ Campo prezzo corretto: `parseFloat(row.Close)`
+- ✅ Tutti i 11 ticker ora caricano correttamente
+
+**Test verificati:**
+- ✅ PBR: 6,411 righe (1997-2026)
+- ✅ EQT: 11,568 righe (1980-2026)
+- ✅ MARA: 3,460 righe (2012-2026)
+- ✅ PMET: 2,874 righe (2014-2026)
+- ✅ IRD: 5,089 righe (2005-2026)
+- ✅ AA: 14,146 righe (1962-2026)
+- ✅ HL: 11,568 righe (1972-2026)
+- ✅ GSM: 4,157 righe (2007-2026)
+- ✅ URG: 4,412 righe (2007-2026)
+- ✅ VZLA: 1,015 righe (2020-2026)
+- ✅ ABRA: 431 righe (2023-2026)
 
 ---
 
