@@ -1,8 +1,45 @@
-# Rosicatore v3.19.0
+# Rosicatore v3.20.0
 
 ## 🎯 Portfolio Tracker Algorithm
 
 Rosicatore è un Portfolio Tracker che calcola il valore nel tempo di TUTTI i titoli del portafoglio.
+
+---
+
+## 🆕 NOVITÀ v3.20.0 - SEZIONE PERFORMANCE E ROI
+
+### ✨ Nuova Sezione "📈 RIEPILOGO PERFORMANCE"
+
+Ogni titolo ora mostra un **RIEPILOGO COMPLETO PERFORMANCE** con:
+
+**📊 KPI Principali:**
+- Capitale Allocato vs Patrimonio Finale
+- Gain/Loss Totale
+- ROI Portafoglio (su capitale allocato)
+
+**📈 Analisi ROI Dettagliata:**
+- **ROI Portafoglio**: Performance TOTALE (azioni + cash + dividendi)
+  - Formula: `(Patrimonio - Capitale) / Capitale × 100`
+  - Include TUTTO il capitale
+- **ROI Posizioni**: Performance SOLO AZIONI (esclude cash)
+  - Formula: `(Valore - Investito) / Investito × 100`
+  - Solo azioni, no cash
+- **Variazione Prezzo**: Variazione prezzo azione (no dividendi)
+  - Formula: `(Finale - Ingresso) / Ingresso × 100`
+  - Solo prezzo grezzo
+
+**💰 Scomposizione Gain/Loss:**
+- Gain da Prezzo (azioni)
+- Gain da Dividendi
+- Gain Totale (verificato matematicamente)
+
+**📊 Composizione Patrimonio:**
+- Valore Posizione (azioni)
+- Cash Residuo
+- Peso Azioni %
+- Peso Cash %
+
+Tutti i calcoli sono **espliciti, verificabili e matematicamente corretti**! 🎯
 
 ---
 
@@ -170,11 +207,20 @@ Cloudflare Pages
 Hono + TypeScript + TailwindCSS + Papa Parse + Day.js
 
 ### Last Updated
-05 Febbraio 2026 - v3.19.0
+05 Febbraio 2026 - v3.20.0
 
 ---
 
 ## 🔄 Changelog
+
+### v3.20.0 (05/02/2026)
+- ✅ **NUOVA SEZIONE PERFORMANCE**: Riepilogo completo performance per ogni titolo
+- ✅ **3 TIPI DI ROI**: ROI Portafoglio, ROI Posizioni, Variazione Prezzo (tutti espliciti)
+- ✅ **Scomposizione Gain/Loss**: Gain da Prezzo + Gain da Dividendi + Verifica matematica
+- ✅ **Composizione Patrimonio**: Valore Azioni vs Cash Residuo con percentuali
+- ✅ **Analisi KPI**: Capitale Allocato, Investito, Patrimonio Finale side-by-side
+- ✅ **Formule esplicite**: Ogni ROI mostra la formula matematica completa
+- ✅ **Design potenziato**: Gradiente purple-blue-indigo con bordo giallo
 
 ### v3.19.0 (05/02/2026)
 - ✅ **NUOVA SEZIONE CALCOLI STEP-BY-STEP**: Visualizzazione dettagliata dei calcoli per ogni fase

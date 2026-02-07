@@ -2011,7 +2011,168 @@ function renderCalculationsSection(stocks) {
             `;
         });
         
-        // RISULTATO FINALE COMPATTO
+        // ========================================
+        // SEZIONE RIEPILOGO PERFORMANCE
+        // ========================================
+        const dividendiTotali = history
+            .filter(h => h.dividendoTotale)
+            .reduce((sum, h) => sum + h.dividendoTotale, 0);
+        
+        const roiPosizioni = ((summary.valorePosizioneFinale - summary.capitaleInvestito) / summary.capitaleInvestito) * 100;
+        const variazionePrezzo = ((summary.prezzoFinale - summary.prezzoIngresso) / summary.prezzoIngresso) * 100;
+        const pesoPortafoglio = (summary.valorePosizioneFinale / summary.patrimonioFinale) * 100;
+        
+        const gainDaPrezzo = summary.valorePosizioneFinale - summary.capitaleInvestito;
+        const gainDaDividendi = dividendiTotali;
+        const gainDaCash = summary.cashResiduo - (summary.capitaleAllocato - summary.capitaleInvestito);
+        
+        html += `
+            <div class="bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 rounded-lg p-8 mt-8 border-4 border-yellow-500">
+                <h5 class="text-2xl font-bold mb-6 text-yellow-400 flex items-center">
+                    <i class="fas fa-chart-line mr-3"></i>
+                    📈 RIEPILOGO PERFORMANCE - ${ticker}
+                </h5>
+                
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- COLONNA SINISTRA: KPI PRINCIPALI -->
+                    <div class="space-y-4">
+                        <div class="bg-gray-900 bg-opacity-60 rounded-lg p-6">
+                            <h6 class="text-lg font-bold text-white mb-4 border-b border-gray-700 pb-2">
+                                <i class="fas fa-trophy mr-2 text-yellow-400"></i>
+                                KPI Principali
+                            </h6>
+                            <div class="space-y-3 font-mono text-sm">
+                                <div class="flex justify-between">
+                                    <span class="text-gray-400">Capitale Allocato:</span>
+                                    <span class="text-white font-bold">$${summary.capitaleAllocato.toFixed(2)}</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-400">Patrimonio Finale:</span>
+                                    <span class="${summary.patrimonioFinale >= summary.capitaleAllocato ? 'text-green-400' : 'text-red-400'} font-bold">$${summary.patrimonioFinale.toFixed(2)}</span>
+                                </div>
+                                <div class="flex justify-between border-t border-gray-700 pt-2">
+                                    <span class="text-white font-bold">Gain/Loss Totale:</span>
+                                    <span class="${summary.gainLoss >= 0 ? 'text-green-400' : 'text-red-400'} font-bold text-lg">${summary.gainLoss >= 0 ? '+' : ''}$${summary.gainLoss.toFixed(2)}</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-white font-bold">ROI Portafoglio:</span>
+                                    <span class="${summary.roiPortafoglio >= 0 ? 'text-green-400' : 'text-red-400'} font-bold text-lg">${summary.roiPortafoglio >= 0 ? '+' : ''}${summary.roiPortafoglio.toFixed(2)}%</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-gray-900 bg-opacity-60 rounded-lg p-6">
+                            <h6 class="text-lg font-bold text-white mb-4 border-b border-gray-700 pb-2">
+                                <i class="fas fa-chart-pie mr-2 text-blue-400"></i>
+                                Composizione Patrimonio
+                            </h6>
+                            <div class="space-y-3 font-mono text-sm">
+                                <div class="flex justify-between">
+                                    <span class="text-gray-400">Valore Posizione:</span>
+                                    <span class="text-green-400 font-bold">$${summary.valorePosizioneFinale.toFixed(2)}</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-400">Cash Residuo:</span>
+                                    <span class="text-blue-400 font-bold">$${summary.cashResiduo.toFixed(2)}</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-400">Peso Azioni:</span>
+                                    <span class="text-yellow-400 font-bold">${pesoPortafoglio.toFixed(2)}%</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-400">Peso Cash:</span>
+                                    <span class="text-yellow-400 font-bold">${(100 - pesoPortafoglio).toFixed(2)}%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- COLONNA DESTRA: ANALISI DETTAGLIATA -->
+                    <div class="space-y-4">
+                        <div class="bg-gray-900 bg-opacity-60 rounded-lg p-6">
+                            <h6 class="text-lg font-bold text-white mb-4 border-b border-gray-700 pb-2">
+                                <i class="fas fa-calculator mr-2 text-green-400"></i>
+                                Analisi ROI
+                            </h6>
+                            <div class="space-y-3 font-mono text-sm">
+                                <div class="bg-gray-800 bg-opacity-50 rounded p-3">
+                                    <div class="text-white font-bold mb-2">ROI Portafoglio (su Capitale Allocato)</div>
+                                    <div class="text-gray-300">Formula: (Patrimonio - Capitale) / Capitale × 100</div>
+                                    <div class="text-gray-300 mt-1">= (${summary.patrimonioFinale.toFixed(2)} - ${summary.capitaleAllocato.toFixed(2)}) / ${summary.capitaleAllocato.toFixed(2)} × 100</div>
+                                    <div class="text-xl font-bold mt-2 ${summary.roiPortafoglio >= 0 ? 'text-green-400' : 'text-red-400'}">= ${summary.roiPortafoglio >= 0 ? '+' : ''}${summary.roiPortafoglio.toFixed(2)}%</div>
+                                    <div class="text-xs text-gray-500 mt-2">Include: azioni + cash + dividendi</div>
+                                </div>
+                                
+                                <div class="bg-gray-800 bg-opacity-50 rounded p-3">
+                                    <div class="text-white font-bold mb-2">ROI Posizioni (su Capitale Investito)</div>
+                                    <div class="text-gray-300">Formula: (Valore - Investito) / Investito × 100</div>
+                                    <div class="text-gray-300 mt-1">= (${summary.valorePosizioneFinale.toFixed(2)} - ${summary.capitaleInvestito.toFixed(2)}) / ${summary.capitaleInvestito.toFixed(2)} × 100</div>
+                                    <div class="text-xl font-bold mt-2 ${roiPosizioni >= 0 ? 'text-green-400' : 'text-red-400'}">= ${roiPosizioni >= 0 ? '+' : ''}${roiPosizioni.toFixed(2)}%</div>
+                                    <div class="text-xs text-gray-500 mt-2">Solo performance azioni (esclude cash)</div>
+                                </div>
+                                
+                                <div class="bg-gray-800 bg-opacity-50 rounded p-3">
+                                    <div class="text-white font-bold mb-2">Variazione Prezzo</div>
+                                    <div class="text-gray-300">Formula: (Finale - Ingresso) / Ingresso × 100</div>
+                                    <div class="text-gray-300 mt-1">= (${summary.prezzoFinale.toFixed(3)} - ${summary.prezzoIngresso.toFixed(3)}) / ${summary.prezzoIngresso.toFixed(3)} × 100</div>
+                                    <div class="text-xl font-bold mt-2 ${variazionePrezzo >= 0 ? 'text-green-400' : 'text-red-400'}">= ${variazionePrezzo >= 0 ? '+' : ''}${variazionePrezzo.toFixed(2)}%</div>
+                                    <div class="text-xs text-gray-500 mt-2">Solo variazione prezzo (no dividendi)</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-gray-900 bg-opacity-60 rounded-lg p-6">
+                            <h6 class="text-lg font-bold text-white mb-4 border-b border-gray-700 pb-2">
+                                <i class="fas fa-coins mr-2 text-yellow-400"></i>
+                                Scomposizione Gain/Loss
+                            </h6>
+                            <div class="space-y-3 font-mono text-sm">
+                                <div class="flex justify-between">
+                                    <span class="text-gray-400">Gain da Prezzo:</span>
+                                    <span class="${gainDaPrezzo >= 0 ? 'text-green-400' : 'text-red-400'} font-bold">${gainDaPrezzo >= 0 ? '+' : ''}$${gainDaPrezzo.toFixed(2)}</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-400">Gain da Dividendi:</span>
+                                    <span class="text-yellow-400 font-bold">+$${gainDaDividendi.toFixed(2)}</span>
+                                </div>
+                                <div class="flex justify-between border-t border-gray-700 pt-2">
+                                    <span class="text-white font-bold">Gain Totale:</span>
+                                    <span class="${summary.gainLoss >= 0 ? 'text-green-400' : 'text-red-400'} font-bold text-lg">${summary.gainLoss >= 0 ? '+' : ''}$${summary.gainLoss.toFixed(2)}</span>
+                                </div>
+                                <div class="text-xs text-gray-500 mt-2">
+                                    <i class="fas fa-info-circle mr-1"></i>
+                                    Verifica: ${gainDaPrezzo.toFixed(2)} + ${gainDaDividendi.toFixed(2)} = ${(gainDaPrezzo + gainDaDividendi).toFixed(2)} (deve essere ~${summary.gainLoss.toFixed(2)})
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- FOOTER RIASSUNTIVO -->
+                <div class="mt-6 bg-gray-900 bg-opacity-60 rounded-lg p-6">
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center font-mono">
+                        <div>
+                            <div class="text-xs text-gray-400 mb-1">Azioni Finali</div>
+                            <div class="text-lg font-bold text-white">${summary.azioni.toFixed(4)} az</div>
+                        </div>
+                        <div>
+                            <div class="text-xs text-gray-400 mb-1">Prezzo Ingresso</div>
+                            <div class="text-lg font-bold text-white">$${summary.prezzoIngresso.toFixed(3)}</div>
+                        </div>
+                        <div>
+                            <div class="text-xs text-gray-400 mb-1">Prezzo Finale</div>
+                            <div class="text-lg font-bold ${variazionePrezzo >= 0 ? 'text-green-400' : 'text-red-400'}">$${summary.prezzoFinale.toFixed(3)}</div>
+                        </div>
+                        <div>
+                            <div class="text-xs text-gray-400 mb-1">Dividendi Totali</div>
+                            <div class="text-lg font-bold text-yellow-400">$${dividendiTotali.toFixed(2)}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // CHIUSURA TICKER
         html += `
             </div>
         `;
