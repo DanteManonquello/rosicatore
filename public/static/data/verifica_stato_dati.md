@@ -1,0 +1,5 @@
+# 📊 STATO ATTUALE DATI CSV - 05 FEBBRAIO 2026
+
+## 📁 FILE PRESENTI:
+
+### 1. info_titoli.csv

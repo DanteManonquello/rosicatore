@@ -1,8 +1,40 @@
-# Rosicatore v3.18.0
+# Rosicatore v3.19.0
 
 ## 🎯 Portfolio Tracker Algorithm
 
 Rosicatore è un Portfolio Tracker che calcola il valore nel tempo di TUTTI i titoli del portafoglio.
+
+---
+
+## 🆕 NOVITÀ v3.19.0 - CALCOLI STEP-BY-STEP
+
+### ✨ Nuova Sezione "📊 CALCOLI DETTAGLIATI"
+
+Ogni titolo ora mostra i calcoli **PASSO-PASSO** per ogni fase:
+
+**🎯 FASE 1: INGRESSO**
+- Step 1: Frazione (es: 2/4 = 0.50 = 50%)
+- Step 2: Capitale Investito/Residuo
+- Step 3: Acquisto Azioni
+- Step 4: Valore Posizione
+
+**🎯 FASE 2: APPESANTIMENTO/ALLEGGERIMENTO**
+- Step 1: Valutazione Pre-Operazione
+- Step 2: Calcolo Formula Universale (BUY o SELL)
+- Step 3: Situazione Post-Operazione
+
+**🎯 FASE 3: DIVIDENDO**
+- Step 1: Dividendo Lordo
+- Step 2: Cash Aggiornato
+- Step 3: Valore Posizione
+
+**🎯 FASE FINALE: VALUTAZIONE**
+- Step 1: Valore Finale Posizione
+- Step 2: Performance Complessiva
+- Step 3: ROI Posizioni (su capitale investito)
+- Step 4: ROI Portafoglio (su capitale allocato)
+
+Tutti i calcoli sono espliciti e verificabili!
 
 ---
 
@@ -138,11 +170,20 @@ Cloudflare Pages
 Hono + TypeScript + TailwindCSS + Papa Parse + Day.js
 
 ### Last Updated
-05 Febbraio 2026 - v3.18.0
+05 Febbraio 2026 - v3.19.0
 
 ---
 
 ## 🔄 Changelog
+
+### v3.19.0 (05/02/2026)
+- ✅ **NUOVA SEZIONE CALCOLI STEP-BY-STEP**: Visualizzazione dettagliata dei calcoli per ogni fase
+- ✅ **Formula Universale Esplicita**: Mostra tutti i passaggi matematici (BUY/SELL/DIVIDEND)
+- ✅ **Step numerati**: Ogni fase mostra Step 1, Step 2, Step 3, Step 4 con calcoli esatti
+- ✅ **Calcoli verificabili**: Es: "127.55 × 4.630 = $590.56" visibili in ogni riga
+- ✅ **Performance trasparenti**: ROI Posizioni vs ROI Portafoglio chiaramente distinti
+- ✅ **Formato monospace**: Font mono per leggibilità matematica ottimale
+- ✅ **Colori intuitivi**: Blu=Ingresso, Verde=BUY, Rosso=SELL, Giallo=Dividendo, Viola=Fine
 
 ### v3.18.0 (05/02/2026)
 - ✅ **AGGIORNAMENTO DIVIDENDI**: Dataset completo con 517 dividendi storici

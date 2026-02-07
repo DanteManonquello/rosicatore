@@ -1562,12 +1562,14 @@ function renderPeriodoAnalisi(periodoInfo, titoliSkipped) {
 }
 
 // Render calculations section - VITA MORTE MIRACOLI di ogni titolo (FORMATO PDF DETTAGLIATO)
+// NUOVA FUNZIONE renderCalculationsSection con calcoli STEP-BY-STEP
+
 function renderCalculationsSection(stocks) {
     const content = document.getElementById('calculationsContent');
     
     let html = '';
     
-    stocks.forEach((stock, index) => {
+    stocks.forEach((stock, stockIndex) => {
         const { ticker, summary, history } = stock;
         
         // Get titolo info
@@ -1575,9 +1577,9 @@ function renderCalculationsSection(stocks) {
         const titoloNome = titoloInfo ? titoloInfo.nome : ticker;
         const tipoTitolo = titoloInfo ? titoloInfo.tipo : 'N/A';
         
+        // HEADER TITOLO
         html += `
-            <div class="mb-12 ${index > 0 ? 'border-t-4 border-gray-600 pt-12' : ''}">
-                <!-- HEADER TITOLO -->
+            <div class="mb-12 ${stockIndex > 0 ? 'border-t-4 border-gray-600 pt-12' : ''}">
                 <div class="bg-gradient-to-r from-blue-900 to-purple-900 rounded-lg p-6 mb-6">
                     <div class="flex items-center justify-between">
                         <div>
@@ -1606,32 +1608,10 @@ function renderCalculationsSection(stocks) {
                         </div>
                     </div>
                 </div>
-                
-                <!-- SETUP INIZIALE -->
-                <div class="bg-gray-800 rounded-lg p-6 mb-6 border-l-4 border-blue-500">
-                    <h5 class="text-xl font-bold mb-4 text-blue-400">📋 SETUP INIZIALE</h5>
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                        <div>
-                            <div class="text-gray-400">Capitale Allocato</div>
-                            <div class="text-lg font-bold text-white">$${summary.capitaleAllocato.toFixed(2)}</div>
-                        </div>
-                        <div>
-                            <div class="text-gray-400">Frazione Iniziale</div>
-                            <div class="text-lg font-bold text-white">${(history[0].frazioneAttuale * 4).toFixed(1)}/4 (${(history[0].frazioneAttuale * 100).toFixed(0)}%)</div>
-                        </div>
-                        <div>
-                            <div class="text-gray-400">Prezzo Ingresso</div>
-                            <div class="text-lg font-bold text-white">$${summary.prezzoIngresso.toFixed(3)}</div>
-                        </div>
-                        <div>
-                            <div class="text-gray-400">Azioni Iniziali</div>
-                            <div class="text-lg font-bold text-white">${history[0].azioni.toFixed(4)} az</div>
-                        </div>
-                    </div>
-                </div>
         `;
         
         // CRONOLOGIA DETTAGLIATA - FASE PER FASE
+        let faseNum = 0;
         history.forEach((h, histIndex) => {
             const isIngresso = h.evento === 'INGRESSO';
             const isBuy = h.evento.includes('BUY');
@@ -1645,38 +1625,377 @@ function renderCalculationsSection(stocks) {
             let icon = 'fa-circle';
             let faseTitle = h.evento;
             
+            faseNum++;
+            
             if (isIngresso) {
                 borderColor = 'border-blue-500';
                 bgColor = 'bg-blue-900 bg-opacity-20';
                 iconColor = 'text-blue-400';
                 icon = 'fa-sign-in-alt';
-                faseTitle = `FASE ${histIndex + 1}: INGRESSO`;
+                faseTitle = `🎯 FASE ${faseNum}: INGRESSO`;
             } else if (isBuy) {
                 borderColor = 'border-green-500';
                 bgColor = 'bg-green-900 bg-opacity-20';
                 iconColor = 'text-green-400';
                 icon = 'fa-arrow-up';
-                faseTitle = `FASE ${histIndex + 1}: APPESANTIMENTO ${h.evento.replace('BUY ', '')}`;
+                faseTitle = `🎯 FASE ${faseNum}: APPESANTIMENTO ${h.evento.replace('BUY ', '')}`;
             } else if (isSell) {
                 borderColor = 'border-red-500';
                 bgColor = 'bg-red-900 bg-opacity-20';
                 iconColor = 'text-red-400';
                 icon = 'fa-arrow-down';
-                faseTitle = `FASE ${histIndex + 1}: ALLEGGERIMENTO ${h.evento.replace('SELL ', '')}`;
+                faseTitle = `🎯 FASE ${faseNum}: ALLEGGERIMENTO ${h.evento.replace('SELL ', '')}`;
             } else if (isDividend) {
                 borderColor = 'border-yellow-500';
                 bgColor = 'bg-yellow-900 bg-opacity-20';
                 iconColor = 'text-yellow-400';
                 icon = 'fa-coins';
-                faseTitle = `FASE ${histIndex + 1}: DIVIDENDO`;
+                faseTitle = `🎯 FASE ${faseNum}: DIVIDENDO`;
             } else if (isFine) {
                 borderColor = 'border-purple-500';
                 bgColor = 'bg-purple-900 bg-opacity-20';
                 iconColor = 'text-purple-400';
                 icon = 'fa-flag-checkered';
-                faseTitle = `FASE ${histIndex + 1}: VALUTAZIONE FINALE`;
+                faseTitle = `🎯 FASE ${faseNum}: VALUTAZIONE FINALE`;
             }
             
+            // GENERAZIONE CALCOLI STEP-BY-STEP
+            let stepsHTML = '';
+            
+            // ========================================
+            // FASE INGRESSO
+            // ========================================
+            if (isIngresso) {
+                const frazione = h.frazioneAttuale;
+                const frazioneStr = `${(frazione * 4).toFixed(1)}/4`;
+                const frazionePerc = (frazione * 100).toFixed(0);
+                const capitaleAllocato = summary.capitaleAllocato;
+                const capitaleInvestito = capitaleAllocato * frazione;
+                const cashResiduo = capitaleAllocato - capitaleInvestito;
+                const prezzoIngresso = h.prezzo;
+                const azioniAcquistate = h.azioni;
+                const valorePosizione = h.valoreAzioni;
+                
+                stepsHTML = `
+                    <div class="space-y-4 font-mono text-sm">
+                        <div class="bg-gray-900 bg-opacity-50 rounded p-4">
+                            <div class="font-bold text-white mb-2">Step 1: Frazione</div>
+                            <div class="text-gray-300">
+                                Frazione: <span class="text-blue-400 font-bold">${frazioneStr} = ${frazione.toFixed(2)} (${frazionePerc}%)</span>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-gray-900 bg-opacity-50 rounded p-4">
+                            <div class="font-bold text-white mb-2">Step 2: Capitale Investito/Residuo</div>
+                            <div class="text-gray-300 space-y-1">
+                                <div>Capitale Allocato:      <span class="text-white font-bold">$${capitaleAllocato.toFixed(2)}</span></div>
+                                <div>Frazione:               <span class="text-blue-400">× ${frazione.toFixed(2)}</span></div>
+                                <div class="border-t border-gray-700 mt-2 pt-2">
+                                    <div>= Capitale Investito:   <span class="text-green-400 font-bold">$${capitaleInvestito.toFixed(2)}</span></div>
+                                    <div>= Cash Residuo:         <span class="text-blue-400 font-bold">$${cashResiduo.toFixed(2)}</span></div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-gray-900 bg-opacity-50 rounded p-4">
+                            <div class="font-bold text-white mb-2">Step 3: Acquisto Azioni</div>
+                            <div class="text-gray-300 space-y-1">
+                                <div>Capitale Investito:  <span class="text-white">$${capitaleInvestito.toFixed(2)}</span></div>
+                                <div>Prezzo Ingresso:     <span class="text-white">$${prezzoIngresso.toFixed(3)}/az</span></div>
+                                <div class="border-t border-gray-700 mt-2 pt-2">
+                                    <div>= Azioni Acquistate: <span class="text-green-400 font-bold">${capitaleInvestito.toFixed(2)} / ${prezzoIngresso.toFixed(3)} = ${azioniAcquistate.toFixed(4)} azioni</span></div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-gray-900 bg-opacity-50 rounded p-4">
+                            <div class="font-bold text-white mb-2">Step 4: Valore Posizione (${h.data})</div>
+                            <div class="text-gray-300 space-y-1">
+                                <div>Azioni:              <span class="text-white">${azioniAcquistate.toFixed(4)}</span></div>
+                                <div>Prezzo:              <span class="text-white">$${prezzoIngresso.toFixed(3)}/az</span></div>
+                                <div class="border-t border-gray-700 mt-2 pt-2">
+                                    <div>= Valore Posizione:  <span class="text-green-400 font-bold">${azioniAcquistate.toFixed(4)} × ${prezzoIngresso.toFixed(3)} = $${valorePosizione.toFixed(2)}</span></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // ========================================
+            // FASE BUY
+            // ========================================
+            else if (isBuy) {
+                // Recupera info dal dettagli
+                const prevH = history[histIndex - 1];
+                const azioniPre = prevH.azioni;
+                const valorePosizionePre = azioniPre * h.prezzo;
+                const cashPre = prevH.cashResiduo;
+                const patrimonioAttuale = valorePosizionePre + cashPre;
+                const valore1Quarto = patrimonioAttuale / 4;
+                
+                // Estrai frazione dal evento (es: "BUY +1/4")
+                const match = h.evento.match(/\+(\d+)\/4/);
+                const frazioneNum = match ? parseInt(match[1]) : 1;
+                const capitaleDaInvestire = valore1Quarto * frazioneNum;
+                const azioniNuove = capitaleDaInvestire / h.prezzo;
+                
+                const azioniPost = h.azioni;
+                const cashPost = h.cashResiduo;
+                const valorePosPost = h.valoreAzioni;
+                const patrimonioPost = h.patrimonioTotale;
+                const frazionePost = h.frazioneAttuale;
+                const frazionePostStr = `${(frazionePost * 4).toFixed(1)}/4`;
+                
+                const gainLossTemp = patrimonioAttuale - summary.capitaleAllocato;
+                
+                stepsHTML = `
+                    <div class="space-y-4 font-mono text-sm">
+                        <div class="bg-gray-900 bg-opacity-50 rounded p-4">
+                            <div class="font-bold text-white mb-2">Step 1: Valutazione Pre-Appesantimento</div>
+                            <div class="text-gray-300 space-y-1">
+                                <div class="text-blue-400 mb-2">📅 ${h.data} - Prezzo: $${h.prezzo.toFixed(3)}/az</div>
+                                <div>Azioni Possedute:     <span class="text-white">${azioniPre.toFixed(4)}</span></div>
+                                <div>Valore Posizione:     <span class="text-green-400">${azioniPre.toFixed(4)} × ${h.prezzo.toFixed(3)} = $${valorePosizionePre.toFixed(2)}</span></div>
+                                <div>Cash Residuo:         <span class="text-blue-400">$${cashPre.toFixed(2)}</span></div>
+                                <div class="border-t border-gray-700 mt-2 pt-2">
+                                    <div>Patrimonio Totale:    <span class="text-purple-400 font-bold">$${patrimonioAttuale.toFixed(2)}</span></div>
+                                    <div>Gain/Loss Temporaneo: <span class="${gainLossTemp >= 0 ? 'text-green-400' : 'text-red-400'} font-bold">${gainLossTemp >= 0 ? '+' : ''}$${gainLossTemp.toFixed(2)}</span></div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-gray-900 bg-opacity-50 rounded p-4">
+                            <div class="font-bold text-white mb-2">Step 2: Calcolo Formula Universale (BUY)</div>
+                            <div class="text-gray-300 space-y-1">
+                                <div>Patrimonio Attuale:     <span class="text-white">$${patrimonioAttuale.toFixed(2)}</span></div>
+                                <div>Valore 1/4:             <span class="text-yellow-400">${patrimonioAttuale.toFixed(2)} / 4 = $${valore1Quarto.toFixed(2)}</span></div>
+                                <div>Frazione Movimento:     <span class="text-green-400 font-bold">+${frazioneNum}/4</span></div>
+                                <div class="border-t border-gray-700 mt-2 pt-2">
+                                    <div>Capitale da Investire: <span class="text-green-400 font-bold">${valore1Quarto.toFixed(2)} × ${frazioneNum} = $${capitaleDaInvestire.toFixed(2)}</span></div>
+                                    <div class="mt-2">Azioni Nuove:           <span class="text-green-400 font-bold">${capitaleDaInvestire.toFixed(2)} / ${h.prezzo.toFixed(3)} = ${azioniNuove.toFixed(4)} azioni</span></div>
+                                    <div>Prezzo Acquisto:       <span class="text-white">$${h.prezzo.toFixed(3)}/az</span></div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-gray-900 bg-opacity-50 rounded p-4">
+                            <div class="font-bold text-white mb-2">Step 3: Situazione Post-Appesantimento</div>
+                            <div class="text-gray-300 space-y-1">
+                                <div>Azioni Totali:         <span class="text-white">${azioniPre.toFixed(4)} + ${azioniNuove.toFixed(4)} = <span class="text-green-400 font-bold">${azioniPost.toFixed(4)} azioni</span></span></div>
+                                <div class="ml-4 mt-1">
+                                    <div>├─ Lotto Pre:  ${azioniPre.toFixed(4)} az @ $${prevH.prezzo.toFixed(3)}</div>
+                                    <div>└─ Lotto Nuovo: ${azioniNuove.toFixed(4)} az @ $${h.prezzo.toFixed(3)}</div>
+                                </div>
+                                <div class="border-t border-gray-700 mt-2 pt-2">
+                                    <div>Cash Residuo:          <span class="text-blue-400">${cashPre.toFixed(2)} - ${capitaleDaInvestire.toFixed(2)} = <span class="font-bold">$${cashPost.toFixed(2)}</span></span></div>
+                                    <div>Frazione Attuale:      <span class="text-yellow-400 font-bold">${frazionePostStr} (${(frazionePost * 100).toFixed(0)}%)</span></div>
+                                    <div class="mt-2">Valore Posizione:      <span class="text-green-400 font-bold">${azioniPost.toFixed(4)} × ${h.prezzo.toFixed(3)} = $${valorePosPost.toFixed(2)}</span></div>
+                                    <div>Patrimonio Totale:     <span class="text-purple-400 font-bold">${valorePosPost.toFixed(2)} + ${cashPost.toFixed(2)} = $${patrimonioPost.toFixed(2)}</span></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // ========================================
+            // FASE SELL
+            // ========================================
+            else if (isSell) {
+                // Recupera info dal dettagli
+                const prevH = history[histIndex - 1];
+                const azioniPre = prevH.azioni;
+                const valorePosizionePre = azioniPre * h.prezzo;
+                const cashPre = prevH.cashResiduo;
+                const patrimonioAttuale = valorePosizionePre + cashPre;
+                const valore1Quarto = patrimonioAttuale / 4;
+                
+                // Estrai frazione dal evento (es: "SELL -1/4")
+                const match = h.evento.match(/\-(\d+)\/4/);
+                const frazioneNum = match ? parseInt(match[1]) : 1;
+                const capitaleDaVendere = valore1Quarto * frazioneNum;
+                const azioniDaVendere = capitaleDaVendere / h.prezzo;
+                
+                const azioniPost = h.azioni;
+                const cashPost = h.cashResiduo;
+                const valorePosPost = h.valoreAzioni;
+                const patrimonioPost = h.patrimonioTotale;
+                const frazionePost = h.frazioneAttuale;
+                const frazionePostStr = `${(frazionePost * 4).toFixed(1)}/4`;
+                
+                const gainLossTemp = patrimonioAttuale - summary.capitaleAllocato;
+                
+                stepsHTML = `
+                    <div class="space-y-4 font-mono text-sm">
+                        <div class="bg-gray-900 bg-opacity-50 rounded p-4">
+                            <div class="font-bold text-white mb-2">Step 1: Valutazione Pre-Vendita</div>
+                            <div class="text-gray-300 space-y-1">
+                                <div class="text-blue-400 mb-2">📅 ${h.data} - Prezzo: $${h.prezzo.toFixed(3)}/az</div>
+                                <div>Azioni Possedute:     <span class="text-white">${azioniPre.toFixed(4)}</span></div>
+                                <div>Valore Posizione:     <span class="text-green-400">${azioniPre.toFixed(4)} × ${h.prezzo.toFixed(3)} = $${valorePosizionePre.toFixed(2)}</span></div>
+                                <div>Cash Residuo:         <span class="text-blue-400">$${cashPre.toFixed(2)}</span></div>
+                                <div class="border-t border-gray-700 mt-2 pt-2">
+                                    <div>Patrimonio Totale:    <span class="text-purple-400 font-bold">$${patrimonioAttuale.toFixed(2)}</span></div>
+                                    <div>Gain/Loss Temporaneo: <span class="${gainLossTemp >= 0 ? 'text-green-400' : 'text-red-400'} font-bold">${gainLossTemp >= 0 ? '+' : ''}$${gainLossTemp.toFixed(2)}</span></div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-gray-900 bg-opacity-50 rounded p-4">
+                            <div class="font-bold text-white mb-2">Step 2: Calcolo Formula Universale (SELL)</div>
+                            <div class="text-gray-300 space-y-1">
+                                <div>Patrimonio Attuale:     <span class="text-white">$${patrimonioAttuale.toFixed(2)}</span></div>
+                                <div>Valore 1/4:             <span class="text-yellow-400">${patrimonioAttuale.toFixed(2)} / 4 = $${valore1Quarto.toFixed(2)}</span></div>
+                                <div>Frazione Movimento:     <span class="text-red-400 font-bold">-${frazioneNum}/4</span></div>
+                                <div class="border-t border-gray-700 mt-2 pt-2">
+                                    <div>Capitale da Vendere:  <span class="text-red-400 font-bold">${valore1Quarto.toFixed(2)} × ${frazioneNum} = $${capitaleDaVendere.toFixed(2)}</span></div>
+                                    <div class="mt-2">Azioni da Vendere:      <span class="text-red-400 font-bold">${capitaleDaVendere.toFixed(2)} / ${h.prezzo.toFixed(3)} = ${azioniDaVendere.toFixed(4)} azioni</span></div>
+                                    <div>Prezzo Vendita:        <span class="text-white">$${h.prezzo.toFixed(3)}/az</span></div>
+                                    <div class="mt-2">Cash Ricevuto:          <span class="text-green-400 font-bold">+$${capitaleDaVendere.toFixed(2)}</span></div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-gray-900 bg-opacity-50 rounded p-4">
+                            <div class="font-bold text-white mb-2">Step 3: Situazione Post-Vendita</div>
+                            <div class="text-gray-300 space-y-1">
+                                <div>Azioni Rimanenti:      <span class="text-white">${azioniPre.toFixed(4)} - ${azioniDaVendere.toFixed(4)} = <span class="text-red-400 font-bold">${azioniPost.toFixed(4)} azioni</span></span></div>
+                                <div class="border-t border-gray-700 mt-2 pt-2">
+                                    <div>Cash Residuo:          <span class="text-blue-400">${cashPre.toFixed(2)} + ${capitaleDaVendere.toFixed(2)} = <span class="font-bold">$${cashPost.toFixed(2)}</span></span></div>
+                                    <div>Frazione Attuale:      <span class="text-yellow-400 font-bold">${frazionePostStr} (${(frazionePost * 100).toFixed(0)}%)</span></div>
+                                    <div class="mt-2">Valore Posizione:      <span class="text-green-400 font-bold">${azioniPost.toFixed(4)} × ${h.prezzo.toFixed(3)} = $${valorePosPost.toFixed(2)}</span></div>
+                                    <div>Patrimonio Totale:     <span class="text-purple-400 font-bold">${valorePosPost.toFixed(2)} + ${cashPost.toFixed(2)} = $${patrimonioPost.toFixed(2)}</span></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // ========================================
+            // FASE DIVIDENDO
+            // ========================================
+            else if (isDividend) {
+                const dividendoPerAzione = h.dividendoTotale / h.azioni;
+                const dividendoLordo = h.dividendoTotale;
+                const dividendoNetto = h.dividendoTotale; // Nessuna tassa
+                const prevH = history[histIndex - 1];
+                const cashPre = prevH.cashResiduo;
+                const cashPost = h.cashResiduo;
+                
+                stepsHTML = `
+                    <div class="space-y-4 font-mono text-sm">
+                        <div class="bg-gray-900 bg-opacity-50 rounded p-4">
+                            <div class="font-bold text-white mb-2">Step 1: Dividendo Lordo</div>
+                            <div class="text-gray-300 space-y-1">
+                                <div class="text-blue-400 mb-2">📅 ${h.data} - Dividendo: $${dividendoPerAzione.toFixed(3)}/az</div>
+                                <div>Azioni Possedute:    <span class="text-white">${h.azioni.toFixed(4)} az</span></div>
+                                <div class="border-t border-gray-700 mt-2 pt-2">
+                                    <div>Dividendo Lordo:     <span class="text-yellow-400 font-bold">${h.azioni.toFixed(4)} × $${dividendoPerAzione.toFixed(3)} = $${dividendoLordo.toFixed(2)}</span></div>
+                                </div>
+                                <div class="bg-yellow-900 bg-opacity-30 rounded p-2 mt-2">
+                                    <div class="text-yellow-300 font-bold">⚠️ NOTA: NON CALCOLARE TASSE (come richiesto)</div>
+                                    <div class="text-yellow-200">Dividendo Netto: <span class="font-bold">$${dividendoNetto.toFixed(2)}</span> (nessuna tassazione applicata)</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-gray-900 bg-opacity-50 rounded p-4">
+                            <div class="font-bold text-white mb-2">Step 2: Cash Aggiornato</div>
+                            <div class="text-gray-300 space-y-1">
+                                <div>Cash Residuo Precedente:  <span class="text-blue-400">$${cashPre.toFixed(2)}</span></div>
+                                <div>Dividendo Ricevuto:       <span class="text-yellow-400">+$${dividendoNetto.toFixed(2)}</span></div>
+                                <div class="border-t border-gray-700 mt-2 pt-2">
+                                    <div>= Cash Residuo Totale:    <span class="text-blue-400 font-bold">$${cashPost.toFixed(2)}</span></div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-gray-900 bg-opacity-50 rounded p-4">
+                            <div class="font-bold text-white mb-2">Step 3: Valore Posizione (${h.data})</div>
+                            <div class="text-gray-300 space-y-1">
+                                <div class="text-blue-400 mb-2">📅 ${h.data} - Prezzo: $${h.prezzo.toFixed(3)}/az</div>
+                                <div>Azioni Totali:        <span class="text-white">${h.azioni.toFixed(4)} az</span></div>
+                                <div>Valore Posizione:     <span class="text-green-400 font-bold">${h.azioni.toFixed(4)} × ${h.prezzo.toFixed(3)} = $${h.valoreAzioni.toFixed(2)}</span></div>
+                                <div>Cash Residuo:         <span class="text-blue-400">$${cashPost.toFixed(2)}</span></div>
+                                <div class="border-t border-gray-700 mt-2 pt-2">
+                                    <div>Patrimonio Totale:    <span class="text-purple-400 font-bold">${h.valoreAzioni.toFixed(2)} + ${cashPost.toFixed(2)} = $${h.patrimonioTotale.toFixed(2)}</span></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // ========================================
+            // FASE FINALE
+            // ========================================
+            else if (isFine) {
+                const roiPosizioni = ((h.valoreAzioni - summary.capitaleInvestito) / summary.capitaleInvestito) * 100;
+                const gainLoss = summary.gainLoss;
+                const roiPortafoglio = summary.roiPortafoglio;
+                
+                stepsHTML = `
+                    <div class="space-y-4 font-mono text-sm">
+                        <div class="bg-gray-900 bg-opacity-50 rounded p-4">
+                            <div class="font-bold text-white mb-2">Step 1: Valore Finale Posizione</div>
+                            <div class="text-gray-300 space-y-1">
+                                <div class="text-blue-400 mb-2">📅 ${h.data} - Prezzo: $${h.prezzo.toFixed(3)}/az</div>
+                                <div>Azioni Totali:          <span class="text-white">${h.azioni.toFixed(4)} az</span></div>
+                                <div>Valore Posizione:       <span class="text-green-400 font-bold">${h.azioni.toFixed(4)} × ${h.prezzo.toFixed(3)} = $${h.valoreAzioni.toFixed(2)}</span></div>
+                                <div>Cash Residuo:           <span class="text-blue-400">$${h.cashResiduo.toFixed(2)}</span> <span class="text-gray-500 text-xs">(invariato da ultimo evento)</span></div>
+                                <div class="border-t border-gray-700 mt-2 pt-2">
+                                    <div>Patrimonio Totale:      <span class="text-purple-400 font-bold">${h.valoreAzioni.toFixed(2)} + ${h.cashResiduo.toFixed(2)} = $${h.patrimonioTotale.toFixed(2)}</span></div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-gray-900 bg-opacity-50 rounded p-4">
+                            <div class="font-bold text-white mb-2">Step 2: Performance Complessiva</div>
+                            <div class="text-gray-300 space-y-1">
+                                <div>Capitale Allocato:      <span class="text-white">$${summary.capitaleAllocato.toFixed(2)}</span></div>
+                                <div>Capitale Investito:     <span class="text-white">$${summary.capitaleInvestito.toFixed(2)}</span> <span class="text-gray-400">(${(h.frazioneAttuale * 4).toFixed(1)}/4)</span></div>
+                                <div>Frazione Finale:        <span class="text-yellow-400 font-bold">${(h.frazioneAttuale * 4).toFixed(1)}/4 = ${(h.frazioneAttuale * 100).toFixed(0)}%</span></div>
+                                <div class="border-t border-gray-700 mt-2 pt-2">
+                                    <div class="font-bold text-white mb-1">Gain/Loss Totale:</div>
+                                    <div class="ml-4">
+                                        <div>├─ Patrimonio Finale:       <span class="text-purple-400">$${h.patrimonioTotale.toFixed(2)}</span></div>
+                                        <div>└─ Capitale Allocato:      <span class="text-white">-$${summary.capitaleAllocato.toFixed(2)}</span></div>
+                                    </div>
+                                    <div class="mt-2">= Gain/Loss:                <span class="${gainLoss >= 0 ? 'text-green-400' : 'text-red-400'} font-bold text-xl">${gainLoss >= 0 ? '+' : ''}$${gainLoss.toFixed(2)}</span></div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-gray-900 bg-opacity-50 rounded p-4">
+                            <div class="font-bold text-white mb-2">Step 3: ROI Posizioni (su capitale investito)</div>
+                            <div class="text-gray-300 space-y-1">
+                                <div>Valore Posizione:       <span class="text-green-400">$${h.valoreAzioni.toFixed(2)}</span></div>
+                                <div>Capitale Investito:     <span class="text-white">$${summary.capitaleInvestito.toFixed(2)}</span></div>
+                                <div class="border-t border-gray-700 mt-2 pt-2">
+                                    <div>= ROI Posizioni:        <span class="${roiPosizioni >= 0 ? 'text-green-400' : 'text-red-400'} font-bold">(${h.valoreAzioni.toFixed(2)} - ${summary.capitaleInvestito.toFixed(2)}) / ${summary.capitaleInvestito.toFixed(2)} × 100</span></div>
+                                    <div class="text-xl font-bold mt-1">                        = <span class="${roiPosizioni >= 0 ? 'text-green-400' : 'text-red-400'}">${roiPosizioni >= 0 ? '+' : ''}${roiPosizioni.toFixed(2)}%</span></div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-gray-900 bg-opacity-50 rounded p-4">
+                            <div class="font-bold text-white mb-2">Step 4: ROI Portafoglio (su capitale allocato)</div>
+                            <div class="text-gray-300 space-y-1">
+                                <div>Patrimonio Totale:      <span class="text-purple-400">$${h.patrimonioTotale.toFixed(2)}</span></div>
+                                <div>Capitale Allocato:      <span class="text-white">$${summary.capitaleAllocato.toFixed(2)}</span></div>
+                                <div class="border-t border-gray-700 mt-2 pt-2">
+                                    <div>= ROI Portafoglio:      <span class="${roiPortafoglio >= 0 ? 'text-green-400' : 'text-red-400'} font-bold">(${h.patrimonioTotale.toFixed(2)} - ${summary.capitaleAllocato.toFixed(2)}) / ${summary.capitaleAllocato.toFixed(2)} × 100</span></div>
+                                    <div class="text-xl font-bold mt-1">                        = <span class="${roiPortafoglio >= 0 ? 'text-green-400' : 'text-red-400'}">${roiPortafoglio >= 0 ? '+' : ''}${roiPortafoglio.toFixed(2)}%</span></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // RENDERING FASE
             html += `
                 <div class="mb-6 border-l-4 ${borderColor} ${bgColor} rounded-lg p-6">
                     <div class="flex items-center gap-3 mb-4">
@@ -1687,127 +2006,13 @@ function renderCalculationsSection(stocks) {
                         </div>
                     </div>
                     
-                    <!-- DETTAGLI OPERAZIONE -->
-                    ${h.dettagli ? `
-                        <div class="bg-gray-900 bg-opacity-50 rounded p-3 mb-4 text-sm text-gray-300">
-                            <i class="fas fa-info-circle mr-2 ${iconColor}"></i>
-                            ${h.dettagli}
-                        </div>
-                    ` : ''}
-                    
-                    ${h.note ? `
-                        <div class="bg-gray-900 bg-opacity-50 rounded p-3 mb-4 text-sm italic text-gray-400">
-                            <i class="fas fa-sticky-note mr-2"></i>
-                            ${h.note}
-                        </div>
-                    ` : ''}
-                    
-                    <!-- STEP BY STEP -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                        <div class="bg-gray-900 bg-opacity-50 rounded p-3">
-                            <div class="text-xs text-gray-400 mb-1">
-                                <i class="fas fa-chart-line mr-1"></i>Prezzo
-                            </div>
-                            <div class="text-lg font-bold text-white">$${h.prezzo.toFixed(3)}</div>
-                        </div>
-                        
-                        <div class="bg-gray-900 bg-opacity-50 rounded p-3">
-                            <div class="text-xs text-gray-400 mb-1">
-                                <i class="fas fa-layer-group mr-1"></i>Azioni Possedute
-                            </div>
-                            <div class="text-lg font-bold text-white">${h.azioni.toFixed(4)} az</div>
-                        </div>
-                        
-                        <div class="bg-gray-900 bg-opacity-50 rounded p-3">
-                            <div class="text-xs text-gray-400 mb-1">
-                                <i class="fas fa-chart-area mr-1"></i>Valore Azioni
-                            </div>
-                            <div class="text-lg font-bold text-green-400">$${h.valoreAzioni.toFixed(2)}</div>
-                        </div>
-                        
-                        <div class="bg-gray-900 bg-opacity-50 rounded p-3">
-                            <div class="text-xs text-gray-400 mb-1">
-                                <i class="fas fa-wallet mr-1"></i>Cash Residuo
-                            </div>
-                            <div class="text-lg font-bold text-blue-400">$${h.cashResiduo.toFixed(2)}</div>
-                        </div>
-                        
-                        <div class="bg-gray-900 bg-opacity-50 rounded p-3">
-                            <div class="text-xs text-gray-400 mb-1">
-                                <i class="fas fa-piggy-bank mr-1"></i>Patrimonio Totale
-                            </div>
-                            <div class="text-lg font-bold text-purple-400">$${h.patrimonioTotale.toFixed(2)}</div>
-                        </div>
-                        
-                        ${h.frazioneAttuale !== undefined ? `
-                            <div class="bg-gray-900 bg-opacity-50 rounded p-3">
-                                <div class="text-xs text-gray-400 mb-1">
-                                    <i class="fas fa-percentage mr-1"></i>Frazione Attuale
-                                </div>
-                                <div class="text-lg font-bold text-yellow-400">${h.frazioneAttuale.toFixed(2)}</div>
-                            </div>
-                        ` : ''}
-                        
-                        ${h.dividendoTotale !== undefined ? `
-                            <div class="bg-gray-900 bg-opacity-50 rounded p-3">
-                                <div class="text-xs text-gray-400 mb-1">
-                                    <i class="fas fa-coins mr-1"></i>Dividendo Ricevuto
-                                </div>
-                                <div class="text-lg font-bold text-yellow-400">$${h.dividendoTotale.toFixed(2)}</div>
-                            </div>
-                        ` : ''}
-                    </div>
+                    ${stepsHTML}
                 </div>
             `;
         });
         
-        // RISULTATO FINALE
+        // RISULTATO FINALE COMPATTO
         html += `
-                <div class="bg-gradient-to-r from-purple-900 to-blue-900 rounded-lg p-6 mt-6">
-                    <h5 class="text-xl font-bold mb-4 text-white">
-                        <i class="fas fa-trophy mr-2 text-yellow-400"></i>
-                        RISULTATO FINALE - ${ticker}
-                    </h5>
-                    
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <div>
-                            <div class="text-sm text-gray-300">Capitale Allocato</div>
-                            <div class="text-xl font-bold text-white">$${summary.capitaleAllocato.toFixed(2)}</div>
-                        </div>
-                        <div>
-                            <div class="text-sm text-gray-300">Capitale Investito</div>
-                            <div class="text-xl font-bold text-white">$${summary.capitaleInvestito.toFixed(2)}</div>
-                        </div>
-                        <div>
-                            <div class="text-sm text-gray-300">Cash Residuo</div>
-                            <div class="text-xl font-bold text-blue-400">$${summary.cashResiduo.toFixed(2)}</div>
-                        </div>
-                        <div>
-                            <div class="text-sm text-gray-300">Azioni Finali</div>
-                            <div class="text-xl font-bold text-white">${summary.azioni.toFixed(4)} az</div>
-                        </div>
-                        <div>
-                            <div class="text-sm text-gray-300">Valore Posizione</div>
-                            <div class="text-xl font-bold text-green-400">$${summary.valorePosizioneFinale.toFixed(2)}</div>
-                        </div>
-                        <div>
-                            <div class="text-sm text-gray-300">Patrimonio Totale</div>
-                            <div class="text-xl font-bold text-purple-400">$${summary.patrimonioFinale.toFixed(2)}</div>
-                        </div>
-                        <div>
-                            <div class="text-sm text-gray-300">Gain/Loss</div>
-                            <div class="text-xl font-bold ${summary.gainLoss >= 0 ? 'text-green-400' : 'text-red-400'}">
-                                ${summary.gainLoss >= 0 ? '+' : ''}$${summary.gainLoss.toFixed(2)}
-                            </div>
-                        </div>
-                        <div>
-                            <div class="text-sm text-gray-300">ROI Portafoglio</div>
-                            <div class="text-xl font-bold ${summary.roiPortafoglio >= 0 ? 'text-green-400' : 'text-red-400'}">
-                                ${summary.roiPortafoglio >= 0 ? '+' : ''}${summary.roiPortafoglio.toFixed(2)}%
-                            </div>
-                        </div>
-                    </div>
-                </div>
             </div>
         `;
     });
