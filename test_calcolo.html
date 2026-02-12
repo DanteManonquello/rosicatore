@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head><title>Test Calcolo</title></head>
+<body>
+<script src="https://cdn.jsdelivr.net/npm/dayjs@1.11.10/dayjs.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+<script>
+// Test PLL calculation with full history
+console.log('Testing PLL with date range...');
+
+const testData = [
+  { Date: '2026-01-13', Close: 67.85 },
+  { Date: '2026-01-12', Close: 62.29 },
+  { Date: '2025-01-01', Close: 50.00 },  // Test date
+  { Date: '2019-12-31', Close: 45.00 }
+];
+
+function getPrezzoByDate(data, targetDate) {
+    const target = dayjs(targetDate);
+    let closestPrice = null;
+    let minDiff = Infinity;
+    
+    data.forEach(row => {
+        const rowDate = dayjs(row.Date);
+        const diff = Math.abs(target.diff(rowDate, 'day'));
+        
+        if (diff < minDiff) {
+            minDiff = diff;
+            closestPrice = parseFloat(row.Close);
+        }
+    });
+    
+    console.log(`Searching for ${targetDate}: found ${closestPrice} (diff: ${minDiff} days)`);
+    return closestPrice;
+}
+
+getPrezzoByDate(testData, '2025-01-01');
+getPrezzoByDate(testData, '2026-01-01');
+</script>
+</body>
+</html>

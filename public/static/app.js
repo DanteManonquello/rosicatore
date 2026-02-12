@@ -1,4 +1,4 @@
-// Rosicatore v3.14.0 - Portfolio Tracker Calculator
+// Rosicatore v3.23.4 - Portfolio Tracker Calculator
 // Main Application Logic
 
 // Global state
@@ -46,10 +46,44 @@ document.addEventListener('DOMContentLoaded', async () => {
     await autoLoadCSVs(); // Auto-load on startup
 });
 
-// Set default dates (1 January 2025 - 1 January 2026)
+// Set default dates (1 August 2026 as default visible date)
 function initializeDatePickers() {
-    document.getElementById('dataInizio').value = '2025-01-01';
-    document.getElementById('dataFine').value = '2026-01-01';
+    // Default visible date: 01-Ago-2026
+    // User can change to any date they want
+    document.getElementById('dataInizio').value = '2026-08-01';
+    document.getElementById('dataFine').value = '2027-08-01';
+}
+
+// Universal date parser - supports ALL formats
+// Formats: YYYY-MM-DD, MM/DD/YYYY, DD/MM/YYYY, DD-MMM-YYYY
+function parseUniversalDate(dateString) {
+    if (!dateString) return null;
+    
+    // Try ISO format (YYYY-MM-DD)
+    let date = new Date(dateString);
+    if (!isNaN(date.getTime())) {
+        return date;
+    }
+    
+    // Try MM/DD/YYYY or DD/MM/YYYY
+    const parts = dateString.split(/[\/\-]/);
+    if (parts.length === 3) {
+        // Try MM/DD/YYYY (US format)
+        date = new Date(`${parts[2]}-${parts[0].padStart(2,'0')}-${parts[1].padStart(2,'0')}`);
+        if (!isNaN(date.getTime())) {
+            return date;
+        }
+        
+        // Try DD/MM/YYYY (EU format)
+        date = new Date(`${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`);
+        if (!isNaN(date.getTime())) {
+            return date;
+        }
+    }
+    
+    // Last resort: try native parser
+    date = new Date(dateString);
+    return isNaN(date.getTime()) ? null : date;
 }
 
 function formatDateForInput(date) {
@@ -159,14 +193,24 @@ async function autoLoadCSVs() {
                 const text = await response.text();
                 console.log(`[${ticker}] CSV size: ${text.length} chars`);
                 
-                const data = await parseCSVText(text);
+                const data = await parseCSVText(text, { requirePriceData: true });
                 console.log(`[${ticker}] Parsed: ${data.length} rows (full)`);
                 
-                // Filter for recent data only (2020+)
-                const recentData = data.filter(row => row.Date >= state.recentDataCutoff);
+                // Filter for recent data only (2020+) with proper date parsing
+                const cutoffDate = dayjs(state.recentDataCutoff);
+                const recentData = data.filter(row => {
+                    const rowDate = dayjs(row.Date, ['YYYY-MM-DD', 'MM/DD/YYYY', 'DD/MM/YYYY']);
+                    return rowDate.isValid() && rowDate.isAfter(cutoffDate);
+                });
                 console.log(`[${ticker}] Filtered: ${recentData.length} rows (2020+)`);
                 
-                state.csvData.valori[ticker] = recentData;
+                // Fallback: if no recent data, use all available data
+                if (recentData.length === 0 && data.length > 0) {
+                    console.warn(`[${ticker}] No data after 2020 filter, using full history (${data.length} rows)`);
+                    state.csvData.valori[ticker] = data;
+                } else {
+                    state.csvData.valori[ticker] = recentData;
+                }
                 return { ticker, success: true };
             } catch (error) {
                 console.error(`[${ticker}] FAILED:`, error.message || error);
@@ -247,18 +291,43 @@ async function loadHistoricData() {
 }
 
 // Parse CSV from text
-function parseCSVText(text) {
+function parseCSVText(text, options = {}) {
     return new Promise((resolve, reject) => {
         Papa.parse(text, {
             header: true,
             dynamicTyping: true,
             skipEmptyLines: true,
+            delimiter: ',',
+            quoteChar: '"',
+            escapeChar: '"',
+            trimHeaders: true,
+            transformHeader: (h) => h.trim(),
+            transform: (value) => typeof value === 'string' ? value.trim() : value,
             complete: (results) => {
-                if (results.errors.length > 0) {
-                    reject(new Error('Errore parsing CSV: ' + results.errors[0].message));
-                } else {
-                    resolve(results.data);
+                // Filtra solo errori critici, ignora warning su righe malformate
+                const criticalErrors = results.errors.filter(e => 
+                    e.type !== 'FieldMismatch' && e.type !== 'TooManyFields' && e.type !== 'TooFewFields'
+                );
+                
+                if (criticalErrors.length > 0) {
+                    console.warn('CSV parsing warnings:', results.errors);
+                    reject(new Error('Errore parsing CSV: ' + criticalErrors[0].message));
+                } else if (results.errors.length > 0) {
+                    // Log warnings ma continua
+                    console.warn(`CSV parsed con ${results.errors.length} warning (ignorati):`, results.errors.slice(0, 3));
                 }
+                
+                // Filtra righe vuote
+                let validData = results.data.filter(row => row && Object.keys(row).length > 0);
+                
+                // Se richiesto filtro per price data (solo per CSV storici), filtra righe senza Date/Close/Price
+                if (options.requirePriceData) {
+                    validData = validData.filter(row => 
+                        row.Date && (row.Close !== undefined || row.Price !== undefined)
+                    );
+                }
+                
+                resolve(validData);
             },
             error: (error) => {
                 reject(error);
@@ -517,16 +586,16 @@ async function calculatePortfolio() {
             primoIngressoStorico = movimentoIngresso.data;
             console.log(`${ticker} - PRIMO INGRESSO STORICO (da CSV): ${primoIngressoStorico}`);
         } else {
-            console.log(`${ticker} - Nessun primo ingresso nel CSV (titolo già in portafoglio prima del 01/01/2025)`);
+            console.log(`${ticker} - Nessun primo ingresso nel CSV (titolo già presente in info_titoli.csv)`);
         }
         
         // Calcolo timeline quarti per log/debug
-        // IMPORTANTE: Parte dalla base info_titoli.csv (stato al 01/01/2025)
+        // IMPORTANTE: Parte dalla base info_titoli.csv (frazione target)
         const quartiInfoTitoliBase = titoloInfo.quota_numeratore / titoloInfo.quota_denominatore;
         let quartiAttuali = quartiInfoTitoliBase;
         const timelineQuarti = [];
         
-        console.log(`${ticker} - Quarti BASE (01/01/2025 da info_titoli.csv): ${quartiInfoTitoliBase}`);
+        console.log(`${ticker} - Quarti BASE (info_titoli.csv): ${quartiInfoTitoliBase}`);
         
         movimentiTicker.forEach(m => {
             const frazione = m.frazione_numeratore / m.frazione_denominatore;
@@ -595,34 +664,23 @@ async function calculatePortfolio() {
             continue;
         }
         
-        // CASO 2: Calcolo quarti posseduti al dataInizio
-        // BASE: info_titoli.csv rappresenta i quarti al 01/01/2025
+        // CASO 2: Determina frazione al dataInizio
+        // LOGICA CORRETTA: info_titoli.csv è la configurazione TARGET, NON una snapshot storica
+        // Quindi usiamo quella frazione SEMPRE, indipendentemente dalla data
         const quartiInfoTitoli = titoloInfo.quota_numeratore / titoloInfo.quota_denominatore;
-        let quartiAlDataInizio = quartiInfoTitoli; // Parte dalla base info_titoli.csv
+        let quartiAlDataInizio = quartiInfoTitoli;  // Usa frazione da info_titoli.csv
         
-        // Applica tutti i movimenti tra 01/01/2025 e dataInizio
-        movimentiTicker
-            .filter(m => m.data < dataInizio)
-            .forEach(m => {
-                const frazione = m.frazione_numeratore / m.frazione_denominatore;
-                if (m.azione === 'BUY') {
-                    quartiAlDataInizio += frazione;
-                } else if (m.azione === 'SELL') {
-                    quartiAlDataInizio -= frazione;
-                }
-            });
+        console.log(`${ticker} - Frazione target (info_titoli.csv): ${quartiInfoTitoli}`);
         
-        // Forza a 0 se negativo
-        if (quartiAlDataInizio < 0) quartiAlDataInizio = 0;
-        
-        console.log(`${ticker} - Quarti info_titoli (01/01): ${quartiInfoTitoli}, Quarti al ${dataInizio}: ${quartiAlDataInizio}`);
-        
-        // CASO 3: Se quarti al dataInizio = 0, cerca primo INGRESSO NEL periodo
+        // CASO 3: Se quarti target = 0, cerca primo INGRESSO NEL periodo
         if (quartiAlDataInizio <= 0) {
             // Cerca primo INGRESSO (0→>0) nel periodo [dataInizio, dataFine]
-            const movimentiNelPeriodo = timelineQuarti.filter(t => 
-                t.data >= dataInizio && t.data <= dataFine
-            );
+            const movimentiNelPeriodo = timelineQuarti.filter(t => {
+                const tData = parseUniversalDate(t.data);
+                const dInizio = parseUniversalDate(dataInizio);
+                const dFine = parseUniversalDate(dataFine);
+                return tData && dInizio && dFine && tData >= dInizio && tData <= dFine;
+            });
             
             let primoIngressoNelPeriodo = null;
             let quartiTemp = 0;
@@ -720,22 +778,25 @@ function calculateSingleTicker(ticker, titoloInfo, capitaleTotalePortafoglio, da
     const frazioneIniziale = frazioneAlDataInizio !== null ? frazioneAlDataInizio : (titoloInfo.quota_numeratore / titoloInfo.quota_denominatore);
     
     // ========================================================================
-    // SIMULAZIONE PORTAFOGLIO PRE-PERIODO (01/01/2025 → dataInizio)
+    // FIX: Setup iniziale SEMPRE al dataInizio
+    // info_titoli.csv contiene la frazione TARGET, non una snapshot storica
     // ========================================================================
     let azioni = 0;
     let cashResiduo = capitaleAllocato;
     let frazioneAttuale = 0;
     let capitaleInvestito = 0;
     
-    // Se il titolo era già in portafoglio al 01/01/2025, simula dal 01/01
+    // ========================================================================
+    // FIX: Setup iniziale SEMPRE al dataInizio (non al 01/01/2025)
+    // ========================================================================
+    // Se il titolo ha una frazione iniziale, compra azioni al dataInizio
     if (frazioneIniziale > 0) {
-        const dataBase = '2025-01-01';
-        const prezzoBase = getPrezzoByDate(valori, dataBase, ticker);
+        const prezzoBase = getPrezzoByDate(valori, dataInizio, ticker);
         if (!prezzoBase) {
-            throw new Error(`Prezzo base (01/01/2025) non trovato per ${ticker}`);
+            throw new Error(`Prezzo base (${dataInizio}) non trovato per ${ticker}`);
         }
         
-        // Setup iniziale al 01/01/2025
+        // Setup iniziale al dataInizio (NON al 01/01/2025!)
         const frazioneInfoTitoli = titoloInfo.quota_numeratore / titoloInfo.quota_denominatore;
         const capitaleInizialeInvestito = capitaleAllocato * frazioneInfoTitoli;
         azioni = capitaleInizialeInvestito / prezzoBase;
@@ -743,59 +804,25 @@ function calculateSingleTicker(ticker, titoloInfo, capitaleTotalePortafoglio, da
         frazioneAttuale = frazioneInfoTitoli;
         capitaleInvestito = capitaleInizialeInvestito;
         
-        console.log(`${ticker}: Setup 01/01/2025 - Frazione: ${frazioneInfoTitoli}, Prezzo: $${prezzoBase}, Azioni: ${azioni.toFixed(4)}, Cash: $${cashResiduo.toFixed(2)}`);
+        console.log(`${ticker}: Setup ${dataInizio} - Frazione: ${frazioneInfoTitoli}, Prezzo: $${prezzoBase}, Azioni: ${azioni.toFixed(4)}, Cash: $${cashResiduo.toFixed(2)}`);
         
-        // Applica tutti i movimenti tra 01/01 e dataInizio
-        const movimentiPrePeriodo = movimenti
-            .filter(m => m.ticker === ticker && m.data >= dataBase && m.data < dataInizio)
-            .sort((a, b) => new Date(a.data) - new Date(b.data));
+        // NON applicare movimenti pre-periodo (il periodo inizia da dataInizio!)
+        // Applica SOLO movimenti tra dataInizio e dataFine
+        const movimentiPrePeriodo = [];
         
-        movimentiPrePeriodo.forEach(m => {
-            const prezzoMovimento = getPrezzoByDate(valori, m.data, ticker);
-            if (!prezzoMovimento) {
-                console.warn(`Prezzo non trovato per ${ticker} al ${m.data}, skip movimento`);
-                return;
-            }
-            
-            const frazione = m.frazione_numeratore / m.frazione_denominatore;
-            
-            if (m.azione === 'BUY') {
-                const valoreAzioni = azioni * prezzoMovimento;
-                const patrimonioAttuale = cashResiduo + valoreAzioni;
-                const valore_1_quarto = patrimonioAttuale / 4;
-                const capitaleDaInvestire = valore_1_quarto * m.frazione_numeratore;
-                const azioniNuove = capitaleDaInvestire / prezzoMovimento;
-                
-                azioni += azioniNuove;
-                cashResiduo -= capitaleDaInvestire;
-                frazioneAttuale += frazione;
-                capitaleInvestito += capitaleDaInvestire;
-                
-                console.log(`${ticker}: BUY ${m.data} - Frazione +${frazione}, Prezzo $${prezzoMovimento}, Nuove azioni: ${azioniNuove.toFixed(4)}, Totale azioni: ${azioni.toFixed(4)}, Cash: $${cashResiduo.toFixed(2)}`);
-            } else if (m.azione === 'SELL') {
-                const valoreAzioni = azioni * prezzoMovimento;
-                const patrimonioAttuale = cashResiduo + valoreAzioni;
-                const valore_1_quarto = patrimonioAttuale / 4;
-                const capitaleDaVendere = valore_1_quarto * m.frazione_numeratore;
-                const azioniDaVendere = capitaleDaVendere / prezzoMovimento;
-                
-                azioni -= azioniDaVendere;
-                cashResiduo += capitaleDaVendere;
-                frazioneAttuale -= frazione;
-                
-                console.log(`${ticker}: SELL ${m.data} - Frazione -${frazione}, Prezzo $${prezzoMovimento}, Azioni vendute: ${azioniDaVendere.toFixed(4)}, Totale azioni: ${azioni.toFixed(4)}, Cash: $${cashResiduo.toFixed(2)}`);
-            }
-        });
+        // NON applicare movimenti pre-periodo (il periodo inizia da dataInizio!)
+        // Applica SOLO movimenti tra dataInizio e dataFine
         
-        console.log(`${ticker}: Stato al ${dataInizio} dopo simulazione - Azioni: ${azioni.toFixed(4)}, Cash: $${cashResiduo.toFixed(2)}, Frazione: ${frazioneAttuale}`);
+        console.log(`${ticker}: Stato al ${dataInizio} - Azioni: ${azioni.toFixed(4)}, Cash: $${cashResiduo.toFixed(2)}, Frazione: ${frazioneAttuale}`);
     } else {
-        // Titolo NON in portafoglio al 01/01 → parte da zero al dataInizio
-        console.log(`${ticker}: Titolo non in portafoglio al 01/01/2025, parte da zero al ${dataInizio}`);
+        // Titolo NON in portafoglio → parte da zero al dataInizio
+        console.log(`${ticker}: Titolo non in portafoglio, parte da zero al ${dataInizio}`);
     }
     
     // Aggiorna frazione iniziale per il periodo analizzato
     const frazioneInizialePeriodo = frazioneAttuale;
     
+    // prezzoIngresso già calcolato sopra nel setup
     const prezzoIngresso = getPrezzoByDate(valori, dataInizio, ticker);
     if (!prezzoIngresso) {
         throw new Error(`Prezzo ingresso non trovato per ${ticker} data ${dataInizio}`);
@@ -811,6 +838,9 @@ function calculateSingleTicker(ticker, titoloInfo, capitaleTotalePortafoglio, da
         frazioneAttuale: frazioneAttuale.toFixed(4)
     });
     
+    // Track cash withdrawals
+    let totalCashPrelevato = 0;
+    
     // Get all events (movimenti + dividendi) sorted by date
     const eventi = [];
     
@@ -824,7 +854,8 @@ function calculateSingleTicker(ticker, titoloInfo, capitaleTotalePortafoglio, da
                     tipo: m.azione, // 'BUY' or 'SELL'
                     frazione_num: m.frazione_numeratore,
                     frazione_den: m.frazione_denominatore,
-                    note: m.note
+                    note: m.note,
+                    cash_prelevato: parseFloat(m.cash_prelevato) || 0  // ← NUOVO CAMPO!
                 });
             });
     }
@@ -843,8 +874,12 @@ function calculateSingleTicker(ticker, titoloInfo, capitaleTotalePortafoglio, da
             });
     }
     
-    // Sort events by date
-    eventi.sort((a, b) => new Date(a.data) - new Date(b.data));
+    // Sort events by date using universal parser
+    eventi.sort((a, b) => {
+        const dateA = parseUniversalDate(a.data);
+        const dateB = parseUniversalDate(b.data);
+        return dateA - dateB;
+    });
     
     console.log('Eventi trovati:', eventi.length);
     
@@ -864,9 +899,8 @@ function calculateSingleTicker(ticker, titoloInfo, capitaleTotalePortafoglio, da
     eventi.forEach(evento => {
         const dataEvento = evento.data;
         
-        // Skip if outside date range
+        // Skip if outside date range (silent skip, no error spam)
         if (dataEvento < dataInizio || dataEvento > dataFine) {
-            addError(`Evento ${evento.tipo} del ${dataEvento} fuori dal periodo di analisi`);
             return;
         }
         
@@ -958,6 +992,28 @@ function calculateSingleTicker(ticker, titoloInfo, capitaleTotalePortafoglio, da
                 dettagli: `Dividendo ricevuto: ${dividendoTotale.toFixed(2)}€ (${azioni.toFixed(4)} azioni × $${evento.importo}), Aggiunto al cash (NON reinvestito)`
             });
         }
+        
+        // ========== GESTIONE CASH PRELEVATO ==========
+        if (evento.cash_prelevato && evento.cash_prelevato > 0) {
+            const cashPrelevato = evento.cash_prelevato;
+            cashResiduo -= cashPrelevato;
+            totalCashPrelevato += cashPrelevato;
+            
+            history.push({
+                data: dataEvento,
+                evento: `💸 PRELIEVO CASH`,
+                azioni,
+                prezzo: prezzoEvento,
+                valoreAzioni: azioni * prezzoEvento,
+                cashResiduo,
+                patrimonioTotale: (azioni * prezzoEvento) + cashResiduo,
+                frazioneAttuale,
+                cashPrelevato,
+                dettagli: `⚠️ Cash prelevato dal portafoglio: -$${cashPrelevato.toFixed(2)} (Totale prelevato: $${totalCashPrelevato.toFixed(2)})`
+            });
+            
+            console.log(`${ticker}: PRELIEVO CASH ${dataEvento} - Prelevato: $${cashPrelevato}, Totale prelevato: $${totalCashPrelevato}, Cash residuo: $${cashResiduo.toFixed(2)}`);
+        }
     });
     
     // Final valuation
@@ -1014,7 +1070,8 @@ function calculateSingleTicker(ticker, titoloInfo, capitaleTotalePortafoglio, da
             prezzoFinale,
             gainLoss,
             roiPortafoglio,
-            frazioneAttuale
+            frazioneAttuale,
+            totalCashPrelevato  // ← NUOVO: Totale cash prelevato!
         }
     };
 }
@@ -1039,12 +1096,15 @@ function getPrezzoByDate(valori, targetDate, ticker) {
     let minDiff = Infinity;
     
     tickerData.forEach(row => {
-        const rowDate = dayjs(row.Date, 'YYYY-MM-DD');
+        const rowDate = dayjs(row.Date, ['YYYY-MM-DD', 'MM/DD/YYYY', 'DD/MM/YYYY']);
+        if (!rowDate.isValid()) return;
+        
         const diff = Math.abs(target.diff(rowDate, 'day'));
         
         if (diff < minDiff) {
             minDiff = diff;
-            closestPrice = parseFloat(row.Close);
+            // Support both Close and Price columns
+            closestPrice = parseFloat(row.Close || row.Price);
         }
     });
     
@@ -1154,6 +1214,9 @@ function displayResults(results) {
     // Render stock summary table (all stocks)
     renderStockSummaryMulti(results.stocks);
     
+    // Render performance charts
+    renderPerformanceCharts(results);
+    
     // Render detailed history (first stock for now, TODO: selectable)
     if (results.stocks.length > 0) {
         renderDetailedHistory(results.stocks[0].history, results.stocks[0].ticker);
@@ -1179,9 +1242,10 @@ function calculateAggregateKPIs(results) {
     const totalAzioni = results.stocks.reduce((sum, s) => sum + s.summary.azioni, 0);
     const totalCash = results.stocks.reduce((sum, s) => sum + s.summary.cashResiduo, 0);
     const totalValorePosizioni = results.stocks.reduce((sum, s) => sum + s.summary.valorePosizioneFinale, 0);
+    const totalCashPrelevato = results.stocks.reduce((sum, s) => sum + (s.summary.totalCashPrelevato || 0), 0);
     const numTitoli = results.stocks.length;
     
-    return [
+    const kpis = [
         { label: 'Patrimonio Totale', value: totalPatrimonio.toFixed(2), unit: 'USD', type: 'main' },
         { label: 'Gain/Loss Totale', value: totalGainLoss.toFixed(2), unit: 'USD', type: totalGainLoss >= 0 ? 'positive' : 'negative' },
         { label: 'ROI Portfolio', value: roiTotale.toFixed(2), unit: '%', type: roiTotale >= 0 ? 'positive' : 'negative' },
@@ -1190,6 +1254,18 @@ function calculateAggregateKPIs(results) {
         { label: 'Numero Titoli', value: numTitoli, unit: '', type: 'neutral' },
         { label: 'Capitale Allocato', value: capitaleTotale.toFixed(2), unit: 'USD', type: 'neutral' }
     ];
+    
+    // Add cash prelevato warning if > 0
+    if (totalCashPrelevato > 0) {
+        kpis.push({ 
+            label: '⚠️ Cash Prelevato', 
+            value: totalCashPrelevato.toFixed(2), 
+            unit: 'USD', 
+            type: 'warning' 
+        });
+    }
+    
+    return kpis;
 }
 
 // Create KPI card element
@@ -1199,6 +1275,7 @@ function createKPICard(kpi) {
         kpi.type === 'main' ? 'border-green-500' :
         kpi.type === 'positive' ? 'border-green-700' :
         kpi.type === 'negative' ? 'border-red-700' :
+        kpi.type === 'warning' ? 'border-yellow-500' :
         'border-gray-700'
     }`;
     
@@ -1206,6 +1283,7 @@ function createKPICard(kpi) {
         kpi.type === 'main' ? 'text-green-400' :
         kpi.type === 'positive' ? 'text-green-400' :
         kpi.type === 'negative' ? 'text-red-400' :
+        kpi.type === 'warning' ? 'text-yellow-400' :
         'text-gray-300';
     
     div.innerHTML = `
@@ -1474,6 +1552,254 @@ function renderDetailedHistory(history, ticker) {
     content.innerHTML = html;
 }
 
+// Render performance charts
+let portfolioChart = null;
+let tickerChart = null;
+
+function renderPerformanceCharts(results) {
+    // Create charts container if not exists
+    let chartsContainer = document.getElementById('chartsContainer');
+    if (!chartsContainer) {
+        const stockSummary = document.getElementById('stockSummary');
+        chartsContainer = document.createElement('div');
+        chartsContainer.id = 'chartsContainer';
+        chartsContainer.className = 'mt-8 space-y-6';
+        stockSummary.parentNode.insertBefore(chartsContainer, stockSummary.nextSibling);
+    }
+    
+    chartsContainer.innerHTML = `
+        <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
+            <h3 class="text-xl font-bold mb-4 flex items-center gap-2">
+                <i class="fas fa-chart-line text-blue-400"></i>
+                Performance Portfolio Complessiva
+            </h3>
+            <div class="bg-gray-900 rounded-lg p-4">
+                <canvas id="portfolioChart" height="80"></canvas>
+            </div>
+        </div>
+        
+        <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
+            <h3 class="text-xl font-bold mb-4 flex items-center gap-2">
+                <i class="fas fa-chart-bar text-green-400"></i>
+                ROI per Ticker (Confronto)
+            </h3>
+            <div class="bg-gray-900 rounded-lg p-4">
+                <canvas id="tickerChart" height="100"></canvas>
+            </div>
+        </div>
+    `;
+    
+    // Destroy existing charts
+    if (portfolioChart) portfolioChart.destroy();
+    if (tickerChart) tickerChart.destroy();
+    
+    // Create portfolio timeline chart
+    createPortfolioTimelineChart(results);
+    
+    // Create ticker comparison chart
+    createTickerComparisonChart(results);
+}
+
+function createPortfolioTimelineChart(results) {
+    const ctx = document.getElementById('portfolioChart');
+    if (!ctx) return;
+    
+    // Build timeline data from all stock histories
+    const timelineMap = new Map();
+    const capitaleTotale = state.config.capitaleTotale;
+    
+    // Initialize with start date
+    const startDate = results.periodoAnalisi.dataInizio;
+    timelineMap.set(startDate, capitaleTotale);
+    
+    // Aggregate patrimonio for each date across all tickers
+    results.stocks.forEach(stock => {
+        stock.history.forEach(h => {
+            const currentTotal = timelineMap.get(h.data) || 0;
+            timelineMap.set(h.data, currentTotal);
+        });
+    });
+    
+    // For each date, sum up patrimonio from all tickers
+    const allDates = new Set();
+    results.stocks.forEach(stock => {
+        stock.history.forEach(h => allDates.add(h.data));
+    });
+    
+    const sortedDates = Array.from(allDates).sort();
+    const timelineData = sortedDates.map(date => {
+        let totalPatrimonio = 0;
+        results.stocks.forEach(stock => {
+            const historyAtDate = stock.history.find(h => h.data === date);
+            if (historyAtDate) {
+                totalPatrimonio += historyAtDate.patrimonioTotale;
+            } else {
+                // Use last known value
+                const lastHistory = stock.history.filter(h => h.data <= date).pop();
+                if (lastHistory) {
+                    totalPatrimonio += lastHistory.patrimonioTotale;
+                }
+            }
+        });
+        
+        const roi = ((totalPatrimonio - capitaleTotale) / capitaleTotale) * 100;
+        return {
+            date,
+            patrimonio: totalPatrimonio,
+            roi
+        };
+    });
+    
+    portfolioChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: timelineData.map(d => dayjs(d.date).format('DD/MM/YYYY')),
+            datasets: [{
+                label: 'Patrimonio Totale ($)',
+                data: timelineData.map(d => d.patrimonio),
+                borderColor: 'rgb(34, 197, 94)',
+                backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                tension: 0.4,
+                fill: true,
+                yAxisID: 'y'
+            }, {
+                label: 'ROI (%)',
+                data: timelineData.map(d => d.roi),
+                borderColor: 'rgb(59, 130, 246)',
+                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                tension: 0.4,
+                fill: true,
+                yAxisID: 'y1'
+            }]
+        },
+        options: {
+            responsive: true,
+            interaction: {
+                mode: 'index',
+                intersect: false
+            },
+            plugins: {
+                legend: {
+                    labels: { color: 'rgb(209, 213, 219)' }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(17, 24, 39, 0.95)',
+                    titleColor: 'rgb(209, 213, 219)',
+                    bodyColor: 'rgb(209, 213, 219)',
+                    borderColor: 'rgb(75, 85, 99)',
+                    borderWidth: 1
+                }
+            },
+            scales: {
+                x: {
+                    ticks: { color: 'rgb(156, 163, 175)' },
+                    grid: { color: 'rgba(75, 85, 99, 0.2)' }
+                },
+                y: {
+                    type: 'linear',
+                    display: true,
+                    position: 'left',
+                    ticks: {
+                        color: 'rgb(34, 197, 94)',
+                        callback: (value) => '$' + value.toFixed(0)
+                    },
+                    grid: { color: 'rgba(75, 85, 99, 0.2)' },
+                    title: {
+                        display: true,
+                        text: 'Patrimonio ($)',
+                        color: 'rgb(34, 197, 94)'
+                    }
+                },
+                y1: {
+                    type: 'linear',
+                    display: true,
+                    position: 'right',
+                    ticks: {
+                        color: 'rgb(59, 130, 246)',
+                        callback: (value) => value.toFixed(1) + '%'
+                    },
+                    grid: { drawOnChartArea: false },
+                    title: {
+                        display: true,
+                        text: 'ROI (%)',
+                        color: 'rgb(59, 130, 246)'
+                    }
+                }
+            }
+        }
+    });
+}
+
+function createTickerComparisonChart(results) {
+    const ctx = document.getElementById('tickerChart');
+    if (!ctx) return;
+    
+    // Sort by ROI descending
+    const sortedStocks = [...results.stocks].sort((a, b) => 
+        b.summary.roiPortafoglio - a.summary.roiPortafoglio
+    );
+    
+    const tickers = sortedStocks.map(s => s.ticker);
+    const rois = sortedStocks.map(s => s.summary.roiPortafoglio);
+    const colors = rois.map(roi => roi >= 0 ? 'rgba(34, 197, 94, 0.8)' : 'rgba(239, 68, 68, 0.8)');
+    
+    tickerChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: tickers,
+            datasets: [{
+                label: 'ROI (%)',
+                data: rois,
+                backgroundColor: colors,
+                borderColor: colors.map(c => c.replace('0.8', '1')),
+                borderWidth: 2
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: 'rgba(17, 24, 39, 0.95)',
+                    titleColor: 'rgb(209, 213, 219)',
+                    bodyColor: 'rgb(209, 213, 219)',
+                    borderColor: 'rgb(75, 85, 99)',
+                    borderWidth: 1,
+                    callbacks: {
+                        label: (context) => {
+                            const stock = sortedStocks[context.dataIndex];
+                            return [
+                                `ROI: ${context.parsed.x.toFixed(2)}%`,
+                                `Gain/Loss: $${stock.summary.gainLoss.toFixed(2)}`,
+                                `Capitale: $${stock.summary.capitaleAllocato.toFixed(2)}`
+                            ];
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    ticks: {
+                        color: 'rgb(156, 163, 175)',
+                        callback: (value) => value.toFixed(1) + '%'
+                    },
+                    grid: { color: 'rgba(75, 85, 99, 0.2)' },
+                    title: {
+                        display: true,
+                        text: 'ROI (%)',
+                        color: 'rgb(209, 213, 219)'
+                    }
+                },
+                y: {
+                    ticks: { color: 'rgb(156, 163, 175)' },
+                    grid: { color: 'rgba(75, 85, 99, 0.2)' }
+                }
+            }
+        }
+    });
+}
+
 // Error handling
 function addError(message) {
     state.errors.push(message);
@@ -1612,7 +1938,7 @@ function renderPeriodoAnalisi(periodoInfo, titoliSkipped) {
                         
                         <p><strong>4. Data Uscita:</strong> Tutti i titoli escono il giorno <strong>${periodoInfo.dataFine}</strong> (valutazione finale).</p>
                         
-                        <p><strong>Esempio:</strong> PBR parte con 3/4 il <code>01/01/2025</code>, nessun movimento nel 2025, valutazione finale al <code>01/01/2026</code> con frazione ancora 3/4.</p>
+                        <p><strong>Esempio:</strong> PBR ha frazione 3/4 in <code>info_titoli.csv</code>, il calcolo parte dal <code>${periodoInfo.dataInizio}</code> con questa frazione e termina al <code>${periodoInfo.dataFine}</code>.</p>
                     </div>
                 </div>
             </div>
