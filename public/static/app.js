@@ -991,10 +991,9 @@ function calculateSingleTicker(ticker, titoloInfo, capitaleTotalePortafoglio, da
             .filter(d => d.ticker === ticker)
             .forEach(d => {
                 eventi.push({
-                    data: d.data_pagamento,
+                    data: d.date,  // ← FIX: CSV field is 'date', not 'data_pagamento'
                     tipo: 'DIVIDEND',
-                    importo: d.importo_usd,
-                    isin: d.isin
+                    importo: parseFloat(d.amount)  // ← FIX: CSV field is 'amount', not 'importo_usd'
                 });
             });
     }
