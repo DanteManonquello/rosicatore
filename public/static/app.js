@@ -80,11 +80,36 @@ async function initializeDatePickers() {
     const dataInizio = new Date(ultimaData);
     dataInizio.setFullYear(dataInizio.getFullYear() - 1);
     
-    // Formatta in DD-MMM-YYYY
-    document.getElementById('dataInizio').value = formatDateDDMMMYYYY(dataInizio);
-    document.getElementById('dataFine').value = formatDateDDMMMYYYY(dataFine);
+    // Imposta valori input (formato YYYY-MM-DD per date picker)
+    document.getElementById('dataInizio').value = formatDateForInput(dataInizio);
+    document.getElementById('dataFine').value = formatDateForInput(dataFine);
     
-    console.log(`📅 Date default impostate: ${formatDateDDMMMYYYY(dataInizio)} → ${formatDateDDMMMYYYY(dataFine)}`);
+    // Mostra formato DD-MMM-YYYY sotto
+    updateDateDisplays();
+    
+    // Listener per aggiornare display quando user cambia date
+    document.getElementById('dataInizio').addEventListener('change', updateDateDisplays);
+    document.getElementById('dataFine').addEventListener('change', updateDateDisplays);
+    
+    console.log(`📅 Date default: ${formatDateDDMMMYYYY(dataInizio)} → ${formatDateDDMMMYYYY(dataFine)}`);
+}
+
+// Aggiorna display DD-MMM-YYYY sotto date picker
+function updateDateDisplays() {
+    const dataInizioInput = document.getElementById('dataInizio');
+    const dataFineInput = document.getElementById('dataFine');
+    const dataInizioDisplay = document.getElementById('dataInizioDisplay');
+    const dataFineDisplay = document.getElementById('dataFineDisplay');
+    
+    if (dataInizioInput && dataInizioInput.value) {
+        const date = new Date(dataInizioInput.value);
+        dataInizioDisplay.textContent = `📅 ${formatDateDDMMMYYYY(date)}`;
+    }
+    
+    if (dataFineInput && dataFineInput.value) {
+        const date = new Date(dataFineInput.value);
+        dataFineDisplay.textContent = `📅 ${formatDateDDMMMYYYY(date)}`;
+    }
 }
 
 // Converti data da DD-MMM-YYYY a Date object
@@ -595,26 +620,19 @@ function validateInputs() {
         valid = false;
     }
     
-    // CONVERTI DD-MMM-YYYY → YYYY-MM-DD per calcoli interni
-    if (state.config.dataInizio) {
-        const dataInizioObj = parseDateDDMMMYYYY(state.config.dataInizio);
-        if (!dataInizioObj) {
-            addError('Data inizio formato non valido (usa GG-MMM-AAAA, es. 01-AGO-2026)');
+    // Date picker restituisce già YYYY-MM-DD, validazione semplice
+    if (state.config.dataInizio && state.config.dataFine) {
+        const dataInizioObj = new Date(state.config.dataInizio);
+        const dataFineObj = new Date(state.config.dataFine);
+        
+        if (isNaN(dataInizioObj.getTime())) {
+            addError('Data inizio non valida');
             valid = false;
-        } else {
-            // Converti a YYYY-MM-DD per calcoli interni
-            state.config.dataInizio = formatDateForInput(dataInizioObj);
         }
-    }
-    
-    if (state.config.dataFine) {
-        const dataFineObj = parseDateDDMMMYYYY(state.config.dataFine);
-        if (!dataFineObj) {
-            addError('Data fine formato non valido (usa GG-MMM-AAAA, es. 31-DIC-2026)');
+        
+        if (isNaN(dataFineObj.getTime())) {
+            addError('Data fine non valida');
             valid = false;
-        } else {
-            // Converti a YYYY-MM-DD per calcoli interni
-            state.config.dataFine = formatDateForInput(dataFineObj);
         }
     }
     

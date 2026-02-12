@@ -12,7 +12,7 @@ app.use('/static/*', serveStatic({ root: './public' }))
 
 // API Routes
 app.get('/api/health', (c) => {
-  return c.json({ status: 'ok', version: '3.30.1' })
+  return c.json({ status: 'ok', version: '3.30.2' })
 })
 
 // Main route - Rosicatore Portfolio Tracker
@@ -23,7 +23,7 @@ app.get('/', (c) => {
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Rosicatore v3.30.1 - Portfolio Tracker</title>
+        <title>Rosicatore v3.30.2 - Portfolio Tracker</title>
         <script src="https://cdn.tailwindcss.com"></script>
         <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
         <script src="https://cdn.jsdelivr.net/npm/dayjs@1.11.10/dayjs.min.js"></script>
@@ -95,7 +95,7 @@ app.get('/', (c) => {
                         <i class="fas fa-chart-line text-green-400"></i>
                         ROSICATORE
                     </h1>
-                    <p class="text-gray-400 mt-1">Portfolio Tracker Algorithm - v3.30.1</p>
+                    <p class="text-gray-400 mt-1">Portfolio Tracker Algorithm - v3.30.2</p>
                 </div>
                 <div class="text-right">
                     <div class="text-sm text-gray-400">Sistema di Tracking</div>
@@ -133,12 +133,11 @@ app.get('/', (c) => {
                             <i class="fas fa-calendar-alt mr-2"></i>Data Inizio
                         </label>
                         <input 
-                            type="text" 
+                            type="date" 
                             id="dataInizio"
-                            placeholder="01-AGO-2026"
                             class="w-full bg-gray-700 border border-gray-600 rounded px-4 py-2 text-white focus:outline-none focus:border-blue-500"
                         />
-                        <p class="text-xs text-gray-400 mt-1">Formato: GG-MMM-AAAA (es. 15-GEN-2025)</p>
+                        <p class="text-xs text-gray-400 mt-1" id="dataInizioDisplay"></p>
                     </div>
 
                     <!-- End Date -->
@@ -147,12 +146,11 @@ app.get('/', (c) => {
                             <i class="fas fa-calendar-check mr-2"></i>Data Fine
                         </label>
                         <input 
-                            type="text" 
+                            type="date" 
                             id="dataFine"
-                            placeholder="01-AGO-2027"
                             class="w-full bg-gray-700 border border-gray-600 rounded px-4 py-2 text-white focus:outline-none focus:border-blue-500"
                         />
-                        <p class="text-xs text-gray-400 mt-1">Formato: GG-MMM-AAAA (es. 31-DIC-2026)</p>
+                        <p class="text-xs text-gray-400 mt-1" id="dataFineDisplay"></p>
                     </div>
                 </div>
             </div>
