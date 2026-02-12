@@ -12,7 +12,7 @@ app.use('/static/*', serveStatic({ root: './public' }))
 
 // API Routes
 app.get('/api/health', (c) => {
-  return c.json({ status: 'ok', version: '3.33.0' })
+  return c.json({ status: 'ok', version: '3.34.0' })
 })
 
 // Main route - Rosicatore Portfolio Tracker

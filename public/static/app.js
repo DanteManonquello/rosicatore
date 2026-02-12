@@ -48,7 +48,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 // Set default dates - DINAMICO basato su ultima data CSV
 async function initializeDatePickers() {
-    // Data inizio: 1 anno fa dall'ultima data disponibile
+    // Data inizio: FISSA 01-AGO-2025
     // Data fine: ultima data disponibile nei CSV prezzi
     
     // Prova a leggere ultima data dal primo ticker caricato
@@ -76,9 +76,8 @@ async function initializeDatePickers() {
     // Data fine = ultima data disponibile
     const dataFine = new Date(ultimaData);
     
-    // Data inizio = 1 anno prima
-    const dataInizio = new Date(ultimaData);
-    dataInizio.setFullYear(dataInizio.getFullYear() - 1);
+    // Data inizio = FISSA 01-AGO-2025
+    const dataInizio = new Date('2025-08-01');
     
     // Imposta valori input (formato YYYY-MM-DD per date picker)
     document.getElementById('dataInizio').value = formatDateForInput(dataInizio);
