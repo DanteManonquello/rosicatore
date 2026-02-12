@@ -39,18 +39,52 @@ const TICKER_CSV_MAP = {
 
 // Initialize app
 document.addEventListener('DOMContentLoaded', async () => {
-    initializeDatePickers();
     setupFileUploads();
     setupCalculateButton();
     setupHamburgerMenu();
     await autoLoadCSVs(); // Auto-load on startup
+    await initializeDatePickers(); // DOPO caricamento CSV per leggere ultima data
 });
 
-// Set default dates (1 August 2026 as default visible date)
-function initializeDatePickers() {
-    // Default visible date: 01-AGO-2026 to 01-AGO-2027 (formato DD-MMM-YYYY)
-    document.getElementById('dataInizio').value = '01-AGO-2026';
-    document.getElementById('dataFine').value = '01-AGO-2027';
+// Set default dates - DINAMICO basato su ultima data CSV
+async function initializeDatePickers() {
+    // Data inizio: 1 anno fa dall'ultima data disponibile
+    // Data fine: ultima data disponibile nei CSV prezzi
+    
+    // Prova a leggere ultima data dal primo ticker caricato
+    let ultimaData = new Date(); // Fallback: oggi
+    
+    if (state.csvData.valori && Object.keys(state.csvData.valori).length > 0) {
+        // Prendi primo ticker
+        const primoTicker = Object.keys(state.csvData.valori)[0];
+        const valori = state.csvData.valori[primoTicker];
+        
+        if (valori && valori.length > 0) {
+            // CSV ordinato per data DESC (più recente prima)
+            const ultimaRiga = valori[0];
+            const dataStr = ultimaRiga.Date || ultimaRiga.date;
+            
+            if (dataStr) {
+                const parsed = parseUniversalDate(dataStr);
+                if (parsed) {
+                    ultimaData = parsed;
+                }
+            }
+        }
+    }
+    
+    // Data fine = ultima data disponibile
+    const dataFine = new Date(ultimaData);
+    
+    // Data inizio = 1 anno prima
+    const dataInizio = new Date(ultimaData);
+    dataInizio.setFullYear(dataInizio.getFullYear() - 1);
+    
+    // Formatta in DD-MMM-YYYY
+    document.getElementById('dataInizio').value = formatDateDDMMMYYYY(dataInizio);
+    document.getElementById('dataFine').value = formatDateDDMMMYYYY(dataFine);
+    
+    console.log(`📅 Date default impostate: ${formatDateDDMMMYYYY(dataInizio)} → ${formatDateDDMMMYYYY(dataFine)}`);
 }
 
 // Converti data da DD-MMM-YYYY a Date object
