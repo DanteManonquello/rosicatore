@@ -48,10 +48,42 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 // Set default dates (1 August 2026 as default visible date)
 function initializeDatePickers() {
-    // Default visible date: 01-Ago-2026
-    // User can change to any date they want
-    document.getElementById('dataInizio').value = '2026-08-01';
-    document.getElementById('dataFine').value = '2027-08-01';
+    // Default visible date: 01-AGO-2026 to 01-AGO-2027 (formato DD-MMM-YYYY)
+    document.getElementById('dataInizio').value = '01-AGO-2026';
+    document.getElementById('dataFine').value = '01-AGO-2027';
+}
+
+// Converti data da DD-MMM-YYYY a Date object
+function parseDateDDMMMYYYY(dateStr) {
+    if (!dateStr) return null;
+    
+    const mesiITA = {
+        'GEN': '01', 'FEB': '02', 'MAR': '03', 'APR': '04',
+        'MAG': '05', 'GIU': '06', 'LUG': '07', 'AGO': '08',
+        'SET': '09', 'OTT': '10', 'NOV': '11', 'DIC': '12'
+    };
+    
+    // Match DD-MMM-YYYY (es. 01-AGO-2026)
+    const match = dateStr.match(/^(\d{1,2})-([A-Z]{3})-(\d{4})$/i);
+    if (match) {
+        const [, giorno, mese, anno] = match;
+        const meseNum = mesiITA[mese.toUpperCase()];
+        if (meseNum) {
+            return new Date(`${anno}-${meseNum}-${giorno.padStart(2, '0')}`);
+        }
+    }
+    
+    // Fallback: prova parser universale
+    return parseUniversalDate(dateStr);
+}
+
+// Converti Date object a DD-MMM-YYYY
+function formatDateDDMMMYYYY(date) {
+    const mesiITA = ['GEN', 'FEB', 'MAR', 'APR', 'MAG', 'GIU', 'LUG', 'AGO', 'SET', 'OTT', 'NOV', 'DIC'];
+    const giorno = String(date.getDate()).padStart(2, '0');
+    const mese = mesiITA[date.getMonth()];
+    const anno = date.getFullYear();
+    return `${giorno}-${mese}-${anno}`;
 }
 
 // Universal date parser - supports ALL formats
@@ -527,6 +559,29 @@ function validateInputs() {
     if (!state.config.dataFine) {
         addError('Data fine non specificata');
         valid = false;
+    }
+    
+    // CONVERTI DD-MMM-YYYY → YYYY-MM-DD per calcoli interni
+    if (state.config.dataInizio) {
+        const dataInizioObj = parseDateDDMMMYYYY(state.config.dataInizio);
+        if (!dataInizioObj) {
+            addError('Data inizio formato non valido (usa GG-MMM-AAAA, es. 01-AGO-2026)');
+            valid = false;
+        } else {
+            // Converti a YYYY-MM-DD per calcoli interni
+            state.config.dataInizio = formatDateForInput(dataInizioObj);
+        }
+    }
+    
+    if (state.config.dataFine) {
+        const dataFineObj = parseDateDDMMMYYYY(state.config.dataFine);
+        if (!dataFineObj) {
+            addError('Data fine formato non valido (usa GG-MMM-AAAA, es. 31-DIC-2026)');
+            valid = false;
+        } else {
+            // Converti a YYYY-MM-DD per calcoli interni
+            state.config.dataFine = formatDateForInput(dataFineObj);
+        }
     }
     
     // Check date order
