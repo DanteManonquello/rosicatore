@@ -651,10 +651,14 @@ function validateInputs() {
 
 // Main calculation function
 async function calculatePortfolio() {
-    console.log('Starting portfolio calculation...');
+    console.log('🔢 Starting portfolio calculation...');
+    console.log('📅 Config:', state.config);
     
     const { capitaleTotale, dataInizio, dataFine } = state.config;
     const { titoli, valori, movimenti, dividendi } = state.csvData;
+    
+    console.log(`💰 Capitale: ${capitaleTotale}`);
+    console.log(`📅 Periodo: ${dataInizio} → ${dataFine}`);
     
     // Check if historic data needed
     if (dataInizio < state.recentDataCutoff && !state.historicDataLoaded) {
@@ -2005,14 +2009,14 @@ function renderPeriodoAnalisi(periodoInfo, titoliSkipped) {
                 <div class="text-xs text-gray-400 mb-1">
                     <i class="fas fa-calendar-alt mr-1"></i>Data Inizio
                 </div>
-                <div class="text-xl font-bold text-white">${periodoInfo.dataInizio}</div>
+                <div class="text-xl font-bold text-white">${formatDateDDMMMYYYY(new Date(periodoInfo.dataInizio))}</div>
             </div>
             
             <div class="bg-gray-900 bg-opacity-50 rounded-lg p-4">
                 <div class="text-xs text-gray-400 mb-1">
                     <i class="fas fa-calendar-check mr-1"></i>Data Fine
                 </div>
-                <div class="text-xl font-bold text-white">${periodoInfo.dataFine}</div>
+                <div class="text-xl font-bold text-white">${formatDateDDMMMYYYY(new Date(periodoInfo.dataFine))}</div>
             </div>
             
             <div class="bg-gray-900 bg-opacity-50 rounded-lg p-4">
@@ -2034,18 +2038,18 @@ function renderPeriodoAnalisi(periodoInfo, titoliSkipped) {
                         
                         <p><strong>1. Titoli in Portafoglio:</strong> TUTTI i titoli in <code>info_titoli.csv</code> sono <strong>già in portafoglio</strong> con la loro frazione iniziale (es. PBR 3/4, HL 4/4).</p>
                         
-                        <p><strong>2. Data Ingresso:</strong> TUTTI i titoli entrano il giorno <strong>${periodoInfo.dataInizio}</strong> (inizio del periodo di analisi) con la frazione indicata in <code>info_titoli.csv</code>.</p>
+                        <p><strong>2. Data Ingresso:</strong> TUTTI i titoli entrano il giorno <strong>${formatDateDDMMMYYYY(new Date(periodoInfo.dataInizio))}</strong> (inizio del periodo di analisi) con la frazione indicata in <code>info_titoli.csv</code>.</p>
                         
                         <p><strong>3. Movimenti:</strong> Il file <code>movimenti.csv</code> contiene SOLO le modifiche (BUY/SELL) durante il periodo:</p>
                         <ul class="list-disc list-inside ml-4 space-y-1">
                             <li>✅ <strong>BUY</strong>: Appesantimento (aumento frazione)</li>
                             <li>✅ <strong>SELL</strong>: Alleggerimento (riduzione frazione)</li>
-                            <li>✅ <strong>Movimenti nel periodo</strong>: Applicati solo se tra ${periodoInfo.dataInizio} e ${periodoInfo.dataFine}</li>
+                            <li>✅ <strong>Movimenti nel periodo</strong>: Applicati solo se tra ${formatDateDDMMMYYYY(new Date(periodoInfo.dataInizio))} e ${formatDateDDMMMYYYY(new Date(periodoInfo.dataFine))}</li>
                         </ul>
                         
-                        <p><strong>4. Data Uscita:</strong> Tutti i titoli escono il giorno <strong>${periodoInfo.dataFine}</strong> (valutazione finale).</p>
+                        <p><strong>4. Data Uscita:</strong> Tutti i titoli escono il giorno <strong>${formatDateDDMMMYYYY(new Date(periodoInfo.dataFine))}</strong> (valutazione finale).</p>
                         
-                        <p><strong>Esempio:</strong> PBR ha frazione 3/4 in <code>info_titoli.csv</code>, il calcolo parte dal <code>${periodoInfo.dataInizio}</code> con questa frazione e termina al <code>${periodoInfo.dataFine}</code>.</p>
+                        <p><strong>Esempio:</strong> PBR ha frazione 3/4 in <code>info_titoli.csv</code>, il calcolo parte dal <code>${formatDateDDMMMYYYY(new Date(periodoInfo.dataInizio))}</code> con questa frazione e termina al <code>${formatDateDDMMMYYYY(new Date(periodoInfo.dataFine))}</code>.</p>
                     </div>
                 </div>
             </div>
