@@ -864,11 +864,25 @@ async function calculatePortfolio() {
         throw new Error('Nessun titolo calcolato con successo nel periodo selezionato');
     }
     
+    // DEBUG: Verifo NaN nei risultati
+    console.log(`✅ ${allResults.length} titoli calcolati`);
+    allResults.forEach((r, i) => {
+        if (isNaN(r.summary.patrimonioFinale) || isNaN(r.summary.gainLoss)) {
+            console.error(`❌ NaN trovato in ${r.ticker}:`, r.summary);
+        }
+    });
+    
+    const totalPatrimonio = allResults.reduce((sum, r) => sum + r.summary.patrimonioFinale, 0);
+    const totalGainLoss = allResults.reduce((sum, r) => sum + r.summary.gainLoss, 0);
+    
+    console.log(`💰 Total Patrimonio: ${totalPatrimonio}`);
+    console.log(`📈 Total Gain/Loss: ${totalGainLoss}`);
+    
     return {
         stocks: allResults,
         titoliSkipped,
-        totalPatrimonio: allResults.reduce((sum, r) => sum + r.summary.patrimonioFinale, 0),
-        totalGainLoss: allResults.reduce((sum, r) => sum + r.summary.gainLoss, 0),
+        totalPatrimonio,
+        totalGainLoss,
         periodoAnalisi: {
             dataInizio,
             dataFine,
@@ -1017,8 +1031,8 @@ function calculateSingleTicker(ticker, titoloInfo, capitaleTotalePortafoglio, da
         
         const prezzoEvento = getPrezzoByDate(valori, dataEvento, ticker);
         if (!prezzoEvento) {
-            addError(`Prezzo non trovato per data evento: ${dataEvento}`);
-            return;
+            console.warn(`⚠️ ${ticker}: Prezzo non trovato per evento ${dataEvento} - evento SALTATO`);
+            return; // Skip this event in forEach
         }
         
         if (evento.tipo === 'BUY') {
@@ -1127,8 +1141,20 @@ function calculateSingleTicker(ticker, titoloInfo, capitaleTotalePortafoglio, da
         }
     });
     
+    console.log(`${ticker}: ✅ Eventi completati (totale: ${eventi.length})`);
+    console.log(`${ticker}: Stati finali - azioni=${azioni}, cash=${cashResiduo}, capInvest=${capitaleInvestito}`);
+    
     // Final valuation
+    console.log(`${ticker}: 🎯 Calcolo valutazione finale...`);
+    console.log(`${ticker}: Data fine: ${dataFine}`);
+    console.log(`${ticker}: Azioni finali: ${azioni}`);
+    console.log(`${ticker}: Cash residuo: ${cashResiduo}`);
+    console.log(`${ticker}: typeof valori = ${typeof valori}, isArray = ${Array.isArray(valori)}`);
+    console.log(`${ticker}: valori keys = [${Object.keys(valori || {}).slice(0, 5).join(', ')}...]`);
+    
     const prezzoFinale = getPrezzoByDate(valori, dataFine, ticker);
+    console.log(`${ticker}: Prezzo finale: ${prezzoFinale}`);
+    
     if (!prezzoFinale) {
         throw new Error(`Prezzo finale non trovato per data ${dataFine}`);
     }
@@ -1137,6 +1163,11 @@ function calculateSingleTicker(ticker, titoloInfo, capitaleTotalePortafoglio, da
     const patrimonioFinale = valorePosizioneFinale + cashResiduo;
     const gainLoss = patrimonioFinale - capitaleAllocato;  // Gain vs capitale ALLOCATO
     const roiPortafoglio = (gainLoss / capitaleAllocato) * 100;
+    
+    console.log(`${ticker}: Valore posizione finale: ${valorePosizioneFinale}`);
+    console.log(`${ticker}: Patrimonio finale: ${patrimonioFinale}`);
+    console.log(`${ticker}: Gain/Loss: ${gainLoss}`);
+    console.log(`${ticker}: ROI: ${roiPortafoglio}%`);
     
     history.push({
         data: dataFine,
@@ -1191,11 +1222,19 @@ function calculateSingleTicker(ticker, titoloInfo, capitaleTotalePortafoglio, da
 // NOTE: For now, assumes single CSV with all prices
 // TODO: Support multiple CSV files (one per ticker)
 function getPrezzoByDate(valori, targetDate, ticker) {
+    // DEBUG LOG
+    console.log(`🔍 getPrezzoByDate chiamato per ${ticker}, data=${targetDate}`);
+    console.log(`🔍 Tipo valori:`, typeof valori, Array.isArray(valori));
+    console.log(`🔍 Chiavi valori:`, Object.keys(valori).join(', '));
+    
     // Get price history for this specific ticker
     const tickerData = valori[ticker];
     
+    console.log(`🔍 tickerData per ${ticker}:`, tickerData ? `${tickerData.length} righe` : 'NULL/UNDEFINED');
+    
     if (!tickerData || tickerData.length === 0) {
-        console.warn(`No price data for ticker ${ticker}`);
+        console.warn(`❌ No price data for ticker ${ticker}`);
+        console.warn(`❌ valori keys disponibili:`, Object.keys(valori));
         return null;
     }
     
@@ -1218,6 +1257,8 @@ function getPrezzoByDate(valori, targetDate, ticker) {
             closestPrice = parseFloat(row.Close || row.Price);
         }
     });
+    
+    console.log(`✅ getPrezzoByDate per ${ticker}: prezzo=${closestPrice}, minDiff=${minDiff} giorni`);
     
     return closestPrice;
 }
