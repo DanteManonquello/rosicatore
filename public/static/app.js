@@ -774,13 +774,32 @@ async function calculatePortfolio() {
             continue;
         }
         
-        // CASO 2: Determina frazione al dataInizio
-        // LOGICA CORRETTA: info_titoli.csv è la configurazione TARGET, NON una snapshot storica
-        // Quindi usiamo quella frazione SEMPRE, indipendentemente dalla data
+        // CASO 2: Determina frazione REALE al dataInizio
+        // FIX v3.35.0: Calcola frazione considerando TUTTI i movimenti PRECEDENTI al dataInizio
         const quartiInfoTitoli = titoloInfo.quota_numeratore / titoloInfo.quota_denominatore;
-        let quartiAlDataInizio = quartiInfoTitoli;  // Usa frazione da info_titoli.csv
+        let quartiAlDataInizio = quartiInfoTitoli;  // Parte dalla base info_titoli.csv
         
         console.log(`${ticker} - Frazione target (info_titoli.csv): ${quartiInfoTitoli}`);
+        
+        // Somma tutti i BUY/SELL PRIMA di dataInizio per calcolare frazione REALE
+        const dataInizioDate = parseUniversalDate(dataInizio);
+        for (const movimento of timelineQuarti) {
+            const movData = parseUniversalDate(movimento.data);
+            if (!movData || !dataInizioDate) continue;
+            
+            // Solo movimenti PRECEDENTI al dataInizio
+            if (movData < dataInizioDate) {
+                if (movimento.azione === 'BUY') {
+                    quartiAlDataInizio += movimento.frazione;
+                } else if (movimento.azione === 'SELL') {
+                    quartiAlDataInizio -= movimento.frazione;
+                }
+                // Evita frazioni negative
+                if (quartiAlDataInizio < 0) quartiAlDataInizio = 0;
+            }
+        }
+        
+        console.log(`${ticker} - Frazione REALE al ${dataInizio}: ${quartiAlDataInizio}`);
         
         // CASO 3: Se quarti target = 0, cerca primo INGRESSO NEL periodo
         if (quartiAlDataInizio <= 0) {
