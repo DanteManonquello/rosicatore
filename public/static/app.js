@@ -775,31 +775,63 @@ async function calculatePortfolio() {
         }
         
         // CASO 2: Determina frazione REALE al dataInizio
-        // FIX v3.35.0: Calcola frazione considerando TUTTI i movimenti PRECEDENTI al dataInizio
+        // FIX v3.36.0: Calcola frazione ROBUSTA con validation e safeguards
         const quartiInfoTitoli = titoloInfo.quota_numeratore / titoloInfo.quota_denominatore;
         let quartiAlDataInizio = quartiInfoTitoli;  // Parte dalla base info_titoli.csv
         
         console.log(`${ticker} - Frazione target (info_titoli.csv): ${quartiInfoTitoli}`);
         
-        // Somma tutti i BUY/SELL PRIMA di dataInizio per calcolare frazione REALE
+        // STEP 1: Ordina movimenti per data (safeguard contro CSV non ordinato)
+        const movimentiOrdinati = [...timelineQuarti].sort((a, b) => {
+            const dateA = parseUniversalDate(a.data);
+            const dateB = parseUniversalDate(b.data);
+            if (!dateA || !dateB) return 0;
+            return dateA - dateB;
+        });
+        
+        // STEP 2: Calcola frazione REALE iterando su TUTTI i movimenti precedenti
         const dataInizioDate = parseUniversalDate(dataInizio);
-        for (const movimento of timelineQuarti) {
+        let movimentiPrecedenti = [];
+        
+        for (const movimento of movimentiOrdinati) {
             const movData = parseUniversalDate(movimento.data);
-            if (!movData || !dataInizioDate) continue;
+            if (!movData || !dataInizioDate) {
+                console.warn(`⚠️ ${ticker}: Data movimento invalida: ${movimento.data}`);
+                continue;
+            }
             
             // Solo movimenti PRECEDENTI al dataInizio
             if (movData < dataInizioDate) {
+                movimentiPrecedenti.push(movimento);
+                
                 if (movimento.azione === 'BUY') {
                     quartiAlDataInizio += movimento.frazione;
+                    console.log(`  ${movimento.data}: BUY +${movimento.frazione} → frazione = ${quartiAlDataInizio.toFixed(4)}`);
                 } else if (movimento.azione === 'SELL') {
                     quartiAlDataInizio -= movimento.frazione;
+                    console.log(`  ${movimento.data}: SELL -${movimento.frazione} → frazione = ${quartiAlDataInizio.toFixed(4)}`);
                 }
-                // Evita frazioni negative
-                if (quartiAlDataInizio < 0) quartiAlDataInizio = 0;
+                
+                // SAFEGUARD: Evita frazioni negative
+                if (quartiAlDataInizio < 0) {
+                    console.warn(`⚠️ ${ticker}: Frazione negativa (${quartiAlDataInizio}) → forzata a 0`);
+                    quartiAlDataInizio = 0;
+                }
             }
         }
         
-        console.log(`${ticker} - Frazione REALE al ${dataInizio}: ${quartiAlDataInizio}`);
+        // STEP 3: VALIDATION - Verifica coerenza
+        const frazioneArrotondata = Math.round(quartiAlDataInizio * 10000) / 10000;
+        console.log(`${ticker} - Frazione REALE al ${dataInizio}: ${frazioneArrotondata}`);
+        console.log(`${ticker} - Movimenti precedenti analizzati: ${movimentiPrecedenti.length}`);
+        
+        // VALIDATION CHECK: Se frazione > 1, warning
+        if (frazioneArrotondata > 1) {
+            console.warn(`⚠️ ${ticker}: Frazione > 1 (${frazioneArrotondata}) - possibile errore dati`);
+        }
+        
+        // Usa frazione arrotondata per evitare problemi floating-point
+        quartiAlDataInizio = frazioneArrotondata;
         
         // CASO 3: Se quarti target = 0, cerca primo INGRESSO NEL periodo
         if (quartiAlDataInizio <= 0) {
@@ -834,8 +866,34 @@ async function calculatePortfolio() {
             }
             
             if (!primoIngressoNelPeriodo) {
-                // Nessun INGRESSO nel periodo = non presente in portafoglio
-                console.log(`${ticker}: 0 quarti al dataInizio E nessun INGRESSO nel periodo, SKIP`);
+                // VALIDATION FINALE: Verifica che effettivamente frazione = 0
+                console.log(`${ticker}: VALIDATION SKIP - frazione al dataInizio = ${quartiAlDataInizio}`);
+                console.log(`${ticker}: VALIDATION SKIP - movimenti nel periodo = ${movimentiNelPeriodo.length}`);
+                console.log(`${ticker}: VALIDATION SKIP - primo ingresso trovato = ${primoIngressoNelPeriodo}`);
+                
+                // SAFEGUARD: Se per qualche motivo frazione > 0, NON skippare
+                if (quartiAlDataInizio > 0) {
+                    console.error(`❌ ${ticker}: ERRORE LOGICO - frazione > 0 ma nessun ingresso nel periodo!`);
+                    console.error(`   Questo NON dovrebbe accadere. Calcolo comunque il titolo.`);
+                    
+                    // Calcola dal dataInizio con frazione esistente
+                    try {
+                        const result = calculateSingleTicker(ticker, titoloInfo, capitaleTotale, dataInizio, dataFine, valori, movimenti, dividendi, quartiAlDataInizio);
+                        allResults.push(result);
+                    } catch (error) {
+                        console.error(`Error calculating ${ticker}:`, error);
+                        addError(`Errore calcolo ${ticker}: ${error.message}`);
+                        titoliSkipped.push({
+                            ticker,
+                            nome: titoloInfo.nome,
+                            motivo: `Errore: ${error.message}`
+                        });
+                    }
+                    continue;
+                }
+                
+                // OK, skip confermato
+                console.log(`${ticker}: ✅ SKIP confermato - 0 quarti al dataInizio E nessun INGRESSO nel periodo`);
                 titoliSkipped.push({
                     ticker,
                     nome: titoloInfo.nome,
