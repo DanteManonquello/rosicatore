@@ -1,8 +1,37 @@
-# Rosicatore v4.1.0
+# Rosicatore v4.1.1
 
 ## 🎯 Portfolio Tracker Algorithm
 
 Rosicatore è un Portfolio Tracker che calcola il valore nel tempo di TUTTI i titoli del portafoglio.
+
+---
+
+## 🆕 NOVITÀ v4.1.1 - AGGIORNAMENTO CSV AUTOMATICO (17 Feb 2026)
+
+### 📦 **Sistema di Aggiornamento CSV**
+
+**Nuova Funzionalità:**
+- ✅ Script automatico per aggiornare pricing e dividendi
+- ✅ Merge intelligente di file multi-parte (PBR Parte 1, Parte 2, etc.)
+- ✅ Unificazione dividendi con aggiunta colonna `ticker`
+- ✅ Backup automatico dei CSV esistenti prima dell'aggiornamento
+- ✅ Validazione schema CSV (colonne richieste, formato date)
+- ✅ Ordinamento cronologico automatico
+
+**Script Aggiunto:**
+- `scripts/update_csv_data.cjs` - Script Node.js per aggiornamento CSV
+
+**Workflow:**
+1. Upload ZIP con pricing e dividendi
+2. Estrazione e merge automatico
+3. Backup dei vecchi CSV
+4. Validazione e sostituzione
+5. Sito pronto con nuovi dati
+
+**Statistiche Aggiornamento:**
+- 🎯 9 ticker aggiornati: IRD (5,096 rows), EQT (11,573 rows), AA (14,151 rows), GSM (4,162 rows), HL (11,573 rows), URG (4,417 rows), MARA (3,465 rows), VZLA (1,020 rows), PBR (6,416 rows)
+- 📊 Dividendi: 232 entry totali
+- 💾 Backup: 15 file salvati
 
 ---
 
