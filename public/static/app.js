@@ -1431,10 +1431,16 @@ function displayResults(results) {
     const csvButton = document.createElement('div');
     csvButton.className = 'col-span-full mt-4';
     csvButton.innerHTML = `
-        <button onclick="downloadAggregateCSV()" class="w-full bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white font-bold py-4 px-6 rounded-lg shadow-lg transition-all duration-200 transform hover:scale-105">
-            <i class="fas fa-file-csv mr-2"></i>
-            📥 SCARICA CSV TUTTI I TITOLI (${results.stocks.length} ticker)
-        </button>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <button onclick="downloadAggregateCSV()" class="w-full bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white font-bold py-4 px-6 rounded-lg shadow-lg transition-all duration-200 transform hover:scale-105">
+                <i class="fas fa-file-csv mr-2"></i>
+                📥 SCARICA CSV TUTTI I TITOLI (${results.stocks.length} ticker)
+            </button>
+            <button onclick="downloadReportJSON()" class="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold py-4 px-6 rounded-lg shadow-lg transition-all duration-200 transform hover:scale-105">
+                <i class="fas fa-chart-bar mr-2"></i>
+                📊 ESPORTA REPORT JSON (per presentazione cliente)
+            </button>
+        </div>
     `;
     kpiGrid.appendChild(csvButton);
     
@@ -3046,4 +3052,307 @@ function downloadAggregateCSV() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+}
+
+// ============================================================================
+// 📊 REPORT JSON EXPORT - v3.37.0
+// ============================================================================
+
+/**
+ * Calculate risk metrics from portfolio history
+ * @param {Array} history - Timeline of portfolio events
+ * @returns {Object} Risk metrics (volatility, maxDrawdown, sharpeRatio)
+ */
+function calculateRiskMetrics(history) {
+    if (!history || history.length < 2) {
+        return {
+            volatilita: 0,
+            maxDrawdown: 0,
+            maxDrawdownDate: null,
+            sharpeRatio: 0
+        };
+    }
+    
+    // Calculate daily returns
+    const returns = [];
+    for (let i = 1; i < history.length; i++) {
+        const prevValue = history[i - 1].patrimonioTotale;
+        const currValue = history[i].patrimonioTotale;
+        
+        if (prevValue > 0) {
+            const dailyReturn = (currValue - prevValue) / prevValue;
+            returns.push(dailyReturn);
+        }
+    }
+    
+    // Volatility (standard deviation of returns)
+    let volatilita = 0;
+    if (returns.length > 0) {
+        const mean = returns.reduce((sum, r) => sum + r, 0) / returns.length;
+        const variance = returns.reduce((sum, r) => sum + Math.pow(r - mean, 2), 0) / returns.length;
+        volatilita = Math.sqrt(variance);
+    }
+    
+    // Max Drawdown calculation
+    let maxDrawdown = 0;
+    let maxDrawdownDate = null;
+    let peak = history[0].patrimonioTotale;
+    
+    for (let i = 0; i < history.length; i++) {
+        const value = history[i].patrimonioTotale;
+        
+        if (value > peak) {
+            peak = value;
+        }
+        
+        const drawdown = ((value - peak) / peak) * 100;
+        
+        if (drawdown < maxDrawdown) {
+            maxDrawdown = drawdown;
+            maxDrawdownDate = history[i].data;
+        }
+    }
+    
+    // Sharpe Ratio (annualized, risk-free rate = 0%)
+    let sharpeRatio = 0;
+    if (volatilita > 0 && returns.length > 0) {
+        const meanReturn = returns.reduce((sum, r) => sum + r, 0) / returns.length;
+        // Annualize: assume 252 trading days
+        const annualizedReturn = meanReturn * 252;
+        const annualizedVolatility = volatilita * Math.sqrt(252);
+        sharpeRatio = annualizedReturn / annualizedVolatility;
+    }
+    
+    return {
+        volatilita: parseFloat((volatilita * 100).toFixed(2)), // Convert to %
+        maxDrawdown: parseFloat(maxDrawdown.toFixed(2)),
+        maxDrawdownDate,
+        sharpeRatio: parseFloat(sharpeRatio.toFixed(2))
+    };
+}
+
+/**
+ * Generate comprehensive report JSON for client presentation
+ * @param {Object} results - Full calculation results from state.results
+ * @returns {Object} Structured JSON report
+ */
+function generateReportJSON(results) {
+    if (!results || !results.stocks) {
+        throw new Error('No results available');
+    }
+    
+    const { stocks, totalPatrimonio, totalGainLoss } = results;
+    const { capitaleTotale, dataInizio, dataFine } = state.config;
+    
+    // Calculate aggregate risk metrics from combined timeline
+    const allHistory = [];
+    stocks.forEach(stock => {
+        stock.history.forEach(h => {
+            allHistory.push({
+                data: h.data,
+                patrimonioTotale: h.patrimonioTotale,
+                ticker: stock.ticker
+            });
+        });
+    });
+    
+    // Sort by date
+    allHistory.sort((a, b) => new Date(a.data) - new Date(b.data));
+    
+    // Aggregate timeline (sum of all portfolios by date)
+    const timelineMap = new Map();
+    allHistory.forEach(h => {
+        if (!timelineMap.has(h.data)) {
+            timelineMap.set(h.data, {
+                data: h.data,
+                patrimonioTotale: 0,
+                valorePosizioni: 0,
+                cashTotale: 0
+            });
+        }
+        const entry = timelineMap.get(h.data);
+        entry.patrimonioTotale += h.patrimonioTotale;
+    });
+    
+    const aggregateHistory = Array.from(timelineMap.values()).sort(
+        (a, b) => new Date(a.data) - new Date(b.data)
+    );
+    
+    // Calculate risk metrics on aggregate
+    const riskMetrics = calculateRiskMetrics(aggregateHistory);
+    
+    // Build timeline with ROI cumulative
+    const timeline = aggregateHistory.map(h => {
+        const roiCumulativo = ((h.patrimonioTotale - capitaleTotale) / capitaleTotale) * 100;
+        return {
+            data: h.data,
+            patrimonioTotale: parseFloat(h.patrimonioTotale.toFixed(2)),
+            roiCumulativo: parseFloat(roiCumulativo.toFixed(2))
+        };
+    });
+    
+    // Per-ticker breakdown
+    const perTicker = stocks.map(stock => {
+        const { ticker, summary, history } = stock;
+        
+        // Find nome from titoli CSV
+        const titoloInfo = state.csvData.titoli.find(t => t.ticker === ticker);
+        const nome = titoloInfo ? titoloInfo.nome : ticker;
+        
+        // Calculate ticker-specific risk metrics
+        const tickerRiskMetrics = calculateRiskMetrics(history);
+        
+        // Count dividends
+        const dividendiEventi = history.filter(h => h.evento && h.evento.includes('DIVIDEND'));
+        const dividendiTotali = dividendiEventi.reduce((sum, e) => {
+            // Extract dividend amount from dettagli if available
+            return sum + (e.dividendoLordo || 0);
+        }, 0);
+        
+        // Count operations (BUY/SELL)
+        const numeroOperazioni = history.filter(h => 
+            h.evento && (h.evento.includes('BUY') || h.evento.includes('SELL'))
+        ).length;
+        
+        // Contribution to total gain
+        const contributoGainTotale = totalGainLoss !== 0 
+            ? (summary.gainLoss / totalGainLoss) * 100 
+            : 0;
+        
+        return {
+            ticker,
+            nome,
+            capitaleAllocato: parseFloat(summary.capitaleAllocato.toFixed(2)),
+            patrimonioFinale: parseFloat(summary.patrimonioFinale.toFixed(2)),
+            gainLoss: parseFloat(summary.gainLoss.toFixed(2)),
+            roiPercentuale: parseFloat(summary.roiPortafoglio.toFixed(2)),
+            contributoGainTotale: parseFloat(contributoGainTotale.toFixed(2)),
+            numeroAzioni: parseFloat(summary.azioni.toFixed(4)),
+            prezzoIngresso: parseFloat(summary.prezzoIngresso.toFixed(3)),
+            prezzoFinale: parseFloat(summary.prezzoFinale.toFixed(3)),
+            variazionePrezzoPercentuale: parseFloat((((summary.prezzoFinale - summary.prezzoIngresso) / summary.prezzoIngresso) * 100).toFixed(2)),
+            dividendiTotali: parseFloat(dividendiTotali.toFixed(2)),
+            numeroOperazioni,
+            volatilita: tickerRiskMetrics.volatilita,
+            maxDrawdown: tickerRiskMetrics.maxDrawdown,
+            sharpeRatio: tickerRiskMetrics.sharpeRatio,
+            cashResiduo: parseFloat(summary.cashResiduo.toFixed(2)),
+            frazioneFinale: parseFloat(summary.frazioneAttuale.toFixed(4))
+        };
+    });
+    
+    // Sort by contribution DESC
+    perTicker.sort((a, b) => b.contributoGainTotale - a.contributoGainTotale);
+    
+    // Dividends summary
+    const dividendiPerTicker = {};
+    const dividendiTimeline = [];
+    
+    stocks.forEach(stock => {
+        const dividendiEventi = stock.history.filter(h => h.evento && h.evento.includes('DIVIDEND'));
+        
+        if (dividendiEventi.length > 0) {
+            dividendiPerTicker[stock.ticker] = dividendiEventi.reduce((sum, e) => sum + (e.dividendoLordo || 0), 0);
+            
+            dividendiEventi.forEach(e => {
+                dividendiTimeline.push({
+                    data: e.data,
+                    ticker: stock.ticker,
+                    importo: parseFloat((e.dividendoLordo || 0).toFixed(2))
+                });
+            });
+        }
+    });
+    
+    dividendiTimeline.sort((a, b) => new Date(a.data) - new Date(b.data));
+    
+    const totaleRicevuto = Object.values(dividendiPerTicker).reduce((sum, val) => sum + val, 0);
+    
+    // Build final report JSON
+    const report = {
+        metadata: {
+            versione: '3.37.0',
+            dataGenerazione: new Date().toISOString(),
+            periodoAnalisi: {
+                dataInizio,
+                dataFine
+            },
+            capitaleTotale,
+            numeroTitoli: stocks.length
+        },
+        performanceSummary: {
+            capitaleIniziale: capitaleTotale,
+            capitaleFinale: parseFloat(totalPatrimonio.toFixed(2)),
+            gainLossAssoluto: parseFloat(totalGainLoss.toFixed(2)),
+            roiPercentuale: parseFloat(((totalGainLoss / capitaleTotale) * 100).toFixed(2)),
+            numeroTitoli: stocks.length,
+            cashTotale: parseFloat(stocks.reduce((sum, s) => sum + s.summary.cashResiduo, 0).toFixed(2)),
+            valorePosizioni: parseFloat(stocks.reduce((sum, s) => sum + s.summary.valorePosizioneFinale, 0).toFixed(2))
+        },
+        riskMetrics: {
+            volatilita: riskMetrics.volatilita,
+            maxDrawdown: riskMetrics.maxDrawdown,
+            maxDrawdownDate: riskMetrics.maxDrawdownDate,
+            sharpeRatio: riskMetrics.sharpeRatio,
+            note: 'Volatilità = deviazione standard rendimenti (%). MaxDrawdown = perdita massima % da picco. Sharpe = rendimento/rischio annualizzato.'
+        },
+        timeline,
+        perTicker,
+        dividendi: {
+            totaleRicevuto: parseFloat(totaleRicevuto.toFixed(2)),
+            perTicker: dividendiPerTicker,
+            timeline: dividendiTimeline
+        },
+        bestPerformers: {
+            roiMigliore: perTicker.length > 0 ? {
+                ticker: perTicker[0].ticker,
+                nome: perTicker[0].nome,
+                roi: perTicker[0].roiPercentuale
+            } : null,
+            roiPeggiore: perTicker.length > 0 ? {
+                ticker: perTicker[perTicker.length - 1].ticker,
+                nome: perTicker[perTicker.length - 1].nome,
+                roi: perTicker[perTicker.length - 1].roiPercentuale
+            } : null
+        },
+        note: {
+            scopo: 'Report generato per presentazione cliente. Mostra performance passate portfolio.',
+            utilizzo: 'Carica questo JSON in ChatGPT/Claude per generare report visuale o analisi dettagliata.',
+            disclaimer: 'I rendimenti passati non garantiscono risultati futuri. Questo è un tool di analisi, non consulenza finanziaria.'
+        }
+    };
+    
+    return report;
+}
+
+/**
+ * Download report JSON file
+ */
+function downloadReportJSON() {
+    if (!state.results || !state.results.stocks) {
+        alert('Nessun dato disponibile. Esegui prima il calcolo.');
+        return;
+    }
+    
+    try {
+        const report = generateReportJSON(state.results);
+        const jsonString = JSON.stringify(report, null, 2);
+        
+        // Create blob and download
+        const blob = new Blob([jsonString], { type: 'application/json;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        
+        link.setAttribute('href', url);
+        link.setAttribute('download', `rosicatore_report_${state.config.dataInizio}_${state.config.dataFine}.json`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        console.log('✅ Report JSON scaricato con successo');
+    } catch (error) {
+        console.error('❌ Errore generazione report JSON:', error);
+        alert('Errore generazione report: ' + error.message);
+    }
 }

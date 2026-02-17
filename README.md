@@ -1,8 +1,92 @@
-# Rosicatore v3.23.0
+# Rosicatore v3.37.0
 
 ## 🎯 Portfolio Tracker Algorithm
 
 Rosicatore è un Portfolio Tracker che calcola il valore nel tempo di TUTTI i titoli del portafoglio.
+
+---
+
+## 🆕 NOVITÀ v3.37.0 - EXPORT REPORT JSON (17 Feb 2026)
+
+### 📊 **REPORT JSON PER PRESENTAZIONE CLIENTE**
+
+**Funzionalità implementata:**
+Una volta calcolato il portafoglio, puoi esportare un **report JSON completo** con tutti i KPI e metriche necessarie per presentare al cliente "cosa sarebbe successo se avessi investito X mesi fa".
+
+**✨ CONTENUTO REPORT JSON:**
+
+**1. Performance Summary:**
+- Capitale iniziale vs finale
+- Gain/Loss assoluto (€)
+- ROI percentuale
+- Numero titoli
+- Valore posizioni vs Cash
+
+**2. Risk Metrics:**
+- **Volatilità**: Deviazione standard rendimenti (%)
+- **Max Drawdown**: Perdita massima % dal picco (+ data)
+- **Sharpe Ratio**: Rendimento/rischio annualizzato
+
+**3. Timeline Patrimoniale:**
+- Array completo con valori giornalieri
+- ROI cumulativo per ogni data
+- Perfetto per generare grafici
+
+**4. Breakdown per Ticker:**
+- Capitale allocato, patrimonio finale, gain/loss
+- ROI %, contributo % al gain totale
+- Numero azioni, prezzi ingresso/finale
+- Variazione prezzo %
+- Dividendi totali ricevuti
+- Numero operazioni (BUY/SELL)
+- Risk metrics per ticker (volatilità, drawdown, Sharpe)
+
+**5. Dividendi:**
+- Totale ricevuto
+- Breakdown per ticker
+- Timeline completa dividendi
+
+**6. Best/Worst Performers:**
+- Titolo con ROI migliore
+- Titolo con ROI peggiore
+
+**📥 COME USARE:**
+1. Calcola il portafoglio normalmente
+2. Clicca su **"📊 ESPORTA REPORT JSON"** (accanto a CSV)
+3. Scarica file: `rosicatore_report_2025-01-01_2026-01-01.json`
+4. Carica il JSON in ChatGPT/Claude per generare:
+   - Report visuale formattato
+   - Grafici performance
+   - Analisi dettagliata per cliente
+
+**🎯 USE CASE:**
+*"Il cliente X mesi fa non ha voluto investire. Ora vuoi mostrargli ESATTAMENTE cosa avrebbe guadagnato/perso con i dati reali."*
+
+Il JSON contiene TUTTI i dati necessari per creare una presentazione professionale con grafici, metriche rischio/rendimento, e breakdown dettagliato.
+
+**Formato JSON Esempio:**
+```json
+{
+  "metadata": {
+    "versione": "3.37.0",
+    "periodoAnalisi": { "dataInizio": "2025-01-01", "dataFine": "2026-01-01" }
+  },
+  "performanceSummary": {
+    "capitaleIniziale": 12000,
+    "capitaleFinale": 13500,
+    "gainLossAssoluto": 1500,
+    "roiPercentuale": 12.5
+  },
+  "riskMetrics": {
+    "volatilita": 15.2,
+    "maxDrawdown": -8.5,
+    "sharpeRatio": 0.83
+  },
+  "timeline": [ /* valori giornalieri */ ],
+  "perTicker": [ /* breakdown dettagliato */ ],
+  "dividendi": { /* cash flow */ }
+}
+```
 
 ---
 
@@ -383,11 +467,22 @@ Cloudflare Pages
 Hono + TypeScript + TailwindCSS + Papa Parse + Day.js
 
 ### Last Updated
-05 Febbraio 2026 - v3.21.0
+17 Febbraio 2026 - v3.37.0
 
 ---
 
 ## 🔄 Changelog
+
+### v3.37.0 (17/02/2026)
+- ✅ **EXPORT REPORT JSON**: Nuova funzionalità per esportare report completo in formato JSON
+- ✅ **Risk Metrics**: Calcolo automatico Volatilità, Max Drawdown, Sharpe Ratio
+- ✅ **Timeline Patrimoniale**: Array completo valori giornalieri per grafici
+- ✅ **Breakdown per Ticker**: Contributo % gain totale, risk metrics individuali
+- ✅ **Dividendi Summary**: Totale ricevuto + timeline + breakdown per ticker
+- ✅ **Best/Worst Performers**: Identificazione automatica migliori/peggiori ROI
+- ✅ **UI Button**: Pulsante "📊 ESPORTA REPORT JSON" accanto a CSV download
+- ✅ **Use Case Cliente**: File JSON ottimizzato per presentazioni "cosa sarebbe successo se..."
+- ✅ **+250 righe codice**: Tutte AGGIUNTE, zero modifiche a funzioni esistenti
 
 ### v3.21.0 (05/02/2026)
 - ✅ **VERIFICA CALCOLI COMPLETA**: Analisi matematica di tutte le formule
