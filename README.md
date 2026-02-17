@@ -1,8 +1,56 @@
-# Rosicatore v4.1.2
+# Rosicatore v4.1.3
 
 ## 🎯 Portfolio Tracker Algorithm
 
 Rosicatore è un Portfolio Tracker che calcola il valore nel tempo di TUTTI i titoli del portafoglio.
+
+---
+
+## 🆕 NOVITÀ v4.1.3 - CSV COMPLETI + FIX PLLL (17 Feb 2026)
+
+### 🔧 **Aggiornamento CSV Completo**
+
+**CSV Aggiornati:**
+- ✅ **12 ticker aggiornati** con dati completi fino al 2026-02-13
+- ✅ **65,291 righe totali** di dati pricing storici
+- ✅ **232 dividendi** processati correttamente
+- ✅ **0 duplicati** - merge intelligente funzionante
+
+**Statistiche Dettagliate:**
+- 📊 IRD: 5,095 rows (2005-11-10 → 2026-02-13)
+- 📊 EQT: 11,572 rows (1980-03-17 → 2026-02-13) 
+- 📊 AA: 14,150 rows (1970-01-02 → 2026-02-13)
+- 📊 GSM: 4,161 rows (2009-07-30 → 2026-02-13)
+- 📊 HL: 11,572 rows (1980-03-17 → 2026-02-13)
+- 📊 URG: 4,416 rows (2008-07-25 → 2026-02-13)
+- 📊 MARA: 3,464 rows (2012-05-04 → 2026-02-13)
+- 📊 PMET: 2,878 rows (2014-08-26 → 2026-02-13)
+- 📊 VZLA: 1,019 rows (2022-01-21 → 2026-02-13)
+- 📊 PLL: 115 rows (2025-09-02 → 2026-02-13) ⚠️ nuovo formato
+- 📊 ABRA: 435 rows (2024-05-22 → 2026-02-13)
+- 📊 PBR: 6,415 rows (2000-08-10 → 2026-02-13)
+
+**Fix Implementati:**
+1. ✅ **PLLL → PLL**: Normalizzazione ticker dividendi corretta
+2. ✅ **Non-standard CSV**: Gestione formato Investing.com (PLL vecchio)
+3. ✅ **Merge multi-parte**: 6 file EQT uniti perfettamente
+4. ✅ **Date italiane**: "25 Agosto 2025" → "2025-08-25" automatico
+5. ✅ **Suffissi .TO**: ABRA.TO e PMET.TO processati correttamente
+
+**Dividendi:**
+- 📈 PBR: 42 dividendi (2010-04-23 → 2025-08-25)
+- 📈 EQT: 57 dividendi (2010-02-10 → 2025-11-05)
+- 📈 AA: 45 dividendi
+- 📈 HL: 58 dividendi
+- 📈 GSM: 30 dividendi
+- 📈 Altri: 0 dividendi (corretto)
+
+**Test Validati:**
+- ✅ Tutti i 12 ticker aggiornati senza errori
+- ✅ 0 duplicati rilevati
+- ✅ Date range verificate per ogni ticker
+- ✅ Dividendi parsed correttamente da formato italiano
+- ✅ Backup automatico creato pre-update
 
 ---
 
@@ -544,7 +592,7 @@ Cloudflare Pages
 Hono + TypeScript + TailwindCSS + Papa Parse + Day.js
 
 ### Last Updated
-17 Febbraio 2026 - v3.37.1
+17 Febbraio 2026 - v4.1.3
 
 ---
 

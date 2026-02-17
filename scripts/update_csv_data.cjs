@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * ROSICATORE CSV UPDATE SCRIPT v4.1.1
+ * ROSICATORE CSV UPDATE SCRIPT v4.1.3
  * 
  * Aggiorna automaticamente i CSV del sito con nuovi dati da ZIP
  * 
@@ -120,34 +120,44 @@ async function mergePricingFiles(tickerDir, ticker, existingCSVPath) {
         const existingLines = existingContent.replace(/\r\n/g, '\n').trim().split('\n');
         
         if (existingLines.length > 1) {
-            // Usa header esistente se diverso (per compatibilità)
-            header = existingLines[0].replace(/"/g, ''); // Rimuovi virgolette
+            const existingHeader = existingLines[0].replace(/"/g, ''); // Rimuovi virgolette
             
-            // Carica righe esistenti
-            for (let i = 1; i < existingLines.length; i++) {
-                const line = existingLines[i].trim();
-                if (!line) continue;
+            // Check se CSV esistente ha formato standard (Date,Open,High,Low,Close,Volume)
+            const hasStandardFormat = existingHeader.includes('Close') && existingHeader.includes('Volume');
+            
+            if (hasStandardFormat) {
+                // Usa header esistente se standard
+                header = existingHeader;
                 
-                const cleanLine = line.replace(/"/g, ''); // Rimuovi virgolette
-                const dateStr = cleanLine.split(',')[0];
-                
-                // Normalizza data in ISO
-                const isoDate = parseItalianDate(dateStr) || dateStr;
-                const normalizedDate = new Date(isoDate);
-                
-                if (!isNaN(normalizedDate.getTime())) {
-                    const isoKey = normalizedDate.toISOString().split('T')[0];
+                // Carica righe esistenti
+                for (let i = 1; i < existingLines.length; i++) {
+                    const line = existingLines[i].trim();
+                    if (!line) continue;
                     
-                    // Normalizza riga: sostituisci data con ISO
-                    const parts = cleanLine.split(',');
-                    parts[0] = isoKey;
-                    const normalizedLine = parts.join(',');
+                    const cleanLine = line.replace(/"/g, ''); // Rimuovi virgolette
+                    const dateStr = cleanLine.split(',')[0];
                     
-                    rowsByDate.set(isoKey, normalizedLine);
+                    // Normalizza data in ISO
+                    const isoDate = parseItalianDate(dateStr) || dateStr;
+                    const normalizedDate = new Date(isoDate);
+                    
+                    if (!isNaN(normalizedDate.getTime())) {
+                        const isoKey = normalizedDate.toISOString().split('T')[0];
+                        
+                        // Normalizza riga: sostituisci data con ISO
+                        const parts = cleanLine.split(',');
+                        parts[0] = isoKey;
+                        const normalizedLine = parts.join(',');
+                        
+                        rowsByDate.set(isoKey, normalizedLine);
+                    }
                 }
+                
+                log(`Loaded ${rowsByDate.size} existing rows for ${ticker}`, 'success');
+            } else {
+                // CSV esistente ha formato non standard - ignora e usa solo nuovi dati
+                log(`Existing CSV for ${ticker} has non-standard format - using new data only`, 'warning');
             }
-            
-            log(`Loaded ${rowsByDate.size} existing rows for ${ticker}`, 'success');
         }
     }
     
@@ -225,7 +235,12 @@ async function processDividends(dividendiDir) {
         const ticker = tickerMatch[1];
         
         // Normalizza ticker: rimuovi suffissi .TO, .TSX, .TSXV
-        const normalizedTicker = ticker.replace(/\.(TO|TSX|TSXV)$/, '');
+        let normalizedTicker = ticker.replace(/\.(TO|TSX|TSXV)$/, '');
+        
+        // Fix PLLL → PLL (errore nel nome file dividendi)
+        if (normalizedTicker === 'PLLL') {
+            normalizedTicker = 'PLL';
+        }
         
         const filePath = path.join(dividendiDir, file);
         const content = fs.readFileSync(filePath, 'utf-8');
