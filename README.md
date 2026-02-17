@@ -1,4 +1,4 @@
-# Rosicatore v4.0.0
+# Rosicatore v4.1.0
 
 ## 🎯 Portfolio Tracker Algorithm
 
@@ -6,52 +6,32 @@ Rosicatore è un Portfolio Tracker che calcola il valore nel tempo di TUTTI i ti
 
 ---
 
-## 🆕 NOVITÀ v4.0.0 - EXPORT UNIFICATO COMPLETO (17 Feb 2026)
+## 🆕 NOVITÀ v4.1.0 - SUPPORTO DATE ITALIANO (17 Feb 2026)
 
-### 🚀 **MAJOR UPDATE: Export Unificato con KPI Estesi**
+### 🇮🇹 **Formato Date Italiano Nativo**
 
-**Breaking Changes:**
-- ✅ Rimossi 2 pulsanti separati (CSV + JSON)
-- ✅ Aggiunto 1 pulsante unificato "📦 ESPORTA REPORT COMPLETO"
-- ✅ 35+ KPI portfolio aggregati (aggiunti 13 nuovi)
-- ✅ 30 KPI per ogni ticker (aggiunti 21 nuovi)
-- ✅ Price history completa inclusa (~180,000 righe)
-- ✅ Timeline giornaliera per-ticker
-- ✅ Raw data CSV embedded
+**Nuova Funzionalità:**
+- ✅ Supporto formato `DD Mese YYYY` (es. "10 Agosto 2000")
+- ✅ Parsing automatico mesi italiani (gennaio, febbraio, marzo, ecc.)
+- ✅ Backward compatible con formati esistenti (YYYY-MM-DD, MM/DD/YYYY, DD/MM/YYYY)
+- ✅ Nessuna ambiguità data (mesi in lettere = chiarezza assoluta)
 
-**Nuove metriche implementate:**
-1. **Sortino Ratio** - Risk-adjusted return usando downside deviation
-2. **Calmar Ratio** - Rendimento annualizzato / max drawdown
-3. **Win Rate %** - Percentuale operazioni in gain
-4. **Profit Factor** - Total gains / total losses
-5. **Average Win/Loss** - Media gain e loss per operazione
-6. **Largest Win/Loss** - Max gain e loss singola operazione
-7. **Recovery Time** - Giorni per recuperare da max drawdown
-8. **Consecutive Wins/Losses Max** - Serie consecutive
-9. **Downside/Upside Deviation** - Volatilità asimmetrica
+**Funzioni Aggiunte:**
+1. `parseItalianDate(dateString)` - Parser date italiano
+2. `formatItalianDate(isoDate)` - Formatter da ISO a italiano
+3. `parseUniversalDate(dateString)` - Aggiornato per supportare italiano
 
-**Output File:**
-- **Nome**: `rosicatore_report_completo_YYYY-MM-DD_YYYY-MM-DD.json`
-- **Dimensione stimata**: 15-20 MB (include price history completa)
-- **Contenuto**:
-  - Metadata (versione, date, config)
-  - Performance Summary (35+ KPI)
-  - Risk Metrics Portfolio (17 KPI)
-  - Risk Metrics Per-Ticker (17 KPI × 12 ticker)
-  - Timeline Aggregate (daily portfolio values)
-  - Timeline Per-Ticker (daily per-ticker values)
-  - Per-Ticker Breakdown (30 KPI × 12 ticker)
-  - Dividends (total + timeline)
-  - Raw Data (all events CSV-like)
-  - Input CSVs (titoli, movimenti, dividendi)
-  - Price History COMPLETA (12 ticker × ~15,000 righe)
-  - Best/Worst Performers
+**Motivazione:**
+- File CSV da CSVatore usano formato italiano per leggibilità
+- Elimina confusione tra formato US (MM/DD) e EU (DD/MM)
+- Allineamento con input utente naturale
 
-**Uso:**
-1. Calcola portafoglio (01-AGO-2025 → 17-FEB-2026)
-2. Click "📦 ESPORTA REPORT COMPLETO"
-3. Scarica JSON unificato (~15-20 MB)
-4. Upload a GenSpark/ChatGPT/Claude per report automatico
+**Test Validati:**
+- ✅ "10 Agosto 2000" → 2000-08-10
+- ✅ "1 Gennaio 2025" → 2025-01-01
+- ✅ "25 Dicembre 2024" → 2024-12-25
+- ✅ Backward: "2025-01-01" → funziona ancora
+- ✅ Backward: "01/15/2025" → funziona ancora
 
 ---
 - Capitale iniziale vs finale
