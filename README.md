@@ -1,8 +1,40 @@
-# Rosicatore v3.37.0
+# Rosicatore v3.37.1
 
 ## 🎯 Portfolio Tracker Algorithm
 
 Rosicatore è un Portfolio Tracker che calcola il valore nel tempo di TUTTI i titoli del portafoglio.
+
+---
+
+## 🆕 NOVITÀ v3.37.1 - BUGFIX EXPORT JSON/CSV (17 Feb 2026)
+
+### 🐛 **BUG FIX CRITICO: Download JSON/CSV Non Funzionante**
+
+**Problema risolto:**
+- ❌ Click su "ESPORTA REPORT JSON" mostrava alert "Nessun dato disponibile"
+- ❌ Download CSV potenzialmente falliva per stesso motivo
+- ❌ `state.results` non veniva popolato dopo calcolo
+
+**Root Cause:**
+La funzione `calculatePortfolio()` ritornava i risultati ma NON li salvava in `state.results`, causando il fallimento di tutti i download.
+
+**Soluzione implementata:**
+- ✅ Aggiunta riga `state.results = results` in `setupCalculateButton()`
+- ✅ Download JSON ora funzionante
+- ✅ Download CSV verificato funzionante
+- ✅ Favicon placeholder aggiunto (elimina 404 console)
+
+**Modifiche:**
+- 1 riga aggiunta in `app.js` (riga 567)
+- favicon.ico creato
+- 0 funzioni modificate (solo 1 insert)
+
+**Test verificati:**
+- ✅ Calcolo portfolio → state.results popolato
+- ✅ Click "ESPORTA REPORT JSON" → Download file
+- ✅ Click "SCARICA CSV" → Download file
+- ✅ Nessun alert "Nessun dato disponibile"
+- ✅ Favicon 404 eliminato
 
 ---
 
@@ -467,11 +499,19 @@ Cloudflare Pages
 Hono + TypeScript + TailwindCSS + Papa Parse + Day.js
 
 ### Last Updated
-17 Febbraio 2026 - v3.37.0
+17 Febbraio 2026 - v3.37.1
 
 ---
 
 ## 🔄 Changelog
+
+### v3.37.1 (17/02/2026)
+- 🐛 **BUGFIX CRITICO**: Download JSON/CSV non funzionante
+- ✅ Aggiunta riga `state.results = results` in setupCalculateButton()
+- ✅ Download JSON ora funzionante dopo calcolo
+- ✅ Download CSV verificato funzionante
+- ✅ Favicon placeholder aggiunto (elimina 404)
+- ✅ 1 riga modificata (insert), 0 funzioni toccate
 
 ### v3.37.0 (17/02/2026)
 - ✅ **EXPORT REPORT JSON**: Nuova funzionalità per esportare report completo in formato JSON

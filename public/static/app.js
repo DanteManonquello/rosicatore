@@ -563,6 +563,9 @@ function setupCalculateButton() {
             // Run calculation (async)
             const results = await calculatePortfolio();
             
+            // Save results to state for CSV/JSON export
+            state.results = results;
+            
             // Display results
             displayResults(results);
             
