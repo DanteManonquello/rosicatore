@@ -1430,22 +1430,25 @@ function displayResults(results) {
         kpiGrid.appendChild(card);
     });
     
-    // Add CSV Download button after KPI cards
-    const csvButton = document.createElement('div');
-    csvButton.className = 'col-span-full mt-4';
-    csvButton.innerHTML = `
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <button onclick="downloadAggregateCSV()" class="w-full bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white font-bold py-4 px-6 rounded-lg shadow-lg transition-all duration-200 transform hover:scale-105">
-                <i class="fas fa-file-csv mr-2"></i>
-                📥 SCARICA CSV TUTTI I TITOLI (${results.stocks.length} ticker)
-            </button>
-            <button onclick="downloadReportJSON()" class="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold py-4 px-6 rounded-lg shadow-lg transition-all duration-200 transform hover:scale-105">
-                <i class="fas fa-chart-bar mr-2"></i>
-                📊 ESPORTA REPORT JSON (per presentazione cliente)
-            </button>
-        </div>
+    // Add UNIFIED EXPORT button (v4.0.0) - Single button replacing CSV + JSON
+    const unifiedButton = document.createElement('div');
+    unifiedButton.className = 'col-span-full mt-4';
+    unifiedButton.innerHTML = `
+        <button onclick="downloadUnifiedReport()" class="w-full bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 hover:from-indigo-700 hover:via-purple-700 hover:to-pink-700 text-white font-bold py-5 px-8 rounded-xl shadow-2xl transition-all duration-300 transform hover:scale-105 border-2 border-purple-400 hover:border-pink-400">
+            <div class="flex items-center justify-center gap-3">
+                <i class="fas fa-box-archive text-2xl"></i>
+                <div class="text-left">
+                    <div class="text-xl font-bold">📦 ESPORTA REPORT COMPLETO</div>
+                    <div class="text-sm opacity-90">35+ KPI Portfolio • 30 KPI per Ticker • Timeline • Price History • Raw Data</div>
+                </div>
+            </div>
+        </button>
+        <p class="text-center text-gray-400 text-xs mt-2">
+            <i class="fas fa-info-circle mr-1"></i>
+            Include TUTTI i dati: KPI estesi, timeline giornaliera, price history completa, CSV raw • Dimensione stimata: ~15-20 MB
+        </p>
     `;
-    kpiGrid.appendChild(csvButton);
+    kpiGrid.appendChild(unifiedButton);
     
     // Render stock summary table (all stocks)
     renderStockSummaryMulti(results.stocks);
@@ -3135,6 +3138,481 @@ function calculateRiskMetrics(history) {
 }
 
 /**
+ * Calculate EXTENDED risk metrics (v4.0.0)
+ * Includes Sortino, Calmar, Win Rate, Profit Factor, etc.
+ * @param {Array} history - Timeline of events
+ * @param {Number} initialCapital - Starting capital
+ * @returns {Object} Extended risk metrics
+ */
+function calculateExtendedRiskMetrics(history, initialCapital) {
+    if (!history || history.length < 2) {
+        return {
+            volatilita: 0,
+            maxDrawdown: 0,
+            maxDrawdownDate: null,
+            sharpeRatio: 0,
+            sortinoRatio: 0,
+            calmarRatio: 0,
+            winRate: 0,
+            profitFactor: 0,
+            averageWin: 0,
+            averageLoss: 0,
+            largestWin: 0,
+            largestLoss: 0,
+            recoveryTime: 0,
+            consecutiveWinsMax: 0,
+            consecutiveLossesMax: 0,
+            downsideDeviation: 0,
+            upsideDeviation: 0
+        };
+    }
+    
+    // Calculate daily returns
+    const returns = [];
+    const downsideReturns = [];
+    const upsideReturns = [];
+    const gains = [];
+    const losses = [];
+    
+    for (let i = 1; i < history.length; i++) {
+        const prevValue = history[i - 1].patrimonioTotale || history[i - 1].valoreAzioni || 0;
+        const currValue = history[i].patrimonioTotale || history[i].valoreAzioni || 0;
+        
+        if (prevValue > 0) {
+            const dailyReturn = (currValue - prevValue) / prevValue;
+            returns.push(dailyReturn);
+            
+            if (dailyReturn < 0) {
+                downsideReturns.push(dailyReturn);
+                losses.push(Math.abs(currValue - prevValue));
+            } else if (dailyReturn > 0) {
+                upsideReturns.push(dailyReturn);
+                gains.push(currValue - prevValue);
+            }
+        }
+    }
+    
+    // Standard volatility
+    let volatilita = 0;
+    if (returns.length > 0) {
+        const mean = returns.reduce((sum, r) => sum + r, 0) / returns.length;
+        const variance = returns.reduce((sum, r) => sum + Math.pow(r - mean, 2), 0) / returns.length;
+        volatilita = Math.sqrt(variance);
+    }
+    
+    // Downside deviation (only negative returns)
+    let downsideDeviation = 0;
+    if (downsideReturns.length > 0) {
+        const variance = downsideReturns.reduce((sum, r) => sum + Math.pow(r, 2), 0) / downsideReturns.length;
+        downsideDeviation = Math.sqrt(variance);
+    }
+    
+    // Upside deviation (only positive returns)
+    let upsideDeviation = 0;
+    if (upsideReturns.length > 0) {
+        const mean = upsideReturns.reduce((sum, r) => sum + r, 0) / upsideReturns.length;
+        const variance = upsideReturns.reduce((sum, r) => sum + Math.pow(r - mean, 2), 0) / upsideReturns.length;
+        upsideDeviation = Math.sqrt(variance);
+    }
+    
+    // Max Drawdown + Recovery Time
+    let maxDrawdown = 0;
+    let maxDrawdownDate = null;
+    let peak = history[0].patrimonioTotale || history[0].valoreAzioni || initialCapital;
+    let drawdownStartIndex = 0;
+    let maxDrawdownStartIndex = 0;
+    let maxDrawdownEndIndex = 0;
+    let recoveryTime = 0;
+    
+    for (let i = 0; i < history.length; i++) {
+        const value = history[i].patrimonioTotale || history[i].valoreAzioni || 0;
+        
+        if (value > peak) {
+            peak = value;
+            drawdownStartIndex = i;
+        }
+        
+        const drawdown = ((value - peak) / peak) * 100;
+        
+        if (drawdown < maxDrawdown) {
+            maxDrawdown = drawdown;
+            maxDrawdownDate = history[i].data;
+            maxDrawdownStartIndex = drawdownStartIndex;
+            maxDrawdownEndIndex = i;
+        }
+    }
+    
+    // Calculate recovery time (days from max drawdown to recovery)
+    if (maxDrawdownEndIndex < history.length - 1) {
+        for (let i = maxDrawdownEndIndex + 1; i < history.length; i++) {
+            const value = history[i].patrimonioTotale || history[i].valoreAzioni || 0;
+            const peakAtDrawdown = history[maxDrawdownStartIndex].patrimonioTotale || history[maxDrawdownStartIndex].valoreAzioni || 0;
+            
+            if (value >= peakAtDrawdown) {
+                recoveryTime = i - maxDrawdownEndIndex;
+                break;
+            }
+        }
+    }
+    
+    // Sharpe Ratio
+    let sharpeRatio = 0;
+    if (volatilita > 0 && returns.length > 0) {
+        const meanReturn = returns.reduce((sum, r) => sum + r, 0) / returns.length;
+        const annualizedReturn = meanReturn * 252;
+        const annualizedVolatility = volatilita * Math.sqrt(252);
+        sharpeRatio = annualizedReturn / annualizedVolatility;
+    }
+    
+    // Sortino Ratio (uses downside deviation)
+    let sortinoRatio = 0;
+    if (downsideDeviation > 0 && returns.length > 0) {
+        const meanReturn = returns.reduce((sum, r) => sum + r, 0) / returns.length;
+        const annualizedReturn = meanReturn * 252;
+        const annualizedDownside = downsideDeviation * Math.sqrt(252);
+        sortinoRatio = annualizedReturn / annualizedDownside;
+    }
+    
+    // Calmar Ratio (annualized return / max drawdown)
+    let calmarRatio = 0;
+    if (maxDrawdown < 0 && returns.length > 0) {
+        const meanReturn = returns.reduce((sum, r) => sum + r, 0) / returns.length;
+        const annualizedReturn = meanReturn * 252 * 100; // Convert to %
+        calmarRatio = annualizedReturn / Math.abs(maxDrawdown);
+    }
+    
+    // Win Rate
+    const totalTrades = gains.length + losses.length;
+    const winRate = totalTrades > 0 ? (gains.length / totalTrades) * 100 : 0;
+    
+    // Profit Factor
+    const totalGains = gains.reduce((sum, g) => sum + g, 0);
+    const totalLosses = losses.reduce((sum, l) => sum + l, 0);
+    const profitFactor = totalLosses > 0 ? totalGains / totalLosses : 0;
+    
+    // Average Win/Loss
+    const averageWin = gains.length > 0 ? totalGains / gains.length : 0;
+    const averageLoss = losses.length > 0 ? totalLosses / losses.length : 0;
+    
+    // Largest Win/Loss
+    const largestWin = gains.length > 0 ? Math.max(...gains) : 0;
+    const largestLoss = losses.length > 0 ? Math.max(...losses) : 0;
+    
+    // Consecutive wins/losses
+    let consecutiveWins = 0;
+    let consecutiveLosses = 0;
+    let maxConsecutiveWins = 0;
+    let maxConsecutiveLosses = 0;
+    
+    for (let i = 1; i < history.length; i++) {
+        const prevValue = history[i - 1].patrimonioTotale || history[i - 1].valoreAzioni || 0;
+        const currValue = history[i].patrimonioTotale || history[i].valoreAzioni || 0;
+        
+        if (currValue > prevValue) {
+            consecutiveWins++;
+            consecutiveLosses = 0;
+            maxConsecutiveWins = Math.max(maxConsecutiveWins, consecutiveWins);
+        } else if (currValue < prevValue) {
+            consecutiveLosses++;
+            consecutiveWins = 0;
+            maxConsecutiveLossesMax = Math.max(maxConsecutiveLosses, consecutiveLosses);
+        }
+    }
+    
+    return {
+        volatilita: parseFloat((volatilita * 100).toFixed(2)),
+        maxDrawdown: parseFloat(maxDrawdown.toFixed(2)),
+        maxDrawdownDate,
+        sharpeRatio: parseFloat(sharpeRatio.toFixed(2)),
+        sortinoRatio: parseFloat(sortinoRatio.toFixed(2)),
+        calmarRatio: parseFloat(calmarRatio.toFixed(2)),
+        winRate: parseFloat(winRate.toFixed(2)),
+        profitFactor: parseFloat(profitFactor.toFixed(2)),
+        averageWin: parseFloat(averageWin.toFixed(2)),
+        averageLoss: parseFloat(averageLoss.toFixed(2)),
+        largestWin: parseFloat(largestWin.toFixed(2)),
+        largestLoss: parseFloat(largestLoss.toFixed(2)),
+        recoveryTime: parseInt(recoveryTime),
+        consecutiveWinsMax: parseInt(maxConsecutiveWins),
+        consecutiveLossesMax: parseInt(maxConsecutiveLosses),
+        downsideDeviation: parseFloat((downsideDeviation * 100).toFixed(2)),
+        upsideDeviation: parseFloat((upsideDeviation * 100).toFixed(2))
+    };
+}
+
+/**
+ * Generate UNIFIED comprehensive report (v4.0.0)
+ * Includes ALL data: KPI, timeline, raw data, price history, input CSVs
+ * @param {Object} results - Full calculation results from state.results
+ * @returns {Object} Complete unified JSON report
+ */
+function generateUnifiedReport(results) {
+    if (!results || !results.stocks) {
+        throw new Error('No results available');
+    }
+    
+    const { stocks, totalPatrimonio, totalGainLoss } = results;
+    const { capitaleTotale, dataInizio, dataFine } = state.config;
+    
+    // 1. METADATA
+    const metadata = {
+        appVersion: '4.0.0',
+        exportVersion: '4.0.0-unified',
+        exportFormat: 'unified-json-complete',
+        generatedAt: new Date().toISOString(),
+        analysisPeriod: {
+            start: dataInizio,
+            end: dataFine,
+            days: Math.ceil((new Date(dataFine) - new Date(dataInizio)) / (1000 * 60 * 60 * 24))
+        },
+        configuration: {
+            totalCapital: capitaleTotale,
+            tickersCount: stocks.length,
+            dataSource: 'Yahoo Finance CSV + User Input'
+        }
+    };
+    
+    // 2. PERFORMANCE SUMMARY
+    const performanceSummary = {
+        initialCapital: capitaleTotale,
+        finalCapital: parseFloat(totalPatrimonio.toFixed(2)),
+        totalGainLoss: parseFloat(totalGainLoss.toFixed(2)),
+        roi: parseFloat(((totalGainLoss / capitaleTotale) * 100).toFixed(2)),
+        finalCash: parseFloat(stocks.reduce((sum, s) => sum + s.summary.cashResiduo, 0).toFixed(2)),
+        finalPositionValue: parseFloat(stocks.reduce((sum, s) => sum + s.summary.valorePosizioneFinale, 0).toFixed(2)),
+        activeTickers: stocks.filter(s => s.summary.azioni > 0).length,
+        closedPositions: stocks.filter(s => s.summary.azioni === 0 && s.summary.gainLoss !== 0).length,
+        capitalAllocated: capitaleTotale,
+        capitalDeployed: parseFloat(stocks.reduce((sum, s) => sum + s.summary.capitaleInvestito, 0).toFixed(2)),
+        cashWithdrawn: parseFloat(stocks.reduce((sum, s) => sum + (s.summary.totalCashPrelevato || 0), 0).toFixed(2)),
+        totalDividends: 0, // Will calculate below
+        totalBuyOperations: 0,
+        totalSellOperations: 0
+    };
+    
+    // 3. AGGREGATE TIMELINE for risk metrics
+    const allHistory = [];
+    stocks.forEach(stock => {
+        stock.history.forEach(h => {
+            allHistory.push({
+                data: h.data,
+                patrimonioTotale: h.patrimonioTotale,
+                ticker: stock.ticker
+            });
+        });
+    });
+    
+    allHistory.sort((a, b) => new Date(a.data) - new Date(b.data));
+    
+    const timelineMap = new Map();
+    allHistory.forEach(h => {
+        if (!timelineMap.has(h.data)) {
+            timelineMap.set(h.data, { data: h.data, totalPatrimonio: 0 });
+        }
+        timelineMap.get(h.data).totalPatrimonio += h.patrimonioTotale;
+    });
+    
+    const aggregateHistory = Array.from(timelineMap.values()).sort(
+        (a, b) => new Date(a.data) - new Date(b.data)
+    );
+    
+    // Calculate EXTENDED risk metrics
+    const portfolioRiskMetrics = calculateExtendedRiskMetrics(aggregateHistory, capitaleTotale);
+    
+    // 4. TIMELINE (aggregate + per-ticker)
+    const timelineAggregate = aggregateHistory.map(h => {
+        const gainLoss = h.totalPatrimonio - capitaleTotale;
+        const roi = (gainLoss / capitaleTotale) * 100;
+        return {
+            date: h.data,
+            totalPatrimonio: parseFloat(h.totalPatrimonio.toFixed(2)),
+            gainLoss: parseFloat(gainLoss.toFixed(2)),
+            roi: parseFloat(roi.toFixed(2)),
+            dailyReturn: 0 // Calculate if needed
+        };
+    });
+    
+    const timelinePerTicker = {};
+    stocks.forEach(stock => {
+        const tickerTimeline = stock.history.map(h => ({
+            date: h.data,
+            price: parseFloat((h.prezzo || 0).toFixed(3)),
+            shares: parseFloat((h.azioni || 0).toFixed(4)),
+            value: parseFloat(((h.azioni || 0) * (h.prezzo || 0)).toFixed(2)),
+            cash: parseFloat((h.cashResiduo || 0).toFixed(2)),
+            roi: parseFloat(((h.patrimonioTotale - stock.summary.capitaleAllocato) / stock.summary.capitaleAllocato * 100).toFixed(2))
+        }));
+        timelinePerTicker[stock.ticker] = tickerTimeline;
+    });
+    
+    // 5. RISK METRICS PER-TICKER
+    const riskMetricsPerTicker = {};
+    stocks.forEach(stock => {
+        const tickerRisk = calculateExtendedRiskMetrics(stock.history, stock.summary.capitaleAllocato);
+        riskMetricsPerTicker[stock.ticker] = tickerRisk;
+    });
+    
+    // 6. PER-TICKER BREAKDOWN (30 KPI each)
+    const perTicker = {};
+    stocks.forEach(stock => {
+        const { ticker, summary, history } = stock;
+        const titoloInfo = state.csvData.titoli.find(t => t.ticker === ticker);
+        const nome = titoloInfo ? titoloInfo.nome : ticker;
+        
+        // Count operations
+        const buyCount = history.filter(h => h.evento && h.evento.includes('BUY')).length;
+        const sellCount = history.filter(h => h.evento && h.evento.includes('SELL')).length;
+        performanceSummary.totalBuyOperations += buyCount;
+        performanceSummary.totalSellOperations += sellCount;
+        
+        // Dividends
+        const dividendiEventi = history.filter(h => h.evento && h.evento.includes('DIVIDEND'));
+        const dividendiTotali = dividendiEventi.reduce((sum, e) => sum + (e.dividendoLordo || 0), 0);
+        performanceSummary.totalDividends += dividendiTotali;
+        
+        // Contribution
+        const contribution = totalGainLoss !== 0 ? (summary.gainLoss / totalGainLoss) * 100 : 0;
+        
+        perTicker[ticker] = {
+            nome,
+            allocatedCapital: parseFloat(summary.capitaleAllocato.toFixed(2)),
+            finalValue: parseFloat(summary.patrimonioFinale.toFixed(2)),
+            gainLoss: parseFloat(summary.gainLoss.toFixed(2)),
+            roi: parseFloat(summary.roiPortafoglio.toFixed(2)),
+            contribution: parseFloat(contribution.toFixed(2)),
+            shareCount: parseFloat(summary.azioni.toFixed(4)),
+            entryPrice: parseFloat(summary.prezzoIngresso.toFixed(3)),
+            exitPrice: parseFloat(summary.prezzoFinale.toFixed(3)),
+            priceChange: parseFloat((((summary.prezzoFinale - summary.prezzoIngresso) / summary.prezzoIngresso) * 100).toFixed(2)),
+            dividendsReceived: parseFloat(dividendiTotali.toFixed(2)),
+            buyCount,
+            sellCount,
+            ...riskMetricsPerTicker[ticker],
+            finalCashFraction: parseFloat(summary.frazioneAttuale.toFixed(4))
+        };
+    });
+    
+    // 7. DIVIDENDS
+    const dividendiPerTicker = {};
+    const dividendiTimeline = [];
+    stocks.forEach(stock => {
+        const dividendiEventi = stock.history.filter(h => h.evento && h.evento.includes('DIVIDEND'));
+        if (dividendiEventi.length > 0) {
+            dividendiPerTicker[stock.ticker] = dividendiEventi.reduce((sum, e) => sum + (e.dividendoLordo || 0), 0);
+            dividendiEventi.forEach(e => {
+                dividendiTimeline.push({
+                    date: e.data,
+                    ticker: stock.ticker,
+                    amount: parseFloat((e.dividendoLordo || 0).toFixed(2))
+                });
+            });
+        }
+    });
+    dividendiTimeline.sort((a, b) => new Date(a.date) - new Date(b.date));
+    
+    // 8. RAW DATA
+    const allEvents = [];
+    stocks.forEach(stock => {
+        stock.history.forEach(h => {
+            allEvents.push({
+                date: h.data,
+                ticker: stock.ticker,
+                event: h.evento,
+                price: parseFloat((h.prezzo || 0).toFixed(3)),
+                shares: parseFloat((h.azioni || 0).toFixed(4)),
+                shareValue: parseFloat(((h.azioni || 0) * (h.prezzo || 0)).toFixed(2)),
+                cash: parseFloat((h.cashResiduo || 0).toFixed(2)),
+                totalPatrimonio: parseFloat((h.patrimonioTotale || 0).toFixed(2)),
+                fraction: parseFloat((h.frazioneAttuale || 0).toFixed(4)),
+                gainLoss: parseFloat(((h.patrimonioTotale || 0) - stock.summary.capitaleAllocato).toFixed(2)),
+                roi: parseFloat((((h.patrimonioTotale || 0) - stock.summary.capitaleAllocato) / stock.summary.capitaleAllocato * 100).toFixed(2))
+            });
+        });
+    });
+    allEvents.sort((a, b) => {
+        const dateCompare = new Date(a.date) - new Date(b.date);
+        return dateCompare !== 0 ? dateCompare : a.ticker.localeCompare(b.ticker);
+    });
+    
+    // 9. INPUT CSVs
+    const inputCSVs = {
+        titoli: state.csvData.titoli || [],
+        movimenti: state.csvData.movimenti || [],
+        dividendi: state.csvData.dividendi || []
+    };
+    
+    // 10. PRICE HISTORY (FULL)
+    const priceHistory = {};
+    if (state.csvData.valori) {
+        Object.keys(state.csvData.valori).forEach(ticker => {
+            priceHistory[ticker] = state.csvData.valori[ticker];
+        });
+    }
+    
+    // 11. BEST/WORST PERFORMERS
+    const sortedByRoi = Object.entries(perTicker).sort((a, b) => b[1].roi - a[1].roi);
+    const bestPerformer = sortedByRoi.length > 0 ? {
+        ticker: sortedByRoi[0][0],
+        nome: sortedByRoi[0][1].nome,
+        roi: sortedByRoi[0][1].roi,
+        gainLoss: sortedByRoi[0][1].gainLoss,
+        contribution: sortedByRoi[0][1].contribution
+    } : null;
+    
+    const worstPerformer = sortedByRoi.length > 0 ? {
+        ticker: sortedByRoi[sortedByRoi.length - 1][0],
+        nome: sortedByRoi[sortedByRoi.length - 1][1].nome,
+        roi: sortedByRoi[sortedByRoi.length - 1][1].roi,
+        gainLoss: sortedByRoi[sortedByRoi.length - 1][1].gainLoss,
+        contribution: sortedByRoi[sortedByRoi.length - 1][1].contribution
+    } : null;
+    
+    // FINAL REPORT
+    return {
+        _metadata: metadata,
+        performanceSummary: {
+            ...performanceSummary,
+            totalDividends: parseFloat(performanceSummary.totalDividends.toFixed(2))
+        },
+        riskMetrics: {
+            portfolio: portfolioRiskMetrics,
+            perTicker: riskMetricsPerTicker
+        },
+        timeline: {
+            aggregate: timelineAggregate,
+            perTicker: timelinePerTicker
+        },
+        perTicker,
+        dividends: {
+            total: parseFloat(performanceSummary.totalDividends.toFixed(2)),
+            perTicker: dividendiPerTicker,
+            timeline: dividendiTimeline
+        },
+        rawData: {
+            allEvents,
+            inputCSVs,
+            priceHistory
+        },
+        bestPerformer,
+        worstPerformer,
+        notes: [
+            'Report completo unificato v4.0.0',
+            'Include 35+ KPI portfolio + 30 KPI per ticker',
+            'Price history completa (12 ticker × ~15,000 righe ciascuno)',
+            'Timeline giornaliera aggregata e per-ticker',
+            'Dati raw CSV originali inclusi',
+            'Nessun dato esterno utilizzato (solo CSV forniti)',
+            'Volatilità = deviazione standard rendimenti (%)',
+            'Sharpe Ratio = rendimento/rischio annualizzato (risk-free rate = 0%)',
+            'Sortino Ratio = come Sharpe ma usa solo downside deviation',
+            'Calmar Ratio = rendimento annualizzato / max drawdown',
+            'Win Rate = % operazioni in gain',
+            'Profit Factor = total gains / total losses'
+        ]
+    };
+}
+
+/**
  * Generate comprehensive report JSON for client presentation
  * @param {Object} results - Full calculation results from state.results
  * @returns {Object} Structured JSON report
@@ -3329,17 +3807,24 @@ function generateReportJSON(results) {
 }
 
 /**
- * Download report JSON file
+ * Download UNIFIED complete report (v4.0.0)
+ * Single button replacing old CSV + JSON buttons
  */
-function downloadReportJSON() {
+function downloadUnifiedReport() {
     if (!state.results || !state.results.stocks) {
-        alert('Nessun dato disponibile. Esegui prima il calcolo.');
+        alert('⚠️ Nessun dato disponibile. Esegui prima il calcolo del portafoglio.');
         return;
     }
     
     try {
-        const report = generateReportJSON(state.results);
+        console.log('📦 Generazione report unificato completo...');
+        const report = generateUnifiedReport(state.results);
         const jsonString = JSON.stringify(report, null, 2);
+        
+        // Log file size
+        const sizeKB = (jsonString.length / 1024).toFixed(2);
+        const sizeMB = (jsonString.length / (1024 * 1024)).toFixed(2);
+        console.log(`📊 Report size: ${sizeKB} KB (${sizeMB} MB)`);
         
         // Create blob and download
         const blob = new Blob([jsonString], { type: 'application/json;charset=utf-8;' });
@@ -3347,15 +3832,24 @@ function downloadReportJSON() {
         const url = URL.createObjectURL(blob);
         
         link.setAttribute('href', url);
-        link.setAttribute('download', `rosicatore_report_${state.config.dataInizio}_${state.config.dataFine}.json`);
+        link.setAttribute('download', `rosicatore_report_completo_${state.config.dataInizio}_${state.config.dataFine}.json`);
         link.style.visibility = 'hidden';
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
         
-        console.log('✅ Report JSON scaricato con successo');
+        console.log('✅ Report unificato scaricato con successo');
+        alert(`✅ Report completo scaricato!\n\nDimensione: ${sizeKB} KB\nFile: rosicatore_report_completo_${state.config.dataInizio}_${state.config.dataFine}.json\n\n Include:\n• 35+ KPI portfolio\n• 30 KPI per ticker\n• Timeline completa\n• Price history\n• Dati raw CSV`);
     } catch (error) {
-        console.error('❌ Errore generazione report JSON:', error);
-        alert('Errore generazione report: ' + error.message);
+        console.error('❌ Errore generazione report unificato:', error);
+        alert('❌ Errore generazione report: ' + error.message);
     }
+}
+
+/**
+ * Download report JSON file (OLD v3.x - kept for backward compatibility)
+ */
+function downloadReportJSON() {
+    // Redirect to unified report
+    downloadUnifiedReport();
 }

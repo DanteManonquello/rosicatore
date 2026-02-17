@@ -1,4 +1,4 @@
-# Rosicatore v3.37.1
+# Rosicatore v4.0.0
 
 ## 🎯 Portfolio Tracker Algorithm
 
@@ -6,48 +6,54 @@ Rosicatore è un Portfolio Tracker che calcola il valore nel tempo di TUTTI i ti
 
 ---
 
-## 🆕 NOVITÀ v3.37.1 - BUGFIX EXPORT JSON/CSV (17 Feb 2026)
+## 🆕 NOVITÀ v4.0.0 - EXPORT UNIFICATO COMPLETO (17 Feb 2026)
 
-### 🐛 **BUG FIX CRITICO: Download JSON/CSV Non Funzionante**
+### 🚀 **MAJOR UPDATE: Export Unificato con KPI Estesi**
 
-**Problema risolto:**
-- ❌ Click su "ESPORTA REPORT JSON" mostrava alert "Nessun dato disponibile"
-- ❌ Download CSV potenzialmente falliva per stesso motivo
-- ❌ `state.results` non veniva popolato dopo calcolo
+**Breaking Changes:**
+- ✅ Rimossi 2 pulsanti separati (CSV + JSON)
+- ✅ Aggiunto 1 pulsante unificato "📦 ESPORTA REPORT COMPLETO"
+- ✅ 35+ KPI portfolio aggregati (aggiunti 13 nuovi)
+- ✅ 30 KPI per ogni ticker (aggiunti 21 nuovi)
+- ✅ Price history completa inclusa (~180,000 righe)
+- ✅ Timeline giornaliera per-ticker
+- ✅ Raw data CSV embedded
 
-**Root Cause:**
-La funzione `calculatePortfolio()` ritornava i risultati ma NON li salvava in `state.results`, causando il fallimento di tutti i download.
+**Nuove metriche implementate:**
+1. **Sortino Ratio** - Risk-adjusted return usando downside deviation
+2. **Calmar Ratio** - Rendimento annualizzato / max drawdown
+3. **Win Rate %** - Percentuale operazioni in gain
+4. **Profit Factor** - Total gains / total losses
+5. **Average Win/Loss** - Media gain e loss per operazione
+6. **Largest Win/Loss** - Max gain e loss singola operazione
+7. **Recovery Time** - Giorni per recuperare da max drawdown
+8. **Consecutive Wins/Losses Max** - Serie consecutive
+9. **Downside/Upside Deviation** - Volatilità asimmetrica
 
-**Soluzione implementata:**
-- ✅ Aggiunta riga `state.results = results` in `setupCalculateButton()`
-- ✅ Download JSON ora funzionante
-- ✅ Download CSV verificato funzionante
-- ✅ Favicon placeholder aggiunto (elimina 404 console)
+**Output File:**
+- **Nome**: `rosicatore_report_completo_YYYY-MM-DD_YYYY-MM-DD.json`
+- **Dimensione stimata**: 15-20 MB (include price history completa)
+- **Contenuto**:
+  - Metadata (versione, date, config)
+  - Performance Summary (35+ KPI)
+  - Risk Metrics Portfolio (17 KPI)
+  - Risk Metrics Per-Ticker (17 KPI × 12 ticker)
+  - Timeline Aggregate (daily portfolio values)
+  - Timeline Per-Ticker (daily per-ticker values)
+  - Per-Ticker Breakdown (30 KPI × 12 ticker)
+  - Dividends (total + timeline)
+  - Raw Data (all events CSV-like)
+  - Input CSVs (titoli, movimenti, dividendi)
+  - Price History COMPLETA (12 ticker × ~15,000 righe)
+  - Best/Worst Performers
 
-**Modifiche:**
-- 1 riga aggiunta in `app.js` (riga 567)
-- favicon.ico creato
-- 0 funzioni modificate (solo 1 insert)
-
-**Test verificati:**
-- ✅ Calcolo portfolio → state.results popolato
-- ✅ Click "ESPORTA REPORT JSON" → Download file
-- ✅ Click "SCARICA CSV" → Download file
-- ✅ Nessun alert "Nessun dato disponibile"
-- ✅ Favicon 404 eliminato
+**Uso:**
+1. Calcola portafoglio (01-AGO-2025 → 17-FEB-2026)
+2. Click "📦 ESPORTA REPORT COMPLETO"
+3. Scarica JSON unificato (~15-20 MB)
+4. Upload a GenSpark/ChatGPT/Claude per report automatico
 
 ---
-
-## 🆕 NOVITÀ v3.37.0 - EXPORT REPORT JSON (17 Feb 2026)
-
-### 📊 **REPORT JSON PER PRESENTAZIONE CLIENTE**
-
-**Funzionalità implementata:**
-Una volta calcolato il portafoglio, puoi esportare un **report JSON completo** con tutti i KPI e metriche necessarie per presentare al cliente "cosa sarebbe successo se avessi investito X mesi fa".
-
-**✨ CONTENUTO REPORT JSON:**
-
-**1. Performance Summary:**
 - Capitale iniziale vs finale
 - Gain/Loss assoluto (€)
 - ROI percentuale

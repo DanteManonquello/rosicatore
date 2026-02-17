@@ -1,5 +1,7 @@
 {
-  "name": "webapp",
+  "name": "rosicatore",
+  "version": "4.0.0",
+  "description": "Portfolio Tracker Algorithm - Complete unified export with extended KPIs",
   "type": "module",
   "scripts": {
     "dev": "vite",

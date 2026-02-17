@@ -12,7 +12,7 @@ app.use('/static/*', serveStatic({ root: './public' }))
 
 // API Routes
 app.get('/api/health', (c) => {
-  return c.json({ status: 'ok', version: '3.37.1' })
+  return c.json({ status: 'ok', version: '4.0.0' })
 })
 
 // Main route - Rosicatore Portfolio Tracker
@@ -23,7 +23,7 @@ app.get('/', (c) => {
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Rosicatore v3.37.1 - Portfolio Tracker</title>
+        <title>Rosicatore v4.0.0 - Portfolio Tracker</title>
         <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
         <script src="https://cdn.tailwindcss.com"></script>
         <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
@@ -77,7 +77,7 @@ app.get('/', (c) => {
 
                 <div class="mt-8 pt-8 border-t border-gray-700">
                     <div class="text-sm text-gray-400">
-                        <div class="mb-2"><strong>Versione:</strong> 3.37.1</div>
+                        <div class="mb-2"><strong>Versione:</strong> 4.0.0</div>
                         <div class="mb-2"><strong>Capitale Fisso:</strong> $12,000</div>
                         <div><strong>Titoli:</strong> <span id="sidebarTitoliCount">-</span></div>
                     </div>
@@ -96,7 +96,7 @@ app.get('/', (c) => {
                         <i class="fas fa-chart-line text-green-400"></i>
                         ROSICATORE
                     </h1>
-                    <p class="text-gray-400 mt-1">Portfolio Tracker Algorithm - v3.37.1</p>
+                    <p class="text-gray-400 mt-1">Portfolio Tracker Algorithm - v4.0.0</p>
                 </div>
                 <div class="text-right">
                     <div class="text-sm text-gray-400">Sistema di Tracking</div>
