@@ -1,8 +1,38 @@
-# Rosicatore v4.1.1
+# Rosicatore v4.1.2
 
 ## 🎯 Portfolio Tracker Algorithm
 
 Rosicatore è un Portfolio Tracker che calcola il valore nel tempo di TUTTI i titoli del portafoglio.
+
+---
+
+## 🆕 NOVITÀ v4.1.2 - FIX SUFFISSO .TO + MERGE INTELLIGENTE (17 Feb 2026)
+
+### 🔧 **Gestione Suffissi Ticker**
+
+**Problema Risolto:**
+- Script ora cerca automaticamente ticker con suffissi `.TO`, `.TSX`, `.TSXV`
+- PMET e ABRA aggiornati correttamente da `PMET.TO/` e `ABRA.TO/`
+
+**Funzionalità Nuove:**
+1. ✅ **Ricerca multi-suffisso**: cerca `TICKER`, poi `TICKER.TO`, poi `TICKER.TSX`, poi `TICKER.TSXV`
+2. ✅ **Merge intelligente**: carica CSV esistente, elimina duplicati per data, aggiunge solo nuove righe
+3. ✅ **Normalizzazione date**: tutte le date convertite in ISO (YYYY-MM-DD) prima del merge
+4. ✅ **Normalizzazione ticker dividendi**: rimuove suffissi `.TO`, `.TSX` automaticamente
+5. ✅ **Log dettagliato**: mostra ticker aggiornati, mantenuti, non trovati
+
+**Risultati Aggiornamento:**
+- ✅ 11 ticker aggiornati (IRD, EQT, AA, GSM, HL, URG, MARA, **PMET +2 rows**, VZLA, **ABRA +2 rows**, PBR)
+- ⚠️ 1 ticker mantenuto (PLL - non presente in ZIP, file esistente preservato)
+- 📊 PMET: 2,878 → 2,879 rows (2014-08-26 → 2026-02-13)
+- 📊 ABRA: 435 → 436 rows (2024-05-22 → 2026-02-13)
+- 📊 PLL: 92 rows (mantenuto file esistente, 2025-09-03 → 2026-01-13)
+
+**Test Validati:**
+- ✅ Suffisso `.TO` riconosciuto e processato
+- ✅ Merge elimina duplicati (0 duplicati su PMET/ABRA)
+- ✅ Date normalizzate (formato ISO corretto)
+- ✅ Range date verificato (2014 → 2026-02-13 per PMET)
 
 ---
 

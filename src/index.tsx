@@ -12,7 +12,7 @@ app.use('/static/*', serveStatic({ root: './public' }))
 
 // API Routes
 app.get('/api/health', (c) => {
-  return c.json({ status: 'ok', version: '4.1.1' })
+  return c.json({ status: 'ok', version: '4.1.2' })
 })
 
 // Main route - Rosicatore Portfolio Tracker
@@ -23,7 +23,7 @@ app.get('/', (c) => {
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Rosicatore v4.1.1 - Portfolio Tracker</title>
+        <title>Rosicatore v4.1.2 - Portfolio Tracker</title>
         <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
         <script src="https://cdn.tailwindcss.com"></script>
         <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">

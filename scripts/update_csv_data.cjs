@@ -93,10 +93,10 @@ async function ensureDir(dirPath) {
 }
 
 // ============================================================================
-// MERGE PRICING FILES
+// MERGE PRICING FILES WITH EXISTING DATA
 // ============================================================================
 
-async function mergePricingFiles(tickerDir, ticker) {
+async function mergePricingFiles(tickerDir, ticker, existingCSVPath) {
     log(`Merging pricing files for ${ticker}...`, 'progress');
     
     // Trova tutti i file CSV nella directory del ticker
@@ -109,40 +109,95 @@ async function mergePricingFiles(tickerDir, ticker) {
         return null;
     }
     
-    let allRows = [];
-    let header = null;
+    // Mappa per tenere traccia delle righe per data (evita duplicati)
+    const rowsByDate = new Map();
+    let header = 'Date,Open,High,Low,Close,Volume'; // Header standard
     
+    // 1. Carica CSV esistente (se esiste)
+    if (fs.existsSync(existingCSVPath)) {
+        log(`Loading existing CSV for ${ticker}...`, 'info');
+        const existingContent = fs.readFileSync(existingCSVPath, 'utf-8');
+        const existingLines = existingContent.replace(/\r\n/g, '\n').trim().split('\n');
+        
+        if (existingLines.length > 1) {
+            // Usa header esistente se diverso (per compatibilità)
+            header = existingLines[0].replace(/"/g, ''); // Rimuovi virgolette
+            
+            // Carica righe esistenti
+            for (let i = 1; i < existingLines.length; i++) {
+                const line = existingLines[i].trim();
+                if (!line) continue;
+                
+                const cleanLine = line.replace(/"/g, ''); // Rimuovi virgolette
+                const dateStr = cleanLine.split(',')[0];
+                
+                // Normalizza data in ISO
+                const isoDate = parseItalianDate(dateStr) || dateStr;
+                const normalizedDate = new Date(isoDate);
+                
+                if (!isNaN(normalizedDate.getTime())) {
+                    const isoKey = normalizedDate.toISOString().split('T')[0];
+                    
+                    // Normalizza riga: sostituisci data con ISO
+                    const parts = cleanLine.split(',');
+                    parts[0] = isoKey;
+                    const normalizedLine = parts.join(',');
+                    
+                    rowsByDate.set(isoKey, normalizedLine);
+                }
+            }
+            
+            log(`Loaded ${rowsByDate.size} existing rows for ${ticker}`, 'success');
+        }
+    }
+    
+    // 2. Aggiungi nuove righe dai file multi-parte
+    let newRowsCount = 0;
     for (const file of files) {
         const filePath = path.join(tickerDir, file);
         const content = fs.readFileSync(filePath, 'utf-8');
-        const lines = content.trim().split('\n');
+        const lines = content.replace(/\r\n/g, '\n').trim().split('\n');
         
-        if (!header) {
-            header = lines[0]; // Salva header dal primo file
-            allRows.push(header);
-        }
-        
-        // Aggiungi tutte le righe tranne l'header
+        // Salta header
         const dataRows = lines.slice(1).filter(line => line.trim() !== '');
-        allRows.push(...dataRows);
+        
+        for (const row of dataRows) {
+            const dateStr = row.split(',')[0];
+            
+            // Normalizza data in ISO
+            const isoDate = parseItalianDate(dateStr) || dateStr;
+            const normalizedDate = new Date(isoDate);
+            
+            if (!isNaN(normalizedDate.getTime())) {
+                const isoKey = normalizedDate.toISOString().split('T')[0];
+                
+                // Normalizza riga: sostituisci data con ISO
+                const parts = row.split(',');
+                parts[0] = isoKey;
+                const normalizedLine = parts.join(',');
+                
+                // Sovrascrivi se esiste già (nuovi dati hanno priorità)
+                if (!rowsByDate.has(isoKey)) {
+                    newRowsCount++;
+                }
+                rowsByDate.set(isoKey, normalizedLine);
+            }
+        }
     }
     
-    log(`Merged ${files.length} files into ${allRows.length - 1} data rows`, 'success');
+    log(`Merged ${files.length} files: ${newRowsCount} new rows, ${rowsByDate.size} total rows`, 'success');
     
-    // Ordina per data (assumendo che la prima colonna sia Date)
-    const dataRows = allRows.slice(1);
-    dataRows.sort((a, b) => {
-        const dateA = a.split(',')[0];
-        const dateB = b.split(',')[0];
-        
-        const isoA = parseItalianDate(dateA) || dateA;
-        const isoB = parseItalianDate(dateB) || dateB;
-        
-        return new Date(isoA) - new Date(isoB);
+    // 3. Ordina per data crescente
+    const sortedDates = Array.from(rowsByDate.keys()).sort((a, b) => {
+        return new Date(a) - new Date(b);
     });
     
-    // Ricostruisci CSV con header + righe ordinate
-    const finalCSV = [header, ...dataRows].join('\n');
+    const sortedRows = sortedDates.map(date => rowsByDate.get(date));
+    
+    // 4. Ricostruisci CSV
+    const finalCSV = [header, ...sortedRows].join('\n');
+    
+    log(`Final CSV for ${ticker}: ${sortedRows.length} rows, range ${sortedDates[0]} → ${sortedDates[sortedDates.length - 1]}`, 'info');
     
     return finalCSV;
 }
@@ -168,6 +223,10 @@ async function processDividends(dividendiDir) {
         }
         
         const ticker = tickerMatch[1];
+        
+        // Normalizza ticker: rimuovi suffissi .TO, .TSX, .TSXV
+        const normalizedTicker = ticker.replace(/\.(TO|TSX|TSXV)$/, '');
+        
         const filePath = path.join(dividendiDir, file);
         const content = fs.readFileSync(filePath, 'utf-8');
         const lines = content.trim().split('\n');
@@ -186,12 +245,14 @@ async function processDividends(dividendiDir) {
             }
             
             allDividends.push({
-                ticker,
+                ticker: normalizedTicker,
                 currency: 'USD', // Assumo USD come default
                 date: isoDate,
                 amount: amount.trim()
             });
         }
+        
+        log(`Processed ${dataRows.length} dividends for ${normalizedTicker}`, 'info');
     }
     
     // Ordina per data
@@ -300,27 +361,68 @@ async function main() {
         // 5. Processa pricing files
         log('Step 5: Processing pricing files...', 'progress');
         
+        let updatedCount = 0;
+        let keptCount = 0;
+        let notFoundCount = 0;
+        
         for (const [ticker, csvFilename] of Object.entries(TICKER_CSV_MAP)) {
-            const tickerDir = path.join(PATHS.uploads, ticker);
+            // Cerca directory con possibili suffissi: ticker, ticker.TO, ticker.TSX, ticker.TSXV
+            let tickerDir = path.join(PATHS.uploads, ticker);
+            let foundSuffix = null;
             
             if (!fs.existsSync(tickerDir)) {
-                log(`Ticker directory not found: ${ticker}`, 'warning');
+                // Prova con .TO
+                const tickerDirTO = path.join(PATHS.uploads, `${ticker}.TO`);
+                if (fs.existsSync(tickerDirTO)) {
+                    tickerDir = tickerDirTO;
+                    foundSuffix = '.TO';
+                } else {
+                    // Prova con .TSX
+                    const tickerDirTSX = path.join(PATHS.uploads, `${ticker}.TSX`);
+                    if (fs.existsSync(tickerDirTSX)) {
+                        tickerDir = tickerDirTSX;
+                        foundSuffix = '.TSX';
+                    } else {
+                        // Prova con .TSXV
+                        const tickerDirTSXV = path.join(PATHS.uploads, `${ticker}.TSXV`);
+                        if (fs.existsSync(tickerDirTSXV)) {
+                            tickerDir = tickerDirTSXV;
+                            foundSuffix = '.TSXV';
+                        }
+                    }
+                }
+            }
+            
+            if (!fs.existsSync(tickerDir)) {
+                log(`Ticker directory not found: ${ticker} (keeping existing file)`, 'warning');
+                keptCount++;
+                notFoundCount++;
                 continue;
             }
             
-            const mergedCSV = await mergePricingFiles(tickerDir, ticker);
+            if (foundSuffix) {
+                log(`Found ${ticker}${foundSuffix} directory`, 'info');
+            }
             
-            if (!mergedCSV) continue;
+            const existingCSVPath = path.join(PATHS.data, csvFilename);
+            const mergedCSV = await mergePricingFiles(tickerDir, ticker, existingCSVPath);
+            
+            if (!mergedCSV) {
+                keptCount++;
+                continue;
+            }
             
             // Valida CSV
             validatePricingCSV(mergedCSV);
             
             // Salva CSV unificato
-            const outputPath = path.join(PATHS.data, csvFilename);
-            fs.writeFileSync(outputPath, mergedCSV, 'utf-8');
+            fs.writeFileSync(existingCSVPath, mergedCSV, 'utf-8');
             
-            log(`Created: ${csvFilename}`, 'success');
+            log(`✅ Updated: ${csvFilename}`, 'success');
+            updatedCount++;
         }
+        
+        log(`Summary: ${updatedCount} updated, ${keptCount} kept existing, ${notFoundCount} not found in ZIP`, 'info');
         
         // 6. Processa dividendi
         log('Step 6: Processing dividend files...', 'progress');
