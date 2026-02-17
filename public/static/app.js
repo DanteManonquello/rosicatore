@@ -1,4 +1,5 @@
-// Rosicatore v3.23.4 - Portfolio Tracker Calculator
+// Rosicatore v4.1.0 - Portfolio Tracker Calculator
+// Italian Date Format Support: DD Mese YYYY (e.g., "10 Agosto 2000")
 // Main Application Logic
 
 // Global state
@@ -20,6 +21,79 @@ const state = {
     historicDataLoaded: false,  // Track se dati storici sono caricati
     recentDataCutoff: '2020-01-01'  // Split date per dati recenti
 };
+
+// ============================================================================
+// 🇮🇹 ITALIAN DATE PARSING UTILITIES (v4.1.0)
+// ============================================================================
+
+/**
+ * Parse date in Italian format "DD Mese YYYY" (e.g., "10 Agosto 2000")
+ * Also supports standard formats: YYYY-MM-DD, MM/DD/YYYY, DD/MM/YYYY
+ * @param {string} dateString - Date string to parse
+ * @returns {string} ISO date format YYYY-MM-DD or null if invalid
+ */
+function parseItalianDate(dateString) {
+    if (!dateString || dateString.trim() === '') {
+        return null;
+    }
+    
+    // Map Italian month names to numbers
+    const mesiItaliani = {
+        'gennaio': '01',
+        'febbraio': '02',
+        'marzo': '03',
+        'aprile': '04',
+        'maggio': '05',
+        'giugno': '06',
+        'luglio': '07',
+        'agosto': '08',
+        'settembre': '09',
+        'ottobre': '10',
+        'novembre': '11',
+        'dicembre': '12'
+    };
+    
+    // Try Italian format: "DD Mese YYYY" or "D Mese YYYY"
+    const italianMatch = dateString.match(/(\d{1,2})\s+([a-zA-Zà-ùÀ-Ù]+)\s+(\d{4})/);
+    if (italianMatch) {
+        const [_, day, month, year] = italianMatch;
+        const monthNum = mesiItaliani[month.toLowerCase()];
+        if (monthNum) {
+            const dayPadded = day.padStart(2, '0');
+            return `${year}-${monthNum}-${dayPadded}`;
+        }
+    }
+    
+    // Fallback: Try standard formats with dayjs
+    const parsed = dayjs(dateString, ['YYYY-MM-DD', 'MM/DD/YYYY', 'DD/MM/YYYY'], true);
+    if (parsed.isValid()) {
+        return parsed.format('YYYY-MM-DD');
+    }
+    
+    console.warn(`⚠️ Unable to parse date: "${dateString}"`);
+    return null;
+}
+
+/**
+ * Format date to Italian readable format
+ * @param {string} isoDate - Date in YYYY-MM-DD format
+ * @returns {string} Italian format "DD Mese YYYY"
+ */
+function formatItalianDate(isoDate) {
+    const mesi = [
+        'Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno',
+        'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre'
+    ];
+    
+    const date = dayjs(isoDate);
+    if (!date.isValid()) return isoDate;
+    
+    const day = date.date();
+    const month = mesi[date.month()];
+    const year = date.year();
+    
+    return `${day} ${month} ${year}`;
+}
 
 // Ticker to CSV filename mapping
 const TICKER_CSV_MAP = {
@@ -144,10 +218,19 @@ function formatDateDDMMMYYYY(date) {
     return `${giorno}-${mese}-${anno}`;
 }
 
-// Universal date parser - supports ALL formats
-// Formats: YYYY-MM-DD, MM/DD/YYYY, DD/MM/YYYY, DD-MMM-YYYY
+// Universal date parser - supports ALL formats including Italian (v4.1.0)
+// Formats: YYYY-MM-DD, MM/DD/YYYY, DD/MM/YYYY, DD-MMM-YYYY, DD Mese YYYY
 function parseUniversalDate(dateString) {
     if (!dateString) return null;
+    
+    // Try Italian format first (v4.1.0): "DD Mese YYYY"
+    const parsedISO = parseItalianDate(dateString);
+    if (parsedISO) {
+        const date = new Date(parsedISO);
+        if (!isNaN(date.getTime())) {
+            return date;
+        }
+    }
     
     // Try ISO format (YYYY-MM-DD)
     let date = new Date(dateString);
@@ -286,10 +369,12 @@ async function autoLoadCSVs() {
                 const data = await parseCSVText(text, { requirePriceData: true });
                 console.log(`[${ticker}] Parsed: ${data.length} rows (full)`);
                 
-                // Filter for recent data only (2020+) with proper date parsing
+                // Filter for recent data only (2020+) with Italian date parser (v4.1.0)
                 const cutoffDate = dayjs(state.recentDataCutoff);
                 const recentData = data.filter(row => {
-                    const rowDate = dayjs(row.Date, ['YYYY-MM-DD', 'MM/DD/YYYY', 'DD/MM/YYYY']);
+                    const parsedDate = parseItalianDate(row.Date);
+                    if (!parsedDate) return false;
+                    const rowDate = dayjs(parsedDate);
                     return rowDate.isValid() && rowDate.isAfter(cutoffDate);
                 });
                 console.log(`[${ticker}] Filtered: ${recentData.length} rows (2020+)`);
@@ -1324,7 +1409,11 @@ function getPrezzoByDate(valori, targetDate, ticker) {
     let minDiff = Infinity;
     
     tickerData.forEach(row => {
-        const rowDate = dayjs(row.Date, ['YYYY-MM-DD', 'MM/DD/YYYY', 'DD/MM/YYYY']);
+        // Use new Italian date parser (v4.1.0)
+        const parsedDate = parseItalianDate(row.Date);
+        if (!parsedDate) return;
+        
+        const rowDate = dayjs(parsedDate);
         if (!rowDate.isValid()) return;
         
         const diff = Math.abs(target.diff(rowDate, 'day'));

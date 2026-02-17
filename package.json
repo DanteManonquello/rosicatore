@@ -1,7 +1,7 @@
 {
   "name": "rosicatore",
-  "version": "4.0.0",
-  "description": "Portfolio Tracker Algorithm - Complete unified export with extended KPIs",
+  "version": "4.1.0",
+  "description": "Portfolio Tracker Algorithm - Italian date format support (DD Mese YYYY)",
   "type": "module",
   "scripts": {
     "dev": "vite",
