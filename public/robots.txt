@@ -1,0 +1,13 @@
+# Block all search engines
+User-agent: *
+Disallow: /
+
+# Specifically block Google
+User-agent: Googlebot
+Disallow: /
+
+User-agent: Googlebot-Image
+Disallow: /
+
+User-agent: Googlebot-Mobile
+Disallow: /
