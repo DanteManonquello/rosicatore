@@ -735,18 +735,6 @@ function extractTickerFromFilename(filename) {
     return null;
 }
 
-    } catch (error) {
-        status.innerHTML = '<i class="fas fa-times-circle mr-1 status-error"></i>Errore: ' + error.message;
-        status.className = 'mt-3 text-xs status-error';
-        
-        if (type === 'valori') {
-            state.csvData.valori = {};
-        } else {
-            state.csvData[type] = null;
-        }
-    }
-}
-
 // Parse CSV file
 function parseCSV(file) {
     return new Promise((resolve, reject) => {
