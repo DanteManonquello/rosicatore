@@ -796,6 +796,170 @@ function extractTickerFromFilename(filename) {
 // ============================================================================
 
 /**
+ * Detect if files are dividend multi-file format
+ * @param {File[]} files - Array of File objects
+ * @returns {boolean} True if files match dividend pattern
+ */
+function detectDividendiMultiFile(files) {
+    if (files.length === 0) return false;
+    
+    // Check if ANY file matches pattern "YYYY-MM-DD - TICKER - N dividendi.csv"
+    const pattern = /(\d{4}-\d{2}-\d{2})\s*-\s*([A-Z\.]+)\s*-\s*\d+\s*dividendi\.csv/i;
+    
+    for (const file of files) {
+        if (pattern.test(file.name)) {
+            console.log(`🔍 Detected dividend multi-file pattern: ${file.name}`);
+            return true;
+        }
+    }
+    
+    return false;
+}
+
+/**
+ * Extract ticker from dividend filename
+ * Pattern: "YYYY-MM-DD - TICKER - N dividendi.csv"
+ * @param {string} filename - Filename to parse
+ * @returns {string|null} Extracted ticker or null
+ */
+function extractTickerFromDividendiFilename(filename) {
+    const pattern = /(\d{4}-\d{2}-\d{2})\s*-\s*([A-Z\.]+)\s*-\s*\d+\s*dividendi\.csv/i;
+    const match = filename.match(pattern);
+    
+    if (match) {
+        let ticker = match[2].toUpperCase();
+        
+        // Remove common suffixes
+        ticker = ticker.replace(/\.(TO|TSX|TSXV)$/i, '');
+        
+        // Special mappings
+        if (ticker === 'PLLL') ticker = 'PLL';
+        
+        console.log(`📌 Extracted ticker: ${ticker} from ${filename}`);
+        return ticker;
+    }
+    
+    console.warn(`⚠️ Unable to extract ticker from: ${filename}`);
+    return null;
+}
+
+/**
+ * Normalize dividend CSV to standard format
+ * Handles: Date,Amount → ticker,currency,date,amount
+ * @param {Array} data - Parsed CSV data
+ * @param {string} ticker - Ticker to add
+ * @returns {Array} Normalized data with ticker and currency
+ */
+function normalizeDividendiCSV(data, ticker) {
+    if (!data || data.length === 0) {
+        console.log(`⚠️ Empty dividend data for ${ticker}, skipping`);
+        return [];
+    }
+    
+    const normalized = [];
+    
+    for (const row of data) {
+        // Normalize column names to lowercase
+        const normalizedRow = {};
+        for (const [key, value] of Object.entries(row)) {
+            normalizedRow[key.toLowerCase()] = value;
+        }
+        
+        // Extract date and amount
+        let date = normalizedRow.date || normalizedRow.data || normalizedRow.data_pagamento;
+        let amount = normalizedRow.amount || normalizedRow.importo_usd || normalizedRow.importo;
+        
+        // Skip invalid rows
+        if (!date || !amount) {
+            console.warn(`⚠️ Skipping invalid row for ${ticker}:`, normalizedRow);
+            continue;
+        }
+        
+        // Parse Italian date to ISO format
+        const isoDate = parseItalianDate(date);
+        if (!isoDate) {
+            console.warn(`⚠️ Unable to parse date "${date}" for ${ticker}`);
+            continue;
+        }
+        
+        // Convert amount to number
+        const amountNum = parseFloat(amount);
+        if (isNaN(amountNum)) {
+            console.warn(`⚠️ Invalid amount "${amount}" for ${ticker}`);
+            continue;
+        }
+        
+        // Add normalized row
+        normalized.push({
+            ticker: ticker,
+            currency: 'USD',
+            date: isoDate,
+            amount: amountNum
+        });
+    }
+    
+    console.log(`✅ Normalized ${normalized.length} dividends for ${ticker}`);
+    return normalized;
+}
+
+/**
+ * Merge multiple dividend CSV files into single unified format
+ * @param {File[]} files - Array of dividend files
+ * @returns {Promise<Object>} Result object with data, successCount, errorCount
+ */
+async function mergeDividendiFiles(files) {
+    console.log(`🔄 Merging ${files.length} dividend files...`);
+    
+    const allDividends = [];
+    let processedCount = 0;
+    let errorCount = 0;
+    const tickersFound = new Set();
+    
+    for (const file of files) {
+        try {
+            // Extract ticker from filename
+            const ticker = extractTickerFromDividendiFilename(file.name);
+            if (!ticker) {
+                console.warn(`⚠️ Skipping file with unrecognized pattern: ${file.name}`);
+                errorCount++;
+                continue;
+            }
+            
+            // Parse CSV
+            const data = await parseCSV(file);
+            
+            // Normalize and add to collection
+            const normalized = normalizeDividendiCSV(data, ticker);
+            if (normalized.length > 0) {
+                allDividends.push(...normalized);
+                tickersFound.add(ticker);
+                processedCount++;
+            }
+            
+        } catch (error) {
+            console.error(`❌ Error processing ${file.name}:`, error);
+            errorCount++;
+        }
+    }
+    
+    // Sort by ticker and date
+    allDividends.sort((a, b) => {
+        if (a.ticker !== b.ticker) return a.ticker.localeCompare(b.ticker);
+        return a.date.localeCompare(b.date);
+    });
+    
+    console.log(`✅ Merged ${allDividends.length} dividends from ${processedCount} files (${errorCount} errors)`);
+    console.log(`📊 Tickers found:`, Array.from(tickersFound).sort().join(', '));
+    
+    return {
+        data: allDividends,
+        successCount: tickersFound.size,
+        errorCount: errorCount,
+        processedFiles: processedCount
+    };
+}
+
+/**
  * Detect if files are multi-file dividendi format
  * Pattern: "YYYY-MM-DD - TICKER - N dividendi.csv"
  */
