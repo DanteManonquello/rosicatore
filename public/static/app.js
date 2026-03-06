@@ -269,17 +269,33 @@ function setupFileUploads() {
     
     uploads.forEach(type => {
         const input = document.getElementById(`upload-${type}`);
+        const inputMulti = document.getElementById(`uploadMulti-${type}`);
+        const inputFolder = document.getElementById(`uploadFolder-${type}`);
         const status = document.getElementById(`status-${type}`);
         const slot = document.getElementById(`slot-${type}`);
         
-        // File input change handler
+        // Single file input change handler (original)
         input.addEventListener('change', async (e) => {
             const file = e.target.files[0];
             if (!file) return;
             await handleFileUpload(file, type, status);
         });
         
-        // Drag & Drop handlers
+        // Multi-file input change handler (NEW)
+        inputMulti.addEventListener('change', async (e) => {
+            const files = Array.from(e.target.files);
+            if (files.length === 0) return;
+            await handleMultipleFiles(files, type, status);
+        });
+        
+        // Folder input change handler (NEW)
+        inputFolder.addEventListener('change', async (e) => {
+            const files = Array.from(e.target.files);
+            if (files.length === 0) return;
+            await handleMultipleFiles(files, type, status);
+        });
+        
+        // Drag & Drop handlers (UPDATED to support multi-files)
         slot.addEventListener('dragover', (e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -300,17 +316,24 @@ function setupFileUploads() {
             slot.style.transform = '';
             slot.style.opacity = '';
             
-            const file = e.dataTransfer.files[0];
-            if (!file) return;
+            const files = Array.from(e.dataTransfer.files);
+            if (files.length === 0) return;
             
-            // Check if it's a CSV file
-            if (!file.name.endsWith('.csv')) {
+            // Filter only CSV files
+            const csvFiles = files.filter(f => f.name.toLowerCase().endsWith('.csv'));
+            
+            if (csvFiles.length === 0) {
                 status.innerHTML = '<i class="fas fa-times-circle mr-1 status-error"></i>Solo file CSV';
                 status.className = 'mt-3 text-xs status-error';
                 return;
             }
             
-            await handleFileUpload(file, type, status);
+            // Handle single or multiple files
+            if (csvFiles.length === 1) {
+                await handleFileUpload(csvFiles[0], type, status);
+            } else {
+                await handleMultipleFiles(csvFiles, type, status);
+            }
         });
     });
 }
@@ -559,6 +582,159 @@ async function handleFileUpload(file, type, status) {
         // Validate data
         validateCSV(type, data);
         
+    } catch (error) {
+        status.innerHTML = '<i class="fas fa-times-circle mr-1 status-error"></i>Errore: ' + error.message;
+        status.className = 'mt-3 text-xs status-error';
+        
+        if (type === 'valori') {
+            state.csvData.valori = {};
+        } else {
+            state.csvData[type] = null;
+        }
+    }
+}
+
+// NEW: Handle multiple files upload (multi-select or folder)
+async function handleMultipleFiles(files, type, status) {
+    console.log(`📦 Processando ${files.length} file per tipo: ${type}`);
+    status.innerHTML = `<i class="fas fa-spinner fa-spin mr-1"></i>Processando ${files.length} file...`;
+    
+    try {
+        let successCount = 0;
+        let errorCount = 0;
+        const errors = [];
+        
+        // Filter only CSV files
+        const csvFiles = files.filter(f => f.name.toLowerCase().endsWith('.csv'));
+        
+        if (csvFiles.length === 0) {
+            status.innerHTML = '<i class="fas fa-times-circle mr-1 status-error"></i>Nessun CSV trovato';
+            status.className = 'mt-3 text-xs status-error';
+            return;
+        }
+        
+        console.log(`📊 Trovati ${csvFiles.length} CSV da processare`);
+        
+        // Process each CSV
+        for (const file of csvFiles) {
+            try {
+                const data = await parseCSV(file);
+                
+                // Auto-detect CSV type
+                const detectedType = detectCSVType(data, file.name);
+                console.log(`🔍 File: ${file.name} → Tipo: ${detectedType}`);
+                
+                if (detectedType === 'valori') {
+                    // Extract ticker from filename
+                    const ticker = extractTickerFromFilename(file.name);
+                    if (ticker && TICKER_CSV_MAP[ticker]) {
+                        state.csvData.valori[ticker] = data;
+                        console.log(`✅ ${ticker}: ${data.length} rows caricati da ${file.name}`);
+                        successCount++;
+                    } else {
+                        console.warn(`⚠️ Ticker non riconosciuto in: ${file.name}`);
+                        errors.push({ file: file.name, error: 'Ticker non riconosciuto' });
+                        errorCount++;
+                    }
+                } else if (detectedType === 'titoli' && type === 'titoli') {
+                    state.csvData.titoli = data;
+                    console.log(`✅ info_titoli.csv: ${data.length} righe`);
+                    successCount++;
+                } else if (detectedType === 'movimenti' && type === 'movimenti') {
+                    state.csvData.movimenti = data;
+                    console.log(`✅ movimenti.csv: ${data.length} righe`);
+                    successCount++;
+                } else if (detectedType === 'dividendi' && type === 'dividendi') {
+                    state.csvData.dividendi = data;
+                    console.log(`✅ dividendi.csv: ${data.length} righe`);
+                    successCount++;
+                } else if (detectedType === 'unknown') {
+                    console.warn(`⚠️ Tipo non riconosciuto: ${file.name}`);
+                    errors.push({ file: file.name, error: 'Tipo CSV non riconosciuto' });
+                    errorCount++;
+                } else {
+                    // File giusto ma drop zone sbagliata
+                    console.warn(`⚠️ File ${file.name} (tipo ${detectedType}) caricato su zona ${type}`);
+                    errors.push({ file: file.name, error: `Tipo ${detectedType} ma zona ${type}` });
+                    errorCount++;
+                }
+                
+            } catch (error) {
+                console.error(`❌ Errore ${file.name}:`, error);
+                errors.push({ file: file.name, error: error.message });
+                errorCount++;
+            }
+        }
+        
+        // Status finale
+        if (errorCount === 0) {
+            status.innerHTML = `<i class="fas fa-check-circle mr-1 status-loaded"></i>${successCount} file caricati ✓`;
+            status.className = 'mt-3 text-xs status-loaded';
+        } else {
+            status.innerHTML = `<i class="fas fa-exclamation-triangle mr-1 status-error"></i>${successCount} OK, ${errorCount} errori`;
+            status.className = 'mt-3 text-xs status-error';
+            console.warn(`⚠️ ${errorCount} file con errori:`, errors);
+        }
+        
+    } catch (error) {
+        status.innerHTML = '<i class="fas fa-times-circle mr-1 status-error"></i>Errore: ' + error.message;
+        status.className = 'mt-3 text-xs status-error';
+        console.error('❌ Errore batch processing:', error);
+    }
+}
+
+// NEW: Auto-detect CSV type from columns
+function detectCSVType(data, filename) {
+    if (!data || data.length === 0) return 'unknown';
+    
+    const firstRow = data[0];
+    const columns = Object.keys(firstRow);
+    
+    // info_titoli.csv
+    if (columns.includes('ticker') && columns.includes('quota_numeratore') && columns.includes('quota_denominatore')) {
+        return 'titoli';
+    }
+    
+    // movimenti.csv
+    if (columns.includes('data') && columns.includes('azione') && columns.includes('frazione_numeratore')) {
+        return 'movimenti';
+    }
+    
+    // dividendi.csv
+    if (columns.includes('ticker') && (columns.includes('date') || columns.includes('data_pagamento')) && (columns.includes('amount') || columns.includes('importo_usd'))) {
+        return 'dividendi';
+    }
+    
+    // Pricing CSV (Date + Close/Price)
+    if (columns.includes('Date') && (columns.includes('Close') || columns.includes('Price') || columns.includes('Open'))) {
+        return 'valori';
+    }
+    
+    return 'unknown';
+}
+
+// NEW: Extract ticker from filename
+function extractTickerFromFilename(filename) {
+    // Pattern 1: "TICKER - Parte X (X-XXXX) - XXXX movimenti.csv"
+    const pattern1 = /^([A-Z]{2,5})\s*-\s*Parte/i;
+    const match1 = filename.match(pattern1);
+    if (match1) return match1[1].toUpperCase();
+    
+    // Pattern 2: "YYYY-MM-DD - TICKER - X dividendi.csv"
+    const pattern2 = /\d{4}-\d{2}-\d{2}\s*-\s*([A-Z]{2,5})\s*-/i;
+    const match2 = filename.match(pattern2);
+    if (match2) return match2[1].toUpperCase();
+    
+    // Pattern 3: Search in TICKER_CSV_MAP
+    for (const [ticker, mappedFilename] of Object.entries(TICKER_CSV_MAP)) {
+        if (filename.toUpperCase().includes(ticker.toUpperCase())) {
+            return ticker;
+        }
+    }
+    
+    return null;
+}
+
     } catch (error) {
         status.innerHTML = '<i class="fas fa-times-circle mr-1 status-error"></i>Errore: ' + error.message;
         status.className = 'mt-3 text-xs status-error';

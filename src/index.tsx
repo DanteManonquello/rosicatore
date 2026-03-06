@@ -31,7 +31,7 @@ Disallow: /`, 200, {
 
 // API Routes
 app.get('/api/health', (c) => {
-  return c.json({ status: 'ok', version: '4.1.4' })
+  return c.json({ status: 'ok', version: '4.2.0' })
 })
 
 // Main route - Rosicatore Portfolio Tracker
@@ -45,7 +45,7 @@ app.get('/', (c) => {
         <meta name="robots" content="noindex, nofollow">
         <meta name="googlebot" content="noindex, nofollow">
         <meta name="googlebot-news" content="noindex, nofollow">
-        <title>Rosicatore v4.1.4 - Portfolio Tracker</title>
+        <title>Rosicatore v4.2.0 - Portfolio Tracker</title>
         <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
         <script src="https://cdn.tailwindcss.com"></script>
         <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
@@ -99,7 +99,7 @@ app.get('/', (c) => {
 
                 <div class="mt-8 pt-8 border-t border-gray-700">
                     <div class="text-sm text-gray-400">
-                        <div class="mb-2"><strong>Versione:</strong> 4.1.4</div>
+                        <div class="mb-2"><strong>Versione:</strong> 4.2.0</div>
                         <div class="mb-2"><strong>Capitale Fisso:</strong> $12,000</div>
                         <div><strong>Titoli:</strong> <span id="sidebarTitoliCount">-</span></div>
                     </div>
@@ -188,9 +188,16 @@ app.get('/', (c) => {
                         <h3 class="text-xl font-bold mb-2">TITOLI</h3>
                         <p class="text-sm text-blue-200 mb-4">info_titoli.csv</p>
                         <input type="file" id="upload-titoli" accept=".csv" class="hidden" />
-                        <button onclick="document.getElementById('upload-titoli').click()" class="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded text-sm font-medium transition-colors">
-                            <i class="fas fa-upload mr-2"></i>Carica CSV
-                        </button>
+                        <input type="file" id="uploadMulti-titoli" accept=".csv" multiple class="hidden" />
+                        <input type="file" id="uploadFolder-titoli" webkitdirectory directory class="hidden" />
+                        <div class="flex gap-2 justify-center">
+                            <button onclick="document.getElementById('uploadMulti-titoli').click()" class="bg-blue-600 hover:bg-blue-500 px-3 py-2 rounded text-xs font-medium transition-colors">
+                                <i class="fas fa-file-csv mr-1"></i>Files
+                            </button>
+                            <button onclick="document.getElementById('uploadFolder-titoli').click()" class="bg-blue-700 hover:bg-blue-600 px-3 py-2 rounded text-xs font-medium transition-colors">
+                                <i class="fas fa-folder mr-1"></i>Cartella
+                            </button>
+                        </div>
                         <div id="status-titoli" class="mt-3 text-xs"></div>
                     </div>
                 </div>
@@ -202,9 +209,16 @@ app.get('/', (c) => {
                         <h3 class="text-xl font-bold mb-2">VALORI</h3>
                         <p class="text-sm text-green-200 mb-4">price_history.csv</p>
                         <input type="file" id="upload-valori" accept=".csv" class="hidden" />
-                        <button onclick="document.getElementById('upload-valori').click()" class="bg-green-600 hover:bg-green-500 px-4 py-2 rounded text-sm font-medium transition-colors">
-                            <i class="fas fa-upload mr-2"></i>Carica CSV
-                        </button>
+                        <input type="file" id="uploadMulti-valori" accept=".csv" multiple class="hidden" />
+                        <input type="file" id="uploadFolder-valori" webkitdirectory directory class="hidden" />
+                        <div class="flex gap-2 justify-center">
+                            <button onclick="document.getElementById('uploadMulti-valori').click()" class="bg-green-600 hover:bg-green-500 px-3 py-2 rounded text-xs font-medium transition-colors">
+                                <i class="fas fa-file-csv mr-1"></i>Files
+                            </button>
+                            <button onclick="document.getElementById('uploadFolder-valori').click()" class="bg-green-700 hover:bg-green-600 px-3 py-2 rounded text-xs font-medium transition-colors">
+                                <i class="fas fa-folder mr-1"></i>Cartella
+                            </button>
+                        </div>
                         <div id="status-valori" class="mt-3 text-xs"></div>
                     </div>
                 </div>
@@ -216,9 +230,16 @@ app.get('/', (c) => {
                         <h3 class="text-xl font-bold mb-2">MOVIMENTI</h3>
                         <p class="text-sm text-purple-200 mb-4">movimenti.csv</p>
                         <input type="file" id="upload-movimenti" accept=".csv" class="hidden" />
-                        <button onclick="document.getElementById('upload-movimenti').click()" class="bg-purple-600 hover:bg-purple-500 px-4 py-2 rounded text-sm font-medium transition-colors">
-                            <i class="fas fa-upload mr-2"></i>Carica CSV
-                        </button>
+                        <input type="file" id="uploadMulti-movimenti" accept=".csv" multiple class="hidden" />
+                        <input type="file" id="uploadFolder-movimenti" webkitdirectory directory class="hidden" />
+                        <div class="flex gap-2 justify-center">
+                            <button onclick="document.getElementById('uploadMulti-movimenti').click()" class="bg-purple-600 hover:bg-purple-500 px-3 py-2 rounded text-xs font-medium transition-colors">
+                                <i class="fas fa-file-csv mr-1"></i>Files
+                            </button>
+                            <button onclick="document.getElementById('uploadFolder-movimenti').click()" class="bg-purple-700 hover:bg-purple-600 px-3 py-2 rounded text-xs font-medium transition-colors">
+                                <i class="fas fa-folder mr-1"></i>Cartella
+                            </button>
+                        </div>
                         <div id="status-movimenti" class="mt-3 text-xs"></div>
                     </div>
                 </div>
@@ -230,9 +251,16 @@ app.get('/', (c) => {
                         <h3 class="text-xl font-bold mb-2">DIVIDENDI</h3>
                         <p class="text-sm text-yellow-200 mb-4">dividendi.csv</p>
                         <input type="file" id="upload-dividendi" accept=".csv" class="hidden" />
-                        <button onclick="document.getElementById('upload-dividendi').click()" class="bg-yellow-600 hover:bg-yellow-500 px-4 py-2 rounded text-sm font-medium transition-colors">
-                            <i class="fas fa-upload mr-2"></i>Carica CSV
-                        </button>
+                        <input type="file" id="uploadMulti-dividendi" accept=".csv" multiple class="hidden" />
+                        <input type="file" id="uploadFolder-dividendi" webkitdirectory directory class="hidden" />
+                        <div class="flex gap-2 justify-center">
+                            <button onclick="document.getElementById('uploadMulti-dividendi').click()" class="bg-yellow-600 hover:bg-yellow-500 px-3 py-2 rounded text-xs font-medium transition-colors">
+                                <i class="fas fa-file-csv mr-1"></i>Files
+                            </button>
+                            <button onclick="document.getElementById('uploadFolder-dividendi').click()" class="bg-yellow-700 hover:bg-yellow-600 px-3 py-2 rounded text-xs font-medium transition-colors">
+                                <i class="fas fa-folder mr-1"></i>Cartella
+                            </button>
+                        </div>
                         <div id="status-dividendi" class="mt-3 text-xs"></div>
                     </div>
                 </div>
