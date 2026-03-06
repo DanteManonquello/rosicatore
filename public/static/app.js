@@ -778,13 +778,14 @@ function detectCSVType(data, filename) {
 
 // NEW: Extract ticker from filename
 function extractTickerFromFilename(filename) {
-    // Pattern 1: "TICKER - Parte X (X-XXXX) - XXXX movimenti.csv" OR "TICKER - Parte X (X-XXXX) - XXXX prezzi.csv"
+    // Pattern 1: "TICKER - Parte X (X-XXXX) - XXXX prezzi.csv" OR "TICKER - Parte X (X-XXXX) - XXXX movimenti.csv"
     // FIX v4.4.1: Storicatore v2.8.x rinomina "movimenti" → "prezzi"
-    const pattern1 = /^([A-Z\.]{2,10})\s*-\s*Parte.*\.(movimenti|prezzi)\.csv$/i;
+    // Format: "AA - Parte 1 (1-2000) - 2000 prezzi.csv" (nota: spazio tra numero e tipo!)
+    const pattern1 = /^([A-Z\.]{2,10})\s*-\s*Parte.*\s+(movimenti|prezzi)\.csv$/i;
     const match1 = filename.match(pattern1);
     if (match1) {
         const ticker = match1[1].toUpperCase();
-        console.log(`🎯 Pattern 1 match: ${filename} → ticker: ${ticker}`);
+        console.log(`🎯 Pattern 1 match: ${filename} → ticker: ${ticker}, type: ${match1[2]}`);
         return ticker;
     }
     
