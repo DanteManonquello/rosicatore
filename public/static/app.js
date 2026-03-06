@@ -1440,7 +1440,7 @@ async function calculatePortfolio() {
                 console.log(`${ticker}: già in portafoglio (nessun movimento), calcolo DA ${dataInizio}`);
                 
                 try {
-                    const result = calculateSingleTicker(ticker, titoloInfo, capitaleTotale, dataInizio, dataFine, valori, movimenti, dividendi, frazioneInfoTitoli);
+                    const result = calculateSingleTicker(ticker, titoloInfo, capitaleTotale, dataInizio, dataFine, valori, movimenti, dividendi, frazioneInfoTitoli, titoli);
                     allResults.push(result);
                 } catch (error) {
                     console.error(`Error calculating ${ticker}:`, error);
@@ -1567,7 +1567,7 @@ async function calculatePortfolio() {
                     
                     // Calcola dal dataInizio con frazione esistente
                     try {
-                        const result = calculateSingleTicker(ticker, titoloInfo, capitaleTotale, dataInizio, dataFine, valori, movimenti, dividendi, quartiAlDataInizio);
+                        const result = calculateSingleTicker(ticker, titoloInfo, capitaleTotale, dataInizio, dataFine, valori, movimenti, dividendi, quartiAlDataInizio, titoli);
                         allResults.push(result);
                     } catch (error) {
                         console.error(`Error calculating ${ticker}:`, error);
@@ -1595,7 +1595,7 @@ async function calculatePortfolio() {
             console.log(`${ticker}: CALCOLO DA ${primoIngressoNelPeriodo}, quarti iniziali: 0`);
             
             try {
-                const result = calculateSingleTicker(ticker, titoloInfo, capitaleTotale, primoIngressoNelPeriodo, dataFine, valori, movimenti, dividendi, 0);
+                const result = calculateSingleTicker(ticker, titoloInfo, capitaleTotale, primoIngressoNelPeriodo, dataFine, valori, movimenti, dividendi, 0, titoli);
                 allResults.push(result);
             } catch (error) {
                 console.error(`Error calculating ${ticker}:`, error);
@@ -1611,7 +1611,7 @@ async function calculatePortfolio() {
             console.log(`${ticker}: CALCOLO DA ${dataInizio}, quarti iniziali: ${quartiAlDataInizio}`);
             
             try {
-                const result = calculateSingleTicker(ticker, titoloInfo, capitaleTotale, dataInizio, dataFine, valori, movimenti, dividendi, quartiAlDataInizio);
+                const result = calculateSingleTicker(ticker, titoloInfo, capitaleTotale, dataInizio, dataFine, valori, movimenti, dividendi, quartiAlDataInizio, titoli);
                 allResults.push(result);
             } catch (error) {
                 console.error(`Error calculating ${ticker}:`, error);
@@ -1658,10 +1658,23 @@ async function calculatePortfolio() {
 }
 
 // Calculate single ticker
-function calculateSingleTicker(ticker, titoloInfo, capitaleTotalePortafoglio, dataInizio, dataFine, valori, movimenti, dividendi, frazioneAlDataInizio = null) {
+function calculateSingleTicker(ticker, titoloInfo, capitaleTotalePortafoglio, dataInizio, dataFine, valori, movimenti, dividendi, frazioneAlDataInizio = null, titoli = null) {
     
-    // NUOVA LOGICA: Ogni titolo inizia con 1000€ FISSO
-    const capitaleAllocato = 1000;  // ← 1000€ FISSO per ogni titolo!
+    // FIX v4.4.3: Capitale allocato PROPORZIONALE alla frazione in info_titoli.csv
+    // Calcola somma frazioni totali
+    const sommaFrazioni = titoli 
+        ? titoli.reduce((sum, t) => sum + (t.quota_numeratore / t.quota_denominatore), 0)
+        : 12;  // Fallback se titoli non passato
+    
+    // Frazione del ticker corrente
+    const frazioneTicker = titoloInfo.quota_numeratore / titoloInfo.quota_denominatore;
+    
+    // Capitale allocato proporzionale
+    const capitaleAllocato = frazioneTicker > 0
+        ? (capitaleTotalePortafoglio * frazioneTicker) / sommaFrazioni
+        : 0;
+    
+    console.log(`${ticker}: Frazione ${frazioneTicker.toFixed(4)} / Somma ${sommaFrazioni.toFixed(4)} → Capitale €${capitaleAllocato.toFixed(2)}`);
     
     // Se frazioneAlDataInizio è passata, usa quella (titolo già in portafoglio)
     // Altrimenti usa frazione iniziale da info_titoli.csv
