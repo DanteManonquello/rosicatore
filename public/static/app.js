@@ -753,8 +753,8 @@ function detectCSVType(data, filename) {
         return 'movimenti';
     }
     
-    // dividendi.csv
-    if (columns.includes('ticker') && (columns.includes('date') || columns.includes('data_pagamento')) && (columns.includes('amount') || columns.includes('importo_usd'))) {
+    // dividendi.csv (standard format: ticker,currency,date,amount)
+    if (columns.includes('ticker') && columns.includes('date') && columns.includes('amount')) {
         console.log(`✅ Riconosciuto come DIVIDENDI`);
         return 'dividendi';
     }
