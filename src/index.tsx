@@ -12,7 +12,7 @@ app.use('/static/*', serveStatic({ root: './public' }))
 
 // API Routes
 app.get('/api/health', (c) => {
-  return c.json({ status: 'ok', version: '4.1.3' })
+  return c.json({ status: 'ok', version: '4.1.4' })
 })
 
 // Main route - Rosicatore Portfolio Tracker
@@ -26,7 +26,7 @@ app.get('/', (c) => {
         <meta name="robots" content="noindex, nofollow">
         <meta name="googlebot" content="noindex, nofollow">
         <meta name="googlebot-news" content="noindex, nofollow">
-        <title>Rosicatore v4.1.3 - Portfolio Tracker</title>
+        <title>Rosicatore v4.1.4 - Portfolio Tracker</title>
         <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
         <script src="https://cdn.tailwindcss.com"></script>
         <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
@@ -80,7 +80,7 @@ app.get('/', (c) => {
 
                 <div class="mt-8 pt-8 border-t border-gray-700">
                     <div class="text-sm text-gray-400">
-                        <div class="mb-2"><strong>Versione:</strong> 4.1.3</div>
+                        <div class="mb-2"><strong>Versione:</strong> 4.1.4</div>
                         <div class="mb-2"><strong>Capitale Fisso:</strong> $12,000</div>
                         <div><strong>Titoli:</strong> <span id="sidebarTitoliCount">-</span></div>
                     </div>

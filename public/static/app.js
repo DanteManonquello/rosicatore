@@ -602,9 +602,9 @@ function validateCSV(type, data) {
     // Type-specific validation
     const requiredFields = {
         titoli: ['ticker', 'quota_numeratore', 'quota_denominatore'],
-        valori: ['Date', 'Price'],
+        valori: ['Date'], // Accept either Price or Close column (checked later)
         movimenti: ['data', 'ticker', 'azione', 'frazione_numeratore', 'frazione_denominatore'],
-        dividendi: ['ticker', 'data_pagamento', 'importo_usd']
+        dividendi: ['ticker', 'date', 'amount'] // Updated to match actual CSV format
     };
     
     const fields = requiredFields[type];
@@ -613,6 +613,14 @@ function validateCSV(type, data) {
     for (const field of fields) {
         if (!(field in firstRow)) {
             addError(`CSV ${type} manca campo: ${field}`);
+            return false;
+        }
+    }
+    
+    // Special validation for valori: must have Price OR Close
+    if (type === 'valori') {
+        if (!('Price' in firstRow) && !('Close' in firstRow)) {
+            addError(`CSV valori deve avere colonna 'Price' o 'Close'`);
             return false;
         }
     }
