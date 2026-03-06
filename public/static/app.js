@@ -1,4 +1,4 @@
-// Rosicatore v4.1.0 - Portfolio Tracker Calculator
+// Rosicatore v4.4.2 - Portfolio Tracker Calculator
 // Italian Date Format Support: DD Mese YYYY (e.g., "10 Agosto 2000")
 // Main Application Logic
 
@@ -674,7 +674,12 @@ async function handleMultipleFiles(files, type, status) {
                 if (detectedType === 'valori') {
                     // Extract ticker from filename
                     const ticker = extractTickerFromFilename(file.name);
-                    if (ticker && TICKER_CSV_MAP[ticker]) {
+                    
+                    // FIX v4.4.2: Log dettagliato per debug
+                    console.log(`🔍 File: ${file.name} → Ticker estratto: ${ticker}, In MAP: ${!!TICKER_CSV_MAP[ticker]}`);
+                    
+                    // FIX v4.4.2: Accetta TUTTI i ticker estratti correttamente (non solo quelli in TICKER_CSV_MAP)
+                    if (ticker) {
                         // FIX v4.4.1: Storicatore CSV hanno date DECRESCENTI (più recenti prima)
                         // Dobbiamo ordinarle in modo CRESCENTE (vecchie → recenti) per getPrezzoByDate
                         const sortedData = data.sort((a, b) => {
@@ -687,8 +692,8 @@ async function handleMultipleFiles(files, type, status) {
                         console.log(`✅ ${ticker}: ${data.length} rows caricati da ${file.name} (sorted ascending)`);
                         successCount++;
                     } else {
-                        console.warn(`⚠️ Ticker non riconosciuto in: ${file.name}`);
-                        errors.push({ file: file.name, error: 'Ticker non riconosciuto' });
+                        console.warn(`⚠️ Ticker non estratto da filename: ${file.name}`);
+                        errors.push({ file: file.name, error: 'Impossibile estrarre ticker dal filename' });
                         errorCount++;
                     }
                 } else if (detectedType === 'titoli' && type === 'titoli') {
@@ -786,38 +791,63 @@ function detectCSVType(data, filename) {
 
 // NEW: Extract ticker from filename
 function extractTickerFromFilename(filename) {
+    // FIX v4.4.2: Normalizza il filename rimuovendo eventuali path di directory
+    // Esempio: "PBR/PBR - Parte 1..." → "PBR - Parte 1..."
+    const basename = filename.split('/').pop();
+    
     // Pattern 1: "TICKER - Parte X (X-XXXX) - XXXX prezzi.csv" OR "TICKER - Parte X (X-XXXX) - XXXX movimenti.csv"
     // FIX v4.4.1: Storicatore v2.8.x rinomina "movimenti" → "prezzi"
     // Format: "AA - Parte 1 (1-2000) - 2000 prezzi.csv" (nota: spazio tra numero e tipo!)
     const pattern1 = /^([A-Z\.]{2,10})\s*-\s*Parte.*\s+(movimenti|prezzi)\.csv$/i;
-    const match1 = filename.match(pattern1);
+    const match1 = basename.match(pattern1);
     if (match1) {
-        const ticker = match1[1].toUpperCase();
+        let ticker = match1[1].toUpperCase();
+        
+        // FIX v4.4.2: Rimuovi suffissi exchange (.TO, .TSX, .TSXV)
+        ticker = ticker.replace(/\.(TO|TSX|TSXV)$/i, '');
+        
+        // FIX v4.4.2: Mapping speciale per ticker non standard
+        if (ticker === 'PLLL') ticker = 'PLL';
+        
         console.log(`🎯 Pattern 1 match: ${filename} → ticker: ${ticker}, type: ${match1[2]}`);
         return ticker;
     }
     
     // Pattern 2: "YYYY-MM-DD - TICKER - X dividendi.csv"
     const pattern2 = /\d{4}-\d{2}-\d{2}\s*-\s*([A-Z\.]{2,10})\s*-/i;
-    const match2 = filename.match(pattern2);
+    const match2 = basename.match(pattern2);
     if (match2) {
-        const ticker = match2[1].toUpperCase();
+        let ticker = match2[1].toUpperCase();
+        
+        // FIX v4.4.2: Rimuovi suffissi exchange (.TO, .TSX, .TSXV)
+        ticker = ticker.replace(/\.(TO|TSX|TSXV)$/i, '');
+        
+        // FIX v4.4.2: Mapping speciale per ticker non standard
+        if (ticker === 'PLLL') ticker = 'PLL';
+        
         console.log(`🎯 Pattern 2 match: ${filename} → ticker: ${ticker}`);
         return ticker;
     }
     
     // Pattern 3: Fallback - cerca "TICKER - Parte" senza specificare .csv
     const pattern3 = /^([A-Z\.]{2,10})\s*-\s*Parte/i;
-    const match3 = filename.match(pattern3);
+    const match3 = basename.match(pattern3);
     if (match3) {
-        const ticker = match3[1].toUpperCase();
+        let ticker = match3[1].toUpperCase();
+        
+        // FIX v4.4.2: Rimuovi suffissi exchange (.TO, .TSX, .TSXV)
+        ticker = ticker.replace(/\.(TO|TSX|TSXV)$/i, '');
+        
+        // FIX v4.4.2: Mapping speciale per ticker non standard
+        if (ticker === 'PLLL') ticker = 'PLL';
+        
         console.log(`🎯 Pattern 3 match (fallback): ${filename} → ticker: ${ticker}`);
         return ticker;
     }
     
     // Pattern 4: Search in TICKER_CSV_MAP
     for (const [ticker, mappedFilename] of Object.entries(TICKER_CSV_MAP)) {
-        if (filename.toUpperCase().includes(ticker.toUpperCase())) {
+        if (basename.toUpperCase().includes(ticker.toUpperCase())) {
             console.log(`🎯 TICKER_CSV_MAP match: ${filename} → ticker: ${ticker}`);
             return ticker;
         }
