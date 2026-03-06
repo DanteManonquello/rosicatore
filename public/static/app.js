@@ -675,8 +675,16 @@ async function handleMultipleFiles(files, type, status) {
                     // Extract ticker from filename
                     const ticker = extractTickerFromFilename(file.name);
                     if (ticker && TICKER_CSV_MAP[ticker]) {
-                        state.csvData.valori[ticker] = data;
-                        console.log(`✅ ${ticker}: ${data.length} rows caricati da ${file.name}`);
+                        // FIX v4.4.1: Storicatore CSV hanno date DECRESCENTI (più recenti prima)
+                        // Dobbiamo ordinarle in modo CRESCENTE (vecchie → recenti) per getPrezzoByDate
+                        const sortedData = data.sort((a, b) => {
+                            const dateA = dayjs(a.Date);
+                            const dateB = dayjs(b.Date);
+                            return dateA - dateB;  // Ordine crescente (vecchie → recenti)
+                        });
+                        
+                        state.csvData.valori[ticker] = sortedData;
+                        console.log(`✅ ${ticker}: ${data.length} rows caricati da ${file.name} (sorted ascending)`);
                         successCount++;
                     } else {
                         console.warn(`⚠️ Ticker non riconosciuto in: ${file.name}`);
