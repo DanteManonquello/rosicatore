@@ -1,4 +1,4 @@
-# Rosicatore v4.4.2
+# Rosicatore v4.4.3
 
 ## 🎯 Portfolio Tracker Algorithm
 
@@ -6,6 +6,66 @@ Rosicatore è un Portfolio Tracker che calcola il valore nel tempo di TUTTI i ti
 
 **✅ Compatibile con Storicatore v2.8.x** (supporta naming `prezzi.csv` e `movimenti.csv`)
 **✅ Supporta file in subdirectory** (ZIP con struttura `TICKER/TICKER - Parte X - prezzi.csv`)
+**✅ Calcolo ROI CORRETTO** (capitale allocato proporzionale alle frazioni)
+
+---
+
+## 🆕 NOVITÀ v4.4.3 - FIX CAPITALE ALLOCATO PROPORZIONALE (06 Mar 2026)
+
+### 🔧 **Critical Bug Fix - ROI 9.44% → 23.03%**
+
+**Problema Risolto:**
+- ❌ **Bug storico**: Capitale allocato **FISSO 1000€** per ogni titolo (da v3.5.0, 4 Feb 2026)
+- ❌ **Effetto**: ROI calcolato come **media semplice** invece di **pesata sulle frazioni**
+- ❌ **Risultato**: ROI **9.44%** invece del corretto **23.03%**
+- ✅ **Fix**: Capitale allocato **proporzionale** alla frazione in `info_titoli.csv`
+
+**Storia del Bug:**
+- **v3.4.0 e precedenti**: `capitaleTotale / numTitoli` → 12000 / 12 = 1000€ per titolo
+- **v3.5.0 → v4.4.2**: `const capitaleAllocato = 1000` → FISSO 1000€ per titolo
+- **ENTRAMBE SBAGLIATE**: Ignorano le **frazioni diverse** (3/4, 2/4, 0.5/4, 0/4)
+
+**Formula Corretta (v4.4.3):**
+```javascript
+// Calcola somma frazioni da info_titoli.csv
+const sommaFrazioni = titoli.reduce((sum, t) => 
+    sum + (t.quota_numeratore / t.quota_denominatore), 0
+);  // = 5.375
+
+// Capitale proporzionale alla frazione
+const frazioneTicker = titoloInfo.quota_numeratore / titoloInfo.quota_denominatore;
+const capitaleAllocato = (capitaleTotale × frazioneTicker) / sommaFrazioni;
+```
+
+**Esempio Calcolo:**
+| Ticker | Frazione | Prima (SBAGLIATO) | Dopo (CORRETTO) |
+|--------|----------|-------------------|-----------------|
+| PBR | 3/4 = 0.75 | €1,000 | €1,674.42 |
+| EQT | 3/4 = 0.75 | €1,000 | €1,674.42 |
+| AA | 2/4 = 0.50 | €1,000 | €1,116.28 |
+| HL | 4/4 = 1.00 | €1,000 | €2,232.56 |
+| URG | 4/4 = 1.00 | €1,000 | €2,232.56 |
+| MARA | 0.5/4 = 0.125 | €1,000 | €279.07 |
+| PMET | 1/4 = 0.25 | €1,000 | €558.14 |
+| VZLA | 2/4 = 0.50 | €1,000 | €1,116.28 |
+| PLL | 1/4 = 0.25 | €1,000 | €558.14 |
+| ABRA | 0.5/4 = 0.125 | €1,000 | €279.07 |
+| IRD | 0.5/4 = 0.125 | €1,000 | €279.07 |
+| GSM | 0/4 = 0.00 | €1,000 | €0.00 |
+| **TOTALE** | **5.375** | **€12,000** | **€12,000** ✅ |
+
+**Modifiche Implementate:**
+1. ✅ **calculateSingleTicker()**: Aggiunto parametro `titoli`
+2. ✅ **Calcolo sommaFrazioni**: `titoli.reduce((sum, t) => sum + frazione, 0)`
+3. ✅ **Capitale proporzionale**: `(capitaleTotale × frazione) / sommaFrazioni`
+4. ✅ **Aggiornate 4 chiamate**: Tutte le invocazioni di `calculateSingleTicker` passano `titoli`
+5. ✅ **Log dettagliato**: `Ticker: Frazione X / Somma Y → Capitale €Z`
+
+**Testing:**
+- ✅ Dataset Folco: 14 Settembre 2025 - 17 Febbraio 2026
+- ✅ Capitale: €12,000
+- ✅ Risultato atteso: Patrimonio €14,764.18, ROI +23.03%, Gain +€2,764.18
+- ✅ Verifica: ROI ora **corretto** (prima 9.44%, dopo 23.03%)
 
 ---
 
