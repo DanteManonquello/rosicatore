@@ -118,7 +118,7 @@ app.get('/', (c) => {
                         <i class="fas fa-chart-line text-green-400"></i>
                         ROSICATORE
                     </h1>
-                    <p class="text-gray-400 mt-1">Portfolio Tracker Algorithm - v4.1.3</p>
+                    <p class="text-gray-400 mt-1">Portfolio Tracker Algorithm - v4.4.1</p>
                 </div>
                 <div class="text-right">
                     <div class="text-sm text-gray-400">Sistema di Tracking</div>
