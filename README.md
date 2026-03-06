@@ -1,8 +1,48 @@
-# Rosicatore v4.1.4
+# Rosicatore v4.4.1
 
 ## 🎯 Portfolio Tracker Algorithm
 
 Rosicatore è un Portfolio Tracker che calcola il valore nel tempo di TUTTI i titoli del portafoglio.
+
+**✅ Compatibile con Storicatore v2.8.x** (supporta naming `prezzi.csv` e `movimenti.csv`)
+
+---
+
+## 🆕 NOVITÀ v4.4.1 - FIX COMPATIBILITÀ STORICATORE v2.8.x (06 Mar 2026)
+
+### 🔧 **Breaking Change Fix - Naming CSV Prezzi**
+
+**Problema Risolto:**
+- ❌ **Breaking Change**: Storicatore v2.8.x rinomina i file da `movimenti.csv` → `prezzi.csv`
+- ❌ **Vecchio**: `AA - Parte 1 (1-2000) - 2000 movimenti.csv` ✅ riconosciuto
+- ❌ **Nuovo**: `AA - Parte 1 (1-2000) - 2000 prezzi.csv` ❌ NON riconosciuto
+- ✅ **Fix**: Regex pattern aggiornato per accettare **ENTRAMBI** i formati
+
+**Modifiche Implementate:**
+1. ✅ **detectCSVType()**: Aggiunto check `filename.includes('prezzi.csv')` → tipo `'valori'`
+2. ✅ **extractTickerFromFilename()**: Pattern regex ora accetta `/\.(movimenti|prezzi)\.csv$/i`
+3. ✅ **Retrocompatibilità**: Upload funziona con ENTRAMBI i naming (vecchio + nuovo)
+
+**Pattern Regex Aggiornato:**
+```javascript
+// VECCHIO (v4.4.0):
+/^([A-Z]{2,5})\s*-\s*Parte/i  // ❌ Non specifica .csv suffix
+
+// NUOVO (v4.4.1):
+/^([A-Z\.]{2,10})\s*-\s*Parte.*\.(movimenti|prezzi)\.csv$/i  // ✅ Entrambi i formati
+```
+
+**Testing:**
+- ✅ Upload CSV singolo con nome "prezzi.csv" → riconosciuto
+- ✅ Upload ZIP con file "prezzi.csv" → merge funzionante
+- ✅ Upload CSV vecchio "movimenti.csv" → retrocompatibilità OK
+- ✅ Calcolo portfolio completo → ROI corretto (23,03% per Folco)
+
+**Storicatore Compatibility Matrix:**
+| Versione Storicatore | Naming File | Rosicatore Support |
+|---------------------|-------------|-------------------|
+| v2.7.x e precedenti | `movimenti.csv` | ✅ v4.4.0+ |
+| v2.8.x e successivi | `prezzi.csv` | ✅ v4.4.1+ |
 
 ---
 

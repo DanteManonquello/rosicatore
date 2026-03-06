@@ -737,6 +737,13 @@ function detectCSVType(data, filename) {
         return 'unknown';
     }
     
+    // FIX v4.4.1: Storicatore v2.8.x rinomina "movimenti.csv" → "prezzi.csv"
+    // Retrocompatibilità: accetta ENTRAMBI i naming
+    if (filename.toLowerCase().includes('prezzi.csv')) {
+        console.log(`✅ Riconosciuto come VALORI (filename prezzi.csv - Storicatore v2.8.x)`);
+        return 'valori';
+    }
+    
     const firstRow = data[0];
     const columns = Object.keys(firstRow);
     console.log(`🔍 detectCSVType per ${filename}: columns =`, columns);
@@ -747,7 +754,7 @@ function detectCSVType(data, filename) {
         return 'titoli';
     }
     
-    // movimenti.csv
+    // movimenti.csv (transazioni BUY/SELL)
     if (columns.includes('data') && columns.includes('azione') && columns.includes('frazione_numeratore')) {
         console.log(`✅ Riconosciuto come MOVIMENTI`);
         return 'movimenti';
@@ -759,9 +766,9 @@ function detectCSVType(data, filename) {
         return 'dividendi';
     }
     
-    // Pricing CSV (Date + Close/Price)
+    // Pricing CSV (Date + Close/Price) - Storicatore v2.7.x "movimenti.csv"
     if (columns.includes('Date') && (columns.includes('Close') || columns.includes('Price') || columns.includes('Open'))) {
-        console.log(`✅ Riconosciuto come VALORI`);
+        console.log(`✅ Riconosciuto come VALORI (formato Storicatore)`);
         return 'valori';
     }
     
@@ -771,23 +778,43 @@ function detectCSVType(data, filename) {
 
 // NEW: Extract ticker from filename
 function extractTickerFromFilename(filename) {
-    // Pattern 1: "TICKER - Parte X (X-XXXX) - XXXX movimenti.csv"
-    const pattern1 = /^([A-Z]{2,5})\s*-\s*Parte/i;
+    // Pattern 1: "TICKER - Parte X (X-XXXX) - XXXX movimenti.csv" OR "TICKER - Parte X (X-XXXX) - XXXX prezzi.csv"
+    // FIX v4.4.1: Storicatore v2.8.x rinomina "movimenti" → "prezzi"
+    const pattern1 = /^([A-Z\.]{2,10})\s*-\s*Parte.*\.(movimenti|prezzi)\.csv$/i;
     const match1 = filename.match(pattern1);
-    if (match1) return match1[1].toUpperCase();
+    if (match1) {
+        const ticker = match1[1].toUpperCase();
+        console.log(`🎯 Pattern 1 match: ${filename} → ticker: ${ticker}`);
+        return ticker;
+    }
     
     // Pattern 2: "YYYY-MM-DD - TICKER - X dividendi.csv"
-    const pattern2 = /\d{4}-\d{2}-\d{2}\s*-\s*([A-Z]{2,5})\s*-/i;
+    const pattern2 = /\d{4}-\d{2}-\d{2}\s*-\s*([A-Z\.]{2,10})\s*-/i;
     const match2 = filename.match(pattern2);
-    if (match2) return match2[1].toUpperCase();
+    if (match2) {
+        const ticker = match2[1].toUpperCase();
+        console.log(`🎯 Pattern 2 match: ${filename} → ticker: ${ticker}`);
+        return ticker;
+    }
     
-    // Pattern 3: Search in TICKER_CSV_MAP
+    // Pattern 3: Fallback - cerca "TICKER - Parte" senza specificare .csv
+    const pattern3 = /^([A-Z\.]{2,10})\s*-\s*Parte/i;
+    const match3 = filename.match(pattern3);
+    if (match3) {
+        const ticker = match3[1].toUpperCase();
+        console.log(`🎯 Pattern 3 match (fallback): ${filename} → ticker: ${ticker}`);
+        return ticker;
+    }
+    
+    // Pattern 4: Search in TICKER_CSV_MAP
     for (const [ticker, mappedFilename] of Object.entries(TICKER_CSV_MAP)) {
         if (filename.toUpperCase().includes(ticker.toUpperCase())) {
+            console.log(`🎯 TICKER_CSV_MAP match: ${filename} → ticker: ${ticker}`);
             return ticker;
         }
     }
     
+    console.warn(`⚠️ Nessun pattern match per: ${filename}`);
     return null;
 }
 
