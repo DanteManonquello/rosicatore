@@ -1,10 +1,57 @@
-# Rosicatore v4.4.1
+# Rosicatore v4.4.2
 
 ## 🎯 Portfolio Tracker Algorithm
 
 Rosicatore è un Portfolio Tracker che calcola il valore nel tempo di TUTTI i titoli del portafoglio.
 
 **✅ Compatibile con Storicatore v2.8.x** (supporta naming `prezzi.csv` e `movimenti.csv`)
+**✅ Supporta file in subdirectory** (ZIP con struttura `TICKER/TICKER - Parte X - prezzi.csv`)
+
+---
+
+## 🆕 NOVITÀ v4.4.2 - FIX CARICAMENTO 12 TICKER COMPLETO (06 Mar 2026)
+
+### 🔧 **Critical Bug Fix - "9 ticker" invece di 12**
+
+**Problema Risolto:**
+- ❌ **Bug**: Solo 9/12 ticker caricati (PBR, EQT, AA, HL, URG, MARA, PMET, VZLA, PLL)
+- ❌ **Mancanti**: ABRA, IRD, GSM → "ticker non riconosciuto"
+- ❌ **Causa 1**: Check `TICKER_CSV_MAP[ticker]` alla riga 677 bloccava ticker validi
+- ❌ **Causa 2**: File in subdirectory (`PBR/PBR - Parte 1...`) non gestiti
+- ❌ **Causa 3**: Suffissi exchange (`.TO`, `.TSX`, `.TSXV`) non rimossi
+- ✅ **Fix**: Normalizzazione filename + rimozione check restrittivo + suffissi gestiti
+
+**Modifiche Implementate:**
+1. ✅ **extractTickerFromFilename()**: `basename = filename.split('/').pop()` (gestisce subdirectory)
+2. ✅ **Check TICKER_CSV_MAP rimosso**: Accetta TUTTI i ticker estratti correttamente
+3. ✅ **Suffissi exchange**: Rimozione `.TO`, `.TSX`, `.TSXV` per TUTTI i file (prezzi + dividendi)
+4. ✅ **Mapping speciale**: `PLLL` → `PLL` (compatibilità dividendi)
+5. ✅ **Log dettagliato**: `Ticker estratto: XXX, In MAP: true/false` per debug
+
+**Normalizzazione Filename:**
+```javascript
+// VECCHIO (v4.4.1):
+const pattern1 = /^([A-Z\.]{2,10})\s*-\s*Parte.*\s+(movimenti|prezzi)\.csv$/i;
+const match1 = filename.match(pattern1);  // ❌ Fallisce con "PBR/PBR - Parte..."
+
+// NUOVO (v4.4.2):
+const basename = filename.split('/').pop();  // "PBR/PBR - Parte..." → "PBR - Parte..."
+const match1 = basename.match(pattern1);     // ✅ Funziona!
+```
+
+**Testing:**
+- ✅ 40 file prezzi in subdirectory (`PBR/`, `AA/`, `EQT/`, etc.) → tutti caricati
+- ✅ 24 file dividendi con suffissi (`.TO`, `.TSX`) → tutti processati
+- ✅ Ticker speciali: `PLLL` → `PLL`, `ABRA.TO` → `ABRA`, `PMET.TSXV` → `PMET`
+- ✅ 12/12 ticker caricati correttamente (prima 9/12)
+
+**Retro-compatibilità:**
+| Formato File | Struttura | Rosicatore Support |
+|-------------|-----------|-------------------|
+| File flat | `AA - Parte 1 - 2000 movimenti.csv` | ✅ v4.4.0+ |
+| File flat | `AA - Parte 1 - 2000 prezzi.csv` | ✅ v4.4.1+ |
+| Subdirectory | `AA/AA - Parte 1 - 2000 prezzi.csv` | ✅ v4.4.2+ |
+| Ticker con suffissi | `ABRA.TO`, `PMET.TSX` | ✅ v4.4.2+ |
 
 ---
 
