@@ -1,8 +1,41 @@
-# Rosicatore v4.1.3
+# Rosicatore v4.1.4
 
 ## 🎯 Portfolio Tracker Algorithm
 
 Rosicatore è un Portfolio Tracker che calcola il valore nel tempo di TUTTI i titoli del portafoglio.
+
+---
+
+## 🆕 NOVITÀ v4.1.4 - FIX CSV VALIDATION (17 Feb 2026)
+
+### 🔧 **Critical Bug Fix - CSV Non Caricati**
+
+**Problema Risolto:**
+- ❌ **Bug**: Validazione CSV richiedeva colonna `Price`, ma Yahoo Finance CSVs usano `Close`
+- ❌ **Effetto**: TUTTI i CSV prezzi fallivano validazione → nessun ticker caricato
+- ❌ **Errore**: "Prezzo base (2025-12-03) non trovato per {ticker}"
+- ✅ **Fix**: Validazione ora accetta `Date` + (`Price` OR `Close`)
+
+**CSV Format Issues Fixed:**
+1. ✅ **Pricing CSVs**: Ora accettano formato Yahoo Finance: `Date,Open,High,Low,Close,Volume`
+2. ✅ **Dividendi CSVs**: Aggiornati campi `date` e `amount` (era `data_pagamento`, `importo_usd`)
+3. ✅ **getPrezzoByDate**: Già supportava entrambi i formati (`row.Close || row.Price`)
+
+**Validazione Prima (❌ broken):**
+```javascript
+valori: ['Date', 'Price']  // Yahoo CSVs non hanno 'Price'!
+```
+
+**Validazione Dopo (✅ fixed):**
+```javascript
+valori: ['Date']  // Poi verifica: 'Price' OR 'Close' present
+```
+
+**Testing:**
+- ✅ Tutti i 12 ticker ora si caricano correttamente
+- ✅ Date range 1970-2026 validato
+- ✅ Portfolio calculations funzionanti
+- ✅ Zero errori "Prezzo base non trovato"
 
 ---
 
