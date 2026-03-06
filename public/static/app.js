@@ -618,11 +618,13 @@ async function handleMultipleFiles(files, type, status) {
         // Process each CSV
         for (const file of csvFiles) {
             try {
+                console.log(`📄 Processing file: ${file.name}`);
                 const data = await parseCSV(file);
+                console.log(`📊 Parsed ${file.name}: ${data.length} rows`);
                 
                 // Auto-detect CSV type
                 const detectedType = detectCSVType(data, file.name);
-                console.log(`🔍 File: ${file.name} → Tipo: ${detectedType}`);
+                console.log(`🔍 File: ${file.name} → Tipo rilevato: ${detectedType}, Zona attuale: ${type}`);
                 
                 if (detectedType === 'valori') {
                     // Extract ticker from filename
@@ -685,31 +687,40 @@ async function handleMultipleFiles(files, type, status) {
 
 // NEW: Auto-detect CSV type from columns
 function detectCSVType(data, filename) {
-    if (!data || data.length === 0) return 'unknown';
+    if (!data || data.length === 0) {
+        console.warn(`⚠️ detectCSVType: data vuoto per ${filename}`);
+        return 'unknown';
+    }
     
     const firstRow = data[0];
     const columns = Object.keys(firstRow);
+    console.log(`🔍 detectCSVType per ${filename}: columns =`, columns);
     
     // info_titoli.csv
     if (columns.includes('ticker') && columns.includes('quota_numeratore') && columns.includes('quota_denominatore')) {
+        console.log(`✅ Riconosciuto come TITOLI`);
         return 'titoli';
     }
     
     // movimenti.csv
     if (columns.includes('data') && columns.includes('azione') && columns.includes('frazione_numeratore')) {
+        console.log(`✅ Riconosciuto come MOVIMENTI`);
         return 'movimenti';
     }
     
     // dividendi.csv
     if (columns.includes('ticker') && (columns.includes('date') || columns.includes('data_pagamento')) && (columns.includes('amount') || columns.includes('importo_usd'))) {
+        console.log(`✅ Riconosciuto come DIVIDENDI`);
         return 'dividendi';
     }
     
     // Pricing CSV (Date + Close/Price)
     if (columns.includes('Date') && (columns.includes('Close') || columns.includes('Price') || columns.includes('Open'))) {
+        console.log(`✅ Riconosciuto come VALORI`);
         return 'valori';
     }
     
+    console.warn(`⚠️ Tipo UNKNOWN per ${filename}, columns:`, columns);
     return 'unknown';
 }
 
