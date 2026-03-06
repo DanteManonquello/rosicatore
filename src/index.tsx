@@ -10,6 +10,25 @@ app.use('/api/*', cors())
 // Serve static files
 app.use('/static/*', serveStatic({ root: './public' }))
 
+// Serve robots.txt from root
+app.get('/robots.txt', (c) => {
+  return c.text(`# Block all search engines
+User-agent: *
+Disallow: /
+
+# Specifically block Google
+User-agent: Googlebot
+Disallow: /
+
+User-agent: Googlebot-Image
+Disallow: /
+
+User-agent: Googlebot-Mobile
+Disallow: /`, 200, {
+    'Content-Type': 'text/plain; charset=utf-8'
+  })
+})
+
 // API Routes
 app.get('/api/health', (c) => {
   return c.json({ status: 'ok', version: '4.1.4' })
