@@ -615,6 +615,51 @@ async function handleMultipleFiles(files, type, status) {
         
         console.log(`📊 Trovati ${csvFiles.length} CSV da processare`);
         
+        // ============================================================================
+        // 🆕 DIVIDENDI MULTI-FILE DETECTION (v4.4.0)
+        // ============================================================================
+        
+        // Check if this is dividendi multi-file format
+        if (type === 'dividendi' && detectDividendiMultiFile(csvFiles)) {
+            console.log(`🔍 Rilevato formato dividendi multi-file (${csvFiles.length} file)`);
+            status.innerHTML = `<i class="fas fa-spinner fa-spin mr-1"></i>Merging ${csvFiles.length} dividendi files...`;
+            
+            try {
+                const result = await mergeDividendiFiles(csvFiles);
+                
+                if (result.data.length === 0) {
+                    status.innerHTML = '<i class="fas fa-times-circle mr-1 status-error"></i>Nessun dividendo valido trovato';
+                    status.className = 'mt-3 text-xs status-error';
+                    return;
+                }
+                
+                // Store merged data
+                state.csvData.dividendi = result.data;
+                
+                // Show success message
+                const message = `${result.data.length} dividendi da ${result.successCount} tickers`;
+                status.innerHTML = `<i class="fas fa-check-circle mr-1 status-loaded"></i>${message} ✓`;
+                status.className = 'mt-3 text-xs status-loaded';
+                
+                console.log(`✅ Dividendi multi-file loaded successfully: ${result.data.length} rows`);
+                
+                // Validate
+                validateCSV('dividendi', result.data);
+                
+                return; // Exit early, we're done
+                
+            } catch (error) {
+                console.error(`❌ Error merging dividendi files:`, error);
+                status.innerHTML = `<i class="fas fa-times-circle mr-1 status-error"></i>Errore merge: ${error.message}`;
+                status.className = 'mt-3 text-xs status-error';
+                return;
+            }
+        }
+        
+        // ============================================================================
+        // STANDARD MULTI-FILE PROCESSING (existing logic)
+        // ============================================================================
+        
         // Process each CSV
         for (const file of csvFiles) {
             try {
@@ -744,6 +789,149 @@ function extractTickerFromFilename(filename) {
     }
     
     return null;
+}
+
+// ============================================================================
+// 📊 DIVIDENDI MULTI-FILE SUPPORT (v4.4.0)
+// ============================================================================
+
+/**
+ * Detect if files are multi-file dividendi format
+ * Pattern: "YYYY-MM-DD - TICKER - N dividendi.csv"
+ */
+function detectDividendiMultiFile(files) {
+    if (!files || files.length === 0) return false;
+    
+    const dividendiPattern = /\d{4}-\d{2}-\d{2}\s*-\s*[A-Z\.]+\s*-\s*\d+\s*dividendi\.csv/i;
+    
+    // Check if at least 50% of files match dividendi pattern
+    const matchingFiles = files.filter(f => dividendiPattern.test(f.name));
+    return matchingFiles.length >= Math.ceil(files.length * 0.5);
+}
+
+/**
+ * Extract ticker from dividendi filename
+ * Pattern: "2026-03-06 - PBR - 42 dividendi.csv" → "PBR"
+ */
+function extractTickerFromDividendiFilename(filename) {
+    const pattern = /\d{4}-\d{2}-\d{2}\s*-\s*([A-Z\.]+)\s*-\s*\d+\s*dividendi\.csv/i;
+    const match = filename.match(pattern);
+    
+    if (!match) return null;
+    
+    let ticker = match[1].toUpperCase();
+    
+    // Normalize ticker
+    ticker = ticker.replace(/\.TO$|\.TSX$|\.TSXV$/i, ''); // Remove .TO, .TSX, .TSXV
+    if (ticker === 'PLLL') ticker = 'PLL'; // Fix PLLL → PLL
+    if (ticker === 'PMET') ticker = 'PMET'; // PMET.TO → PMET
+    if (ticker === 'ABRA') ticker = 'ABRA'; // ABRA.TO → ABRA
+    
+    return ticker;
+}
+
+/**
+ * Normalize dividendi CSV to standard format
+ * Input: [{Date: "25 Agosto 2025", Amount: 0.247}]
+ * Output: [{ticker: "PBR", currency: "USD", date: "2025-08-25", amount: 0.247}]
+ */
+function normalizeDividendiCSV(data, ticker) {
+    if (!data || data.length === 0) return [];
+    
+    return data.map(row => {
+        // Normalize column names to lowercase
+        const normalizedRow = {};
+        for (const [key, value] of Object.entries(row)) {
+            normalizedRow[key.toLowerCase()] = value;
+        }
+        
+        // Extract date and amount
+        const dateStr = normalizedRow.date || normalizedRow['date'];
+        const amount = parseFloat(normalizedRow.amount || normalizedRow['amount']);
+        
+        if (!dateStr || isNaN(amount)) {
+            console.warn(`⚠️ Invalid dividendi row for ${ticker}:`, row);
+            return null;
+        }
+        
+        // Parse Italian date
+        const isoDate = parseItalianDate(dateStr);
+        if (!isoDate) {
+            console.warn(`⚠️ Could not parse date "${dateStr}" for ${ticker}`);
+            return null;
+        }
+        
+        return {
+            ticker: ticker,
+            currency: 'USD',
+            date: isoDate,
+            amount: amount
+        };
+    }).filter(row => row !== null); // Remove null entries
+}
+
+/**
+ * Merge multiple dividendi files into single array
+ * Input: [File1, File2, ...]
+ * Output: [{ticker, currency, date, amount}, ...]
+ */
+async function mergeDividendiFiles(files) {
+    console.log(`📦 Merging ${files.length} dividendi files...`);
+    
+    const allDividendi = [];
+    let successCount = 0;
+    let skipCount = 0;
+    const errors = [];
+    
+    for (const file of files) {
+        try {
+            const ticker = extractTickerFromDividendiFilename(file.name);
+            
+            if (!ticker) {
+                console.warn(`⚠️ Could not extract ticker from: ${file.name}`);
+                errors.push({ file: file.name, error: 'Invalid filename pattern' });
+                continue;
+            }
+            
+            const data = await parseCSV(file);
+            
+            if (!data || data.length === 0) {
+                console.log(`📋 Empty dividendi file for ${ticker}, skipping`);
+                skipCount++;
+                continue;
+            }
+            
+            const normalized = normalizeDividendiCSV(data, ticker);
+            
+            if (normalized.length === 0) {
+                console.warn(`⚠️ No valid dividendi rows in ${file.name}`);
+                skipCount++;
+                continue;
+            }
+            
+            allDividendi.push(...normalized);
+            successCount++;
+            console.log(`✅ ${ticker}: ${normalized.length} dividendi loaded from ${file.name}`);
+            
+        } catch (error) {
+            console.error(`❌ Error processing ${file.name}:`, error);
+            errors.push({ file: file.name, error: error.message });
+        }
+    }
+    
+    // Sort by ticker then date
+    allDividendi.sort((a, b) => {
+        if (a.ticker !== b.ticker) return a.ticker.localeCompare(b.ticker);
+        return a.date.localeCompare(b.date);
+    });
+    
+    console.log(`✅ Merge complete: ${allDividendi.length} total dividendi from ${successCount} tickers (${skipCount} empty files skipped)`);
+    
+    if (errors.length > 0) {
+        console.warn(`⚠️ ${errors.length} files with errors:`, errors);
+    }
+    
+    return { data: allDividendi, successCount, skipCount, errors };
 }
 
 // Parse CSV file
